@@ -1,0 +1,4 @@
+C:/Learning/Yuxi/C++_final/Examination_and_Question_Bank_Management_System/debug/CMakeFiles/Examination_and_Question_Bank_Management_System.dir
+C:/Learning/Yuxi/C++_final/Examination_and_Question_Bank_Management_System/debug/CMakeFiles/edit_cache.dir
+C:/Learning/Yuxi/C++_final/Examination_and_Question_Bank_Management_System/debug/CMakeFiles/rebuild_cache.dir
+C:/Learning/Yuxi/C++_final/Examination_and_Question_Bank_Management_System/debug/CMakeFiles/Examination_and_Question_Bank_Management_System_autogen.dir
