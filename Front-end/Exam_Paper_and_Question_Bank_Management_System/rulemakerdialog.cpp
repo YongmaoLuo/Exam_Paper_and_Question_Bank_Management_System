@@ -6,21 +6,12 @@
 #include <QMessageBox>
 #include <QInputDialog>
 
-RuleMakerDialog::RuleMakerDialog(QWidget *parent,QString *userName,QString *identity) :
+RuleMakerDialog::RuleMakerDialog(QWidget *parent) :
     QDialog(parent),ui(new Ui::RuleMakerDialog)
 {
     ui->setupUi(this);
     ui->deleteButton->setEnabled(false);
     ui->submitButton->setEnabled(false);
-
-    if((*identity).trimmed()=="teacher"){
-        ui->deleteButton->hide();
-        ui->submitButton->hide();
-        ui->createButton->hide();
-    }
-
-    this->rulemakerDir=QDir("./Bulletin/"+(*userName).trimmed());
-    read_bulletins(this->rulemakerDir);
 }
 
 RuleMakerDialog::~RuleMakerDialog(){

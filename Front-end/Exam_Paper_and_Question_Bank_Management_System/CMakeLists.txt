@@ -8,7 +8,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
@@ -18,37 +18,31 @@ set(PROJECT_SOURCES
         main.cpp
         mainwindow.cpp
         mainwindow.h
-        mainwindow.ui
         admindialog.cpp
         admindialog.h
-        admindialog.ui
         logindialog.cpp
         logindialog.h
-        logindialog.ui
-        loginform.cpp
-        loginform.h
-        loginform.ui
         ownInterface.h
         paperproductiondialog.cpp
         paperproductiondialog.h
-        paperproductiondialog.ui
         rulemakerdialog.cpp
         rulemakerdialog.h
-        rulemakerdialog.ui
         signupdialog.cpp
         signupdialog.h
-        signupdialog.ui
-        signupform.cpp
-        signupform.h
-        signupform.ui
         ui_admindialog.h
         ui_logindialog.h
-        ui_loginform.h
         ui_mainwindow.h
         ui_paperproductiondialog.h
         ui_rulemakerdialog.h
         ui_signupdialog.h
-        ui_signupform.h
+        tcpclientsocket.h
+        tcpclientsocket.cpp
+
+        admindialog.ui
+        logindialog.ui
+        paperproductiondialog.ui
+        rulemakerdialog.ui
+        signupdialog.ui
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

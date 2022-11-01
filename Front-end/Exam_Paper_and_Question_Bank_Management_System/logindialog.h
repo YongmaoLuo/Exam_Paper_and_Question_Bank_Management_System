@@ -28,9 +28,9 @@ signals:
 
 private slots:
     void on_loginButton_clicked();
-    void on_registerButton_clicked();
+    //void on_registerButton_clicked();
 
-    void receive_signup_panel_closure();
+    //void receive_signup_panel_closure();
     void receive_admin_panel_closure();
     void receive_rulemaker_panel_closure();
     void receive_teacher_panel_closure();
@@ -43,7 +43,6 @@ private:
     MainWindow *mainwindowPanel;
     QDir *rulemakerDir;
     void submit_login(QString userName, QString password) override;
-    void store_login_information(QString userName, QString identity) override;
 };
 
 #endif // LOGINDIALOG_H

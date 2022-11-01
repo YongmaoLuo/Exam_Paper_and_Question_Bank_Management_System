@@ -6,18 +6,16 @@
 #include <QCryptographicHash>
 #include "rulemakerdialog.h"
 #include "admindialog.h"
-#include "ui_admindialog.h"
-#include "signupdialog.h"
-#include "ui_signupdialog.h"
 #include "ownInterface.h"
 #include <QMessageBox>
+#include <tcpclientsocket.h>
 
 LoginDialog::LoginDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::LoginDialog)
 {
     ui->setupUi(this);
-    ui->password->setEchoMode(QLineEdit::Password); // 设置密码框显示模式。
+    ui->password->setEchoMode(QLineEdit::Password); // hide type in text because it is password
 }
 
 LoginDialog::~LoginDialog()
@@ -30,100 +28,91 @@ LoginDialog::~LoginDialog()
 
 void LoginDialog::on_loginButton_clicked()
 {
-    QString user = ui->userName->text(); // 用户名是密码文件的文件名。
+    QString user = ui->userName->text();
     QString pass=ui->password->text();
     submit_login(user,pass);
 }
 
 void LoginDialog::submit_login(QString userName, QString password){
-    // 非空校验
+    // check if the entered username or password is empty
     if(userName.trimmed().length()==0){
-        ui->prompt->setText("用户名为空");
+        ui->prompt->setText("username is empty");
         ui->userName->setFocus();
         return;
     }
     if(password.trimmed().length()==0){
-        ui->prompt->setText("密码为空");
+        ui->prompt->setText("password is empty");
         ui->password->setFocus();
         return;
     }
 
-    // 读取用户密码文件
-    QFile inputFile("./User/" + userName.trimmed());
-    bool isExist=inputFile.exists();
-    if(!isExist){
-        ui->prompt->setText("没有此用户"+userName.trimmed());
+    TCPClientSocket client;
+    client.updateServerAddress("34.139.226.174",9999);
+    if(client.connectToServer()==-1){
+        QMessageBox::warning(this, "warning", "fail to connect to server");
+        return;
+    }
+
+    std::string rawJson=fmt::format("{{\"command\":{}, \"username\":{}, \"password\":{}}}","login",userName.toStdString(),QCryptographicHash::hash((password).toLocal8Bit(),QCryptographicHash::Sha3_512).toHex().toStdString());
+    json packet=json::parse(rawJson);
+    if(client.sendToServer(packet)==-1){
+        QMessageBox::warning(this, "warning", "fail to request login to server");
+        return;
+    }
+    if(client.receive(packet)==-1){
+        QMessageBox::warning(this, "warning", "fail to receive message from server");
+        return;
+    }
+    if(packet["code"]==200){
+        if(packet["identity"]=="admin"){
+            adminPanel=new AdminDialog(this);
+            // signal-slot connection between adminPanel and loginPanel, since loginPanel control all generated widgets
+            connect(adminPanel,&AdminDialog::admin_panel_be_closed,this,&LoginDialog::receive_admin_panel_closure);
+            connect(this,&LoginDialog::login_close_admin,adminPanel,&AdminDialog::close_admin_panel);
+            adminPanel->open_admin_panel();
+            this->hide();
+        }else if(packet["identity"]=="teacher"){
+            mainwindowPanel=new MainWindow(this);
+            connect(mainwindowPanel,&MainWindow::teacher_panel_be_closed,this,&LoginDialog::receive_teacher_panel_closure);
+            connect(this,&LoginDialog::login_close_teacher,mainwindowPanel,&MainWindow::close_question_management_panel);
+            mainwindowPanel->open_question_management_panel();
+            this->hide();
+        }else if(packet["identity"]=="rulemaker"){
+            ruleMakerPanel=new RuleMakerDialog(this);
+            // signal-slot connections for closing rulemaker panel
+            connect(ruleMakerPanel,&RuleMakerDialog::rulemaker_panel_be_closed,this,&LoginDialog::receive_rulemaker_panel_closure);
+            connect(this,&LoginDialog::login_close_rulemaker,ruleMakerPanel,&RuleMakerDialog::close_rulemaker_panel);
+            ruleMakerPanel->open_rulemaker_panel();
+            this->hide();
+        }else{
+            QMessageBox::warning(this, "warning", "undefined message from server side");
+            return;
+        }
+    }else if(packet["code"]==403){
+        QMessageBox::warning(this, "warning", "password incorrect");
+        ui->password->setFocus();
+    }else if(packet["code"]==404){
+        QMessageBox::warning(this, "warning", "user not exist");
         ui->userName->setFocus();
-        return;
-    }
-    inputFile.open(QIODevice::ReadOnly);
-    QTextStream in(&inputFile);
-    QString cipherText = in.readAll(); // 加密后的密码串。
-    inputFile.close();
-    QByteArray temp=password.toLocal8Bit();
-    if(cipherText.trimmed()==QCryptographicHash::hash(("admin"+password).toLocal8Bit(),QCryptographicHash::Sha3_512).toHex()){
-        // 登录成功，身份是管理员
-        store_login_information(userName,"admin");
-        adminPanel=new AdminDialog(this);
-        // 此双向连接用于关闭窗口时的模块之间交互
-        connect(adminPanel,&AdminDialog::admin_panel_be_closed,this,&LoginDialog::receive_admin_panel_closure);
-        connect(this,&LoginDialog::login_close_admin,adminPanel,&AdminDialog::close_admin_panel);
-        adminPanel->open_admin_panel();
-        this->hide();
-    }else if(cipherText.trimmed()==QCryptographicHash::hash(("teacher"+password).toLocal8Bit(),QCryptographicHash::Sha3_512).toHex()){
-        // 登录成功，身份为教师
-        store_login_information(userName,"teacher");
-        mainwindowPanel=new MainWindow(this);
-        connect(mainwindowPanel,&MainWindow::teacher_panel_be_closed,this,&LoginDialog::receive_teacher_panel_closure);
-        connect(this,&LoginDialog::login_close_teacher,mainwindowPanel,&MainWindow::close_question_management_panel);
-        mainwindowPanel->open_question_management_panel();
-        this->hide();
-    }else if(cipherText.trimmed()==QCryptographicHash::hash(("rulemaker"+password).toLocal8Bit(),QCryptographicHash::Sha3_512).toHex()){
-        // 登录成功，身份为试卷规则制定者
-        store_login_information(userName,"rulemaker");
-        this->hide();
-        rulemakerDir=new QDir("./Bulletin/"+userName);
-        QString identityString="rulemaker";
-        ruleMakerPanel=new RuleMakerDialog(this,&userName,&identityString);
-        // 此双向连接用于关闭窗口时的模块之间交互
-        connect(ruleMakerPanel,&RuleMakerDialog::rulemaker_panel_be_closed,this,&LoginDialog::receive_rulemaker_panel_closure);
-        connect(this,&LoginDialog::login_close_rulemaker,ruleMakerPanel,&RuleMakerDialog::close_rulemaker_panel);
-        ruleMakerPanel->open_rulemaker_panel();
     }else{
-        ui->prompt->setText("密码错误"+cipherText.trimmed());
-        ui->password->setFocus();
-        return;
+        QMessageBox::warning(this, "warning", "undefined message from server side");
     }
-}
 
-void LoginDialog::on_registerButton_clicked()
-{
-    this->hide();
-    signUpPanel=new SignUpDialog(this);
-    // 此双向连接用于关闭窗口时的模块之间交互
-    connect(signUpPanel,&SignUpDialog::signup_panel_be_closed,this,&LoginDialog::receive_signup_panel_closure);
-    connect(this,&LoginDialog::login_close_signup,signUpPanel,&SignUpDialog::close_signup_panel);
-    signUpPanel->open_signup_panel();
 }
 
 void LoginDialog::open_login_panel(){
-    this->setWindowTitle("登录");
+    this->setWindowTitle("Login Panel");
     this->show();
 }
 
-void LoginDialog::receive_signup_panel_closure(){
-    signUpPanel=nullptr;
-    emit login_close_signup();
-}
+//void LoginDialog::receive_signup_panel_closure(){
+//    signUpPanel=nullptr;
+//    emit login_close_signup();
+//}
 
 void LoginDialog::receive_admin_panel_closure(){
     adminPanel=nullptr;
     emit login_close_admin();
-}
-
-void LoginDialog::store_login_information(QString userName, QString identity){
-    this->userName=userName;
-    this->identity=identity;
 }
 
 void LoginDialog::receive_rulemaker_panel_closure(){

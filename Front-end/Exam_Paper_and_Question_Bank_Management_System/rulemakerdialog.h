@@ -14,7 +14,7 @@ class RuleMakerDialog : public QDialog,public RuleMaker
     Q_OBJECT
 
 public:
-    explicit RuleMakerDialog(QWidget *parent = nullptr,QString *userName=nullptr,QString *identity=nullptr);
+    explicit RuleMakerDialog(QWidget *parent = nullptr);
     ~RuleMakerDialog();
     void open_rulemaker_panel() override;
 

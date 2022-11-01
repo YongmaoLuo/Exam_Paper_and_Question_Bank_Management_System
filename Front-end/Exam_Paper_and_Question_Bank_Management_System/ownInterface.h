@@ -4,19 +4,22 @@
 #include <QString>
 #include <QDir>
 #include <QDialog>
+#include <nlohmann/json.hpp>
+#define FMT_HEADER_ONLY
+#include "fmt/format.h"
+using json=nlohmann::json;
 
-class Login{// 登录模块
+class Login{// login panel
 protected:
     QString userName,identity;
-    virtual void submit_login(QString userName,QString password)=0;// 提交登录请求
-    virtual void store_login_information(QString userName,QString identity)=0;// 储存登录用户的信息，供未来操作中查询使用
+    virtual void submit_login(QString userName,QString password)=0;// submit login request
 public:
-    virtual void open_login_panel()=0;// 打开登录窗口
+    virtual void open_login_panel()=0;// open login panel
 };
 
 class Admin{// 系统管理员模块
 protected:
-    virtual void read_applicants(QDir applicantsDir)=0; // 读取所有申请者的信息，并且呈现出来
+    virtual void read_applicants(QDir applicantsDir)=0;
     virtual void read_users(QDir usersDir)=0; // 读取所有系统用户，并且呈现出来
     virtual void agree_applicant(QString applicantName)=0; // 通过用户申请
     virtual void reject_applicant(QString applicantName)=0; // 拒绝用户申请
