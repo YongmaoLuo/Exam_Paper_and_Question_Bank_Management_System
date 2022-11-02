@@ -3,7 +3,7 @@
 #include <QFile>
 #include <QDir>
 
-AdminDialog::AdminDialog(QWidget *parent) :
+AdminDialog::AdminDialog(QWidget *parent,TCPClientSocket *client) :
     QDialog(parent),
     ui(new Ui::AdminDialog)
 {

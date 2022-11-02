@@ -16,6 +16,7 @@ class TCPClientSocket
 
 public:
     TCPClientSocket();
+    ~TCPClientSocket();
     int updateServerAddress(std::string, int port=4995);
     int connectToServer();
     int sendToServer(json);

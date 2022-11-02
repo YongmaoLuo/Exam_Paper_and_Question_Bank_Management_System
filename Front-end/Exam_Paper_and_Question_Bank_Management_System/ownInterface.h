@@ -4,7 +4,9 @@
 #include <QString>
 #include <QDir>
 #include <QDialog>
+#include "tcpclientsocket.h"
 #include <nlohmann/json.hpp>
+#include <unistd.h>
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 using json=nlohmann::json;

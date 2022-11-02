@@ -13,7 +13,7 @@ class AdminDialog : public QDialog,public Admin
     Q_OBJECT
 
 public:
-    explicit AdminDialog(QWidget *parent = nullptr);
+    explicit AdminDialog(QWidget *parent = nullptr,TCPClientSocket *client=nullptr);
     ~AdminDialog();
     void open_admin_panel() override;
 

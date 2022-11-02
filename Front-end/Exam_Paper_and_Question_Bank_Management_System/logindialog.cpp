@@ -9,6 +9,7 @@
 #include "ownInterface.h"
 #include <QMessageBox>
 #include <tcpclientsocket.h>
+#include <stdio.h>
 
 LoginDialog::LoginDialog(QWidget *parent) :
     QDialog(parent),
@@ -46,39 +47,44 @@ void LoginDialog::submit_login(QString userName, QString password){
         return;
     }
 
-    TCPClientSocket client;
-    client.updateServerAddress("34.139.226.174",9999);
-    if(client.connectToServer()==-1){
-        QMessageBox::warning(this, "warning", "fail to connect to server");
+    TCPClientSocket *client=new TCPClientSocket();
+    if(client->updateServerAddress("127.0.0.1",9999)==-1){
+        QMessageBox::warning(this, "warning", "fail to update address");
+        return;
+    }
+    if(client->connectToServer()==-1){
+        perror("error:");
+        QMessageBox::warning(this, "warning", QString::fromUtf8(fmt::format("fail to connect to server. errno:{}",errno).c_str()));
         return;
     }
 
-    std::string rawJson=fmt::format("{{\"command\":{}, \"username\":{}, \"password\":{}}}","login",userName.toStdString(),QCryptographicHash::hash((password).toLocal8Bit(),QCryptographicHash::Sha3_512).toHex().toStdString());
+    std::string rawJson=fmt::format("{{\"command\": \"{}\", \"username\": \"{}\", \"password\": \"{}\"}}","login",
+                                    userName.toStdString(),QCryptographicHash::hash((password).toLocal8Bit(),QCryptographicHash::Sha3_512).toHex().toStdString());
     json packet=json::parse(rawJson);
-    if(client.sendToServer(packet)==-1){
+    if(client->sendToServer(packet)==-1){
         QMessageBox::warning(this, "warning", "fail to request login to server");
         return;
     }
-    if(client.receive(packet)==-1){
+    if(client->receive(packet)==-1){
         QMessageBox::warning(this, "warning", "fail to receive message from server");
         return;
     }
     if(packet["code"]==200){
         if(packet["identity"]=="admin"){
-            adminPanel=new AdminDialog(this);
+            adminPanel=new AdminDialog(this,client);
             // signal-slot connection between adminPanel and loginPanel, since loginPanel control all generated widgets
             connect(adminPanel,&AdminDialog::admin_panel_be_closed,this,&LoginDialog::receive_admin_panel_closure);
             connect(this,&LoginDialog::login_close_admin,adminPanel,&AdminDialog::close_admin_panel);
             adminPanel->open_admin_panel();
             this->hide();
         }else if(packet["identity"]=="teacher"){
-            mainwindowPanel=new MainWindow(this);
+            mainwindowPanel=new MainWindow(this,client);
             connect(mainwindowPanel,&MainWindow::teacher_panel_be_closed,this,&LoginDialog::receive_teacher_panel_closure);
             connect(this,&LoginDialog::login_close_teacher,mainwindowPanel,&MainWindow::close_question_management_panel);
             mainwindowPanel->open_question_management_panel();
             this->hide();
         }else if(packet["identity"]=="rulemaker"){
-            ruleMakerPanel=new RuleMakerDialog(this);
+            ruleMakerPanel=new RuleMakerDialog(this,client);
             // signal-slot connections for closing rulemaker panel
             connect(ruleMakerPanel,&RuleMakerDialog::rulemaker_panel_be_closed,this,&LoginDialog::receive_rulemaker_panel_closure);
             connect(this,&LoginDialog::login_close_rulemaker,ruleMakerPanel,&RuleMakerDialog::close_rulemaker_panel);

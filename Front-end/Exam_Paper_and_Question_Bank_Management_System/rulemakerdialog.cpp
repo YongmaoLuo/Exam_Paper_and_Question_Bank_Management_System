@@ -6,7 +6,7 @@
 #include <QMessageBox>
 #include <QInputDialog>
 
-RuleMakerDialog::RuleMakerDialog(QWidget *parent) :
+RuleMakerDialog::RuleMakerDialog(QWidget *parent, TCPClientSocket *client) :
     QDialog(parent),ui(new Ui::RuleMakerDialog)
 {
     ui->setupUi(this);
