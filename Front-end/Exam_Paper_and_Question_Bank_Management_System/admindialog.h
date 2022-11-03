@@ -32,6 +32,7 @@ public slots:
 
 private:
     Ui::AdminDialog *ui;
+    TCPClientSocket *client;
     QDir applicantsDir;
     QDir usersDir;
     void read_applicants(QDir applicantsDir) override;

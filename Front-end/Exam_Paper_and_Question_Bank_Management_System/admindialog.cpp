@@ -8,6 +8,7 @@ AdminDialog::AdminDialog(QWidget *parent,TCPClientSocket *client) :
     ui(new Ui::AdminDialog)
 {
     ui->setupUi(this);
+    this->client=client;
     applicantsDir.setPath("./SignUp");
     usersDir.setPath("./User");
 
@@ -128,5 +129,6 @@ void AdminDialog::open_admin_panel(){
 
 void AdminDialog::close_admin_panel(){
     this->deleteLater();
+    delete this->client;
     parentWidget()->show();
 }

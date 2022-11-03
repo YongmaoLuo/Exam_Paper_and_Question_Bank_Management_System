@@ -10,6 +10,7 @@ RuleMakerDialog::RuleMakerDialog(QWidget *parent, TCPClientSocket *client) :
     QDialog(parent),ui(new Ui::RuleMakerDialog)
 {
     ui->setupUi(this);
+    this->client=client;
     ui->deleteButton->setEnabled(false);
     ui->submitButton->setEnabled(false);
 }
@@ -67,6 +68,7 @@ void RuleMakerDialog::read_bulletins(QDir bulletinDir){
 
 void RuleMakerDialog::close_rulemaker_panel(){
     this->deleteLater();
+    delete this->client;
     parentWidget()->show();
 }
 

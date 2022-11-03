@@ -34,6 +34,7 @@ public slots:
 
 private:
     Ui::RuleMakerDialog *ui;
+    TCPClientSocket *client;
     void delete_bulletin(QDir rulemakerDir,QString timeStamp) override;// 删除系统中自己以前发布的公告
     void load_bulletin(QDir rulemakerDir,QString timeStamp) override;// 加载选中的某个公告到编辑板
     void write_bulletin(QDir rulemakerDir,QString timeStamp,QString bulletinText) override;// 修改系统中存在的公告

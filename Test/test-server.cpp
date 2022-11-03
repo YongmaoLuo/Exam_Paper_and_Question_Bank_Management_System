@@ -14,6 +14,8 @@
 #include <iostream>
 #include "nlohmann/json.hpp"
 using json=nlohmann::json;
+#define FMT_HEADER_ONLY
+#include "fmt/format.h"
      
 #define TRUE   1 
 #define FALSE  0 
@@ -176,9 +178,12 @@ int main(int argc , char *argv[])
                     //of the data read 
                     buffer[valread] = '\0';
                     json packet=json::parse(buffer);
-                    std::cout<<buffer<<std::endl;
-                    packet=R"({"code": 200, "identity": "admin"})"_json;
-                    std::string ret=packet.dump();
+                    std::cout<<packet["username"]<<std::endl;
+                    //packet=R"({"code": 200, "identity": "admin"})"_json;
+                    //packet=R"({"code": 200, "identity": "teacher"})"_json;
+                    //packet=R"({"code": 200, "identity": "rulemaker"})"_json;
+                    json pSend=json::parse(fmt::format("{{\"code\": 200, \"identity\": \"{}\"}}",packet["username"]));
+                    std::string ret=pSend.dump();
                     send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );  
                 }  
             }  
