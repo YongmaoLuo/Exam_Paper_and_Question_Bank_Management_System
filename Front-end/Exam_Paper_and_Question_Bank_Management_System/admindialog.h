@@ -21,11 +21,9 @@ signals:
     void admin_panel_be_closed();
 private slots:
     void on_exitButton_clicked();
-    void on_agreeButton_clicked();
-    void on_rejectButton_clicked();
+    void on_registerButton_clicked();
     void on_deleteButton_clicked();
 
-    void set_application_button_enable();
     void on_userListWidget_itemSelectionChanged();
 public slots:
     void close_admin_panel() override;
@@ -33,14 +31,10 @@ public slots:
 private:
     Ui::AdminDialog *ui;
     TCPClientSocket *client;
-    QDir applicantsDir;
-    QDir usersDir;
-    void read_applicants(QDir applicantsDir) override;
-    void read_users(QDir usersDir) override;
-    void agree_applicant(QString applicantName) override;
-    void reject_applicant(QString applicantName) override;
+    QList<QString> users;
+    void read_users() override;
     void delete_user(QString userName) override;
-
+    void register_user(QString userName, QString password) override;
 };
 
 #endif // ADMINDIALOG_H

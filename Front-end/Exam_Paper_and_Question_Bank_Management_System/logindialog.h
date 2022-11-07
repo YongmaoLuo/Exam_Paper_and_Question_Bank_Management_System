@@ -4,7 +4,6 @@
 #include <QDialog>
 #include "admindialog.h"
 #include "rulemakerdialog.h"
-#include "signupdialog.h"
 #include "mainwindow.h"
 
 namespace Ui {
@@ -39,7 +38,6 @@ private:
     Ui::LoginDialog *ui;
     AdminDialog *adminPanel;
     RuleMakerDialog *ruleMakerPanel;
-    SignUpDialog *signUpPanel;
     MainWindow *mainwindowPanel;
     QDir *rulemakerDir;
     void submit_login(QString userName, QString password) override;

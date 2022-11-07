@@ -13,31 +13,20 @@ using json=nlohmann::json;
 
 class Login{// login panel
 protected:
-    QString userName,identity;
     virtual void submit_login(QString userName,QString password)=0;// submit login request
 public:
     virtual void open_login_panel()=0;// open login panel
 };
 
-class Admin{// 系统管理员模块
+class Admin{// system admin
 protected:
-    virtual void read_applicants(QDir applicantsDir)=0;
-    virtual void read_users(QDir usersDir)=0; // 读取所有系统用户，并且呈现出来
-    virtual void agree_applicant(QString applicantName)=0; // 通过用户申请
-    virtual void reject_applicant(QString applicantName)=0; // 拒绝用户申请
-    virtual void delete_user(QString userName)=0; // 删除系统中的用户
-    virtual void close_admin_panel()=0;// 关闭管理员窗口
+    virtual void read_users()=0; // read all users in the system
+    virtual void delete_user(QString userName)=0; // delete users in the system
+    virtual void register_user(QString userName,QString password)=0; // create a new user in the system
+    virtual void close_admin_panel()=0;// slot for closing admin panel
 public:
-    virtual void open_admin_panel()=0;// 打开管理员窗口
+    virtual void open_admin_panel()=0;// do something before opening an admin panel
 
-};
-
-class SignUp{// 注册模块
-protected:
-    virtual void submit_signup(QString userName,QString password,QString identity)=0;// 提交注册请求
-    virtual void close_signup_panel()=0;// 关闭注册窗口
-public:
-    virtual void open_signup_panel()=0;// 打开注册窗口
 };
 
 class RuleMaker{// 试卷规则制定者模块

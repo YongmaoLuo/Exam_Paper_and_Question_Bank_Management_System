@@ -22,9 +22,6 @@ LoginDialog::LoginDialog(QWidget *parent) :
 LoginDialog::~LoginDialog()
 {
     delete ui;
-    //delete adminPanel;
-    //delete ruleMakerPanel;
-    //delete signUpPanel;
 }
 
 void LoginDialog::on_loginButton_clicked()
@@ -58,8 +55,9 @@ void LoginDialog::submit_login(QString userName, QString password){
         return;
     }
 
+    // encryption: QCryptographicHash::hash((password).toLocal8Bit(),QCryptographicHash::Sha3_512).toHex().toStdString()
     std::string rawJson=fmt::format("{{\"command\": \"{}\", \"username\": \"{}\", \"password\": \"{}\"}}","login",
-                                    userName.toStdString(),QCryptographicHash::hash((password).toLocal8Bit(),QCryptographicHash::Sha3_512).toHex().toStdString());
+                                    userName.toStdString(),password.toStdString());
     json packet=json::parse(rawJson);
     if(client->sendToServer(packet)==-1){
         QMessageBox::warning(this, "warning", "fail to request login to server");

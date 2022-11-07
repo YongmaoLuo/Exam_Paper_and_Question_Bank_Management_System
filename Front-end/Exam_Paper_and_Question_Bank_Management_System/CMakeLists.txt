@@ -27,8 +27,6 @@ set(PROJECT_SOURCES
         paperproductiondialog.h
         rulemakerdialog.cpp
         rulemakerdialog.h
-        signupdialog.cpp
-        signupdialog.h
         ui_admindialog.h
         ui_logindialog.h
         ui_mainwindow.h
@@ -42,7 +40,6 @@ set(PROJECT_SOURCES
         logindialog.ui
         paperproductiondialog.ui
         rulemakerdialog.ui
-        signupdialog.ui
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

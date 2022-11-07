@@ -12,6 +12,7 @@
 #include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros 
 #include <string>
 #include <iostream>
+#include <string>
 #include "nlohmann/json.hpp"
 using json=nlohmann::json;
 #define FMT_HEADER_ONLY
@@ -33,10 +34,7 @@ int main(int argc , char *argv[])
     char buffer[BUFF_LENGTH+1];  //data buffer of 1K 
          
     //set of socket descriptors 
-    fd_set readfds;  
-         
-    //a message 
-    char *message = "ECHO Daemon v1.0 \r\n";  
+    fd_set readfds; 
      
     //initialise all client_socket[] to 0 so not checked 
     for (i = 0; i < max_clients; i++)  
@@ -177,14 +175,34 @@ int main(int argc , char *argv[])
                     //set the string terminating NULL byte on the end 
                     //of the data read 
                     buffer[valread] = '\0';
-                    json packet=json::parse(buffer);
-                    std::cout<<packet["username"]<<std::endl;
+                    json recvPacket=json::parse(buffer);
+                    std::cout<<"user name:"<<recvPacket["username"]<<std::endl;
                     //packet=R"({"code": 200, "identity": "admin"})"_json;
                     //packet=R"({"code": 200, "identity": "teacher"})"_json;
                     //packet=R"({"code": 200, "identity": "rulemaker"})"_json;
-                    json pSend=json::parse(fmt::format("{{\"code\": 200, \"identity\": \"{}\"}}",packet["username"]));
-                    std::string ret=pSend.dump();
-                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );  
+                    if(recvPacket["command"]=="login"){
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200, \"identity\": \"{}\"}}",recvPacket["username"]));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );  
+                    }else if(recvPacket["command"]=="get users"){
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200, \"counts\": {}}}",5));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                        for(int i=0;i<5;i++){
+                            sendPacket=json::parse(fmt::format("{{\"username\": \"{}\"}}","admin"+std::to_string(i)));
+                            std::string ret=sendPacket.dump();
+                            send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                        }
+                    }else if(recvPacket["command"]=="delete user"){
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200}}"));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                    }else if(recvPacket["command"]=="register user"){
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200}}"));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                    }
+                    
                 }  
             }  
         }  
