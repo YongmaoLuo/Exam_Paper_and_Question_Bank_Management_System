@@ -70,7 +70,11 @@ Client::Client(int port){
     setup(port);
 }
 
-Client::Client(const Client& org){
+Client::Client(const Client& orig){
+    socket_fd = orig.socket_fd;
+    num_bytes = orig.num_bytes;
+    char buffer[256];
+    strcpy(buffer, orig.buffer);
 }
 
 void Client::setup(int port){

@@ -12,6 +12,16 @@ Server::Server(int port)
 
 Server::Server(const Server& orig)
 {
+    masterfds = orig.masterfds;
+    tempfds = orig.tempfds;
+    maxfd = orig.maxfd;
+    mastersocket_fd = orig.mastersocket_fd;
+    tempsocket_fd = orig.tempsocket_fd;
+
+    char input_buffer[INPUT_BUFFER_SIZE];
+    strcpy(input_buffer, orig.input_buffer);
+    char remote_ip[INET6_ADDRSTRLEN];
+    strcpy(remote_ip, orig.remote_ip);
 }
 
 Server::~Server()
