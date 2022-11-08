@@ -8,16 +8,22 @@
 #include <iostream>
 using namespace std;
 
+#define FMT_HEADER_ONLY
+#include "fmt/format.h"
+
 class db_user{
     private:
         sqlite3 *db;
-        char *zErrMsg = 0;
+        sqlite3_stmt *stmt;
+        char *zErrMsg;
         int rc;
-        string *sql;
+        string sql;
+        
+    public:
         db_user();
         db_user(const db_user& database);
         virtual ~db_user(); //drop the table?
-    public:
+
         struct UserInfo{
             string account;
             string password;
@@ -31,10 +37,11 @@ class db_user{
                 return *this;
             }
         };
-        void create(vector<UserInfo userinfo> users);
-        void update(auto key, auto val);
-        bool find(auto key, auto val);
-        void delet(auto key);
+        void create();
+        int insert(UserInfo user);
+        int update(auto key, auto val, auto primary_val);
+        bool find(auto key, auto val, auto primary_val);
+        void delet(auto primary_val);
         void drop();
 };
 #endif
