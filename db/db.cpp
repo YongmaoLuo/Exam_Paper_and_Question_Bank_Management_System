@@ -61,11 +61,11 @@ static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
 class db_user {
   private:
     vector<string>attrs = {"ID", "USERNAME", "PASSWORD"};
+    char* zErrMsg = 0;
     int rc;
     char *sql;
   public:
     sqlite3 *db;
-    char* zErrMsg = 0;
     db_user();
     db_user(const db_user& database);
     virtual ~db_user();
@@ -107,18 +107,41 @@ class db_user {
           fprintf(stdout, "Inserted into table successfully\n");
       }
     }
-    void update(string key, string val) {
-      
-    }
-    char* find(string key) {
-      string s = "SELECT PASSWORD FROM CLIENTS"
-              "WHERE USERNAME = " + key;
+    void update(string key1, string key2, string val1, string val2) {
+      string s = "UPDATE CLIENTS set "+key1+"="+val1+" where "+key2+"="+val2+"; " \
+                 "SELECT * from CLIENTS";
       sql = &s[0];
       rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
-
+      if (rc != SQLITE_OK) {
+          fprintf(stderr, "SQL error: %s\n", zErrMsg);
+          sqlite3_free(zErrMsg);
+      } else {
+          fprintf(stdout, "Table created successfully\n");
+      }
     }
-    void del(string key) {
-
+    void find(string key) {
+      string s = "SELECT PASSWORD FROM CLIENTS"
+                 "WHERE USERNAME = " + key;
+      sql = &s[0];
+      rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
+      if (rc != SQLITE_OK) {
+          fprintf(stderr, "SQL error: %s\n", zErrMsg);
+          sqlite3_free(zErrMsg);
+      } else {
+          fprintf(stdout, "Table created successfully\n");
+      }
+    }
+    void del(string key, string val) {
+      string s= "DELETE from CLIENTS where "+key+"="+val; \
+                "SELECT * from COMPANY";
+      sql = &s[0];
+      rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
+      if (rc != SQLITE_OK) {
+          fprintf(stderr, "SQL error: %s\n", zErrMsg);
+          sqlite3_free(zErrMsg);
+      } else {
+          fprintf(stdout, "Element(s) deleted successfully\n");
+      }      
     }
     void drop();
 };
