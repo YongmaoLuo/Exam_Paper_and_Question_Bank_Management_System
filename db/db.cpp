@@ -172,7 +172,7 @@ bool db_user::find(optional<vector<pair<string, string>>> constraint, auto prima
       for (i=0; i<n; i++) {
         key = constraint_val[i].first;
         val = constraint_val[i].second;
-        sql += fmt::format(" AND {} = {}", key, val);
+        sql += fmt::format(" AND {} = '{}'", key, val);
       }
       sql += "; "
 
