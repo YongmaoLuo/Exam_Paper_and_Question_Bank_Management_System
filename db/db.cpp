@@ -1,34 +1,4 @@
-﻿// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the L
-#include <iostream>
-// #include <bits/stdc++.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <vector>
-#include <unordered_map>
-#include <map>
-#include <unordered_set>
-#include <numeric>
-#include <algorithm>
-#include <string.h>
-#include <sqlite3.h>
-
-#define FMT_HEADER_ONLY
-#include "fmt/format.h"
-using namespace std;
-
-#include "db.hpp"
+﻿#include "db.hpp"
 
 
 static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
@@ -40,7 +10,7 @@ static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
    return 0;
 }
 
-db_user::db_user(vector<string>&attrs){
+db_user::db_user(vector<string>&attrs) {
    db = 0;
    stmt = 0;
    zErrMsg = 0;
