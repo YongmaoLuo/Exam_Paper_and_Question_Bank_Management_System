@@ -14,6 +14,18 @@
         "xtree": "cpp",
         "chrono": "cpp",
         "filesystem": "cpp",
-        "iostream": "cpp"
+        "iostream": "cpp",
+        "functional": "cpp",
+        "map": "cpp",
+        "system_error": "cpp",
+        "thread": "cpp",
+        "variant": "cpp",
+        "vector": "cpp",
+        "xmemory": "cpp",
+        "xstddef": "cpp",
+        "list": "cpp",
+        "utility": "cpp",
+        "ranges": "cpp",
+        "unordered_map": "cpp"
     }
 }

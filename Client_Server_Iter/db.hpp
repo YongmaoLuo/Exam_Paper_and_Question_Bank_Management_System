@@ -5,11 +5,27 @@
 #include <sqlite3.h> 
 #include <string.h>
 #include <vector>
+#include <set>
+#include <optional>
 #include <iostream>
 using namespace std;
 
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
+
+struct UserInfo{
+            string account;
+            string password;
+            string identity;
+            string status;
+            UserInfo operator=(UserInfo newuser){
+                account = newuser.account;
+                password = newuser.password;
+                identity = newuser.identity;
+                status = newuser.status;
+                return *this;
+            }
+        };
 
 class db_user{
     private:
@@ -24,23 +40,10 @@ class db_user{
         db_user(const db_user& database);
         virtual ~db_user(); //drop the table?
 
-        struct UserInfo{
-            string account;
-            string password;
-            string identity;
-            string status;
-            UserInfo operator=(UserInfo newuser){
-                account = newuser.account;
-                password = newuser.password;
-                identity = newuser.identity;
-                status = newuser.status;
-                return *this;
-            }
-        };
         void create();
         int insert(UserInfo user);
-        int update(auto key, auto val, auto primary_val);
-        bool find(auto key, auto val, auto primary_val);
+        int update(auto primary_val, vector<pair<string, string>> changelist);
+        bool find(optional<pair<string, string>> constraint, auto primary_val);
         void delet(auto primary_val);
         void drop();
 };
