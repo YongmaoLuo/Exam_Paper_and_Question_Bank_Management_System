@@ -223,7 +223,11 @@ int main() {
     fprintf(stdout, "Opened database successfully\n");
   }
 
-  vector<vector<string>>items;
+  vector<vector<string>>items = {{"Batman", "123456"},
+                                 {"Nightwing", "nasdj23rf"},
+                                 {"Redhood", "3287dy78"},
+                                 {"Redrobin", "sd89ufe"},
+                                 {"Damian", "u9dw3u88"}};
 
   /* Create SQL Table */
   dbObj.create();
