@@ -232,7 +232,7 @@ int main() {
   /* Create SQL Table */
   dbObj.create();
   /* Create SQL statement */
-  dbObj.insert();
+  dbObj.insert(items);
 
   /* Find password given username */
   string query="Batman";
