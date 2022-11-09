@@ -21,7 +21,9 @@
 #include <unordered_set>
 #include <numeric>
 #include <algorithm>
+#include <string.h>
 #include <sqlite3.h>
+#include "fmt/format.h"
 
 // #include "tagged_sqlite.h"
  
@@ -60,7 +62,7 @@ static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
 
 class db_user {
   private:
-    vector<string>attrs = {"ID", "USERNAME", "PASSWORD"};
+    vector<string>attrs = {"USERNAME", "PASSWORD"};
     char* zErrMsg = 0;
     int rc;
     char *sql;
@@ -72,11 +74,19 @@ class db_user {
 
     // void create(vector<string> attributes) {
     void create() {
-      sql = "CREATE TABLE CLIENTS("
-            "ID INT NOT NULL PRIMARY KEY, "
-            "USERNAME TEXT NOT NULL PRIMARY KEY, "
-            "PASSWORD TEXT NOT NULL"
-            ");" ;
+      int i,a = attrs.size();
+      string s = "CREATE TABLE CLIENTS(";
+      s += fmt.format("{} TEXT NOT NULL PRIMARY KEY, ", attrs[0]);
+      for (i=1; i<a-1; i++) {
+        s += fmt.format("{} TEXT NOT NULL, ", attrs[i]);
+      }
+      s += fmt.format("{} TEXT NOT NULL );", attrs[a-1]);
+
+      sql = &s[0];
+      // sql = "CREATE TABLE CLIENTS("
+      //       "USERNAME TEXT NOT NULL PRIMARY KEY, "
+      //       "PASSWORD TEXT NOT NULL "
+      //       ");" ;
 
       rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
 
@@ -87,17 +97,51 @@ class db_user {
           fprintf(stdout, "Table created successfully\n");
       }
     }
-    void insert() {
-      sql = "INSERT INTO CLIENTS (ID, USERNAME, PASSWORD) "  \
-            "VALUES (1, 'Batman', '123456'); " \
-            "INSERT INTO CLIENTS (ID, USERNAME, PASSWORD) "  \
-            "VALUES (2, 'Nightwing', 'nasdj23rf'); "     \
-            "INSERT INTO CLIENTS (ID, USERNAME, PASSWORD) " \
-            "VALUES (3, 'Redhood', '3287dy78'); " \
-            "INSERT INTO CLIENTS (ID, USERNAME, PASSWORD) " \
-            "VALUES (4, 'Redrobin', 'sd89ufe'); " \
-            "INSERT INTO CLIENTS (ID, USERNAME, PASSWORD) " \
-            "VALUES (5, 'Damian', 'u9dw3u88'); " ;
+    void insert(vector<vector<string>>elems) {
+
+      // string s = "INSERT INTO CLIENTS (ID, USERNAME, PASSWORD) ");
+      string ins = "INSERT INTO CLIENTS (", vals;
+      int i, j, a = attrs.size(), n=elems.size();
+
+      if (!elems.size()) {
+        fprintf(stderr, "SQL insertion can't be empty\n");
+      }
+
+      int m=elems[0].size();
+
+      if (a != elems[0].size()) {
+          fprintf(stderr, "SQL inserted attribute number not matched\n");
+      }
+
+      for (i=0; i<a-1; i++) {
+        ins += fmt.format("{}, ", attrs[i]);
+      }
+      ins += fmt.format("{}) ", attrs[a-1]);
+
+      string s = "";
+
+      for (i=0; i<n; i++) {
+        s += ins;
+        vals = "VALUES (";
+        for (j=0; j<m-1; j++) {
+          vals += fmt.format("'{}', ", elems[i][j]);
+        }
+        vals += fmt.format("'{}'); ", elems[i][m-1]);
+        s += vals;
+      }
+
+      sql = &s[0];
+
+      // sql = "INSERT INTO CLIENTS (USERNAME, PASSWORD) "  \
+      //       "VALUES ('Batman', '123456'); " \
+      //       "INSERT INTO CLIENTS (USERNAME, PASSWORD) "  \
+      //       "VALUES ('Nightwing', 'nasdj23rf'); "     \
+      //       "INSERT INTO CLIENTS (USERNAME, PASSWORD) " \
+      //       "VALUES ('Redhood', '3287dy78'); " \
+      //       "INSERT INTO CLIENTS (USERNAME, PASSWORD) " \
+      //       "VALUES ('Redrobin', 'sd89ufe'); " \
+      //       "INSERT INTO CLIENTS (USERNAME, PASSWORD) " \
+      //       "VALUES ('Damian', 'u9dw3u88'); " ;
 
       rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
       if (rc != SQLITE_OK) {
@@ -132,8 +176,8 @@ class db_user {
       }
     }
     void del(string key, string val) {
-      string s= "DELETE from CLIENTS where "+key+"="+val; \
-                "SELECT * from COMPANY";
+      string s= fmt::format("DELETE from CLIENTS where {}={}; \
+                             SELECT * from COMPANY", key, val);
       sql = &s[0];
       rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
       if (rc != SQLITE_OK) {
@@ -178,6 +222,8 @@ int main() {
   } else {
     fprintf(stdout, "Opened database successfully\n");
   }
+
+  vector<vector<string>>items;
 
   /* Create SQL Table */
   dbObj.create();
