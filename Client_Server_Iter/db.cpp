@@ -83,8 +83,6 @@ int db_user::update(auto primary_val, vector<pair<string, string>> changelist){
       auto changed = changelist.back();
       key = changed.first;
       value = changed.second;
-      cout<<"key "<<key<<endl;
-      cout<<"value "<<value<<endl;
       changelist.pop_back();
       if(keys.count(key)){
          continue;
@@ -112,21 +110,23 @@ bool db_user::find(optional<pair<string, string>> constraint, auto primary_val){
       auto constraint_val = constraint.value();
       string key = constraint_val.first;
       string value = constraint_val.second;
-      sql = fmt::format("COUNT (*) FROM USER" \
-                  "WHERE ACCOUNT = '{}' AND '{}' = '{}'; ", primary_val, key, value);
+      sql = fmt::format("SELECT COUNT (*) FROM USER " \
+                  "WHERE ACCOUNT = '{}' AND {} = '{}'; ", primary_val, key, value);
    }
-   else sql = fmt::format("COUNT (*) FROM USER" \
+   else sql = fmt::format("SELECT COUNT (*) FROM USER " \
                   "WHERE ACCOUNT = '{}'; ", primary_val);
    // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
+   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
    // if(sqlite3_step(stmt) != SQLITE_DONE){
    //    fprintf(stderr, "SQL error");
    //    return false;
    // }
-   int num_cols = sqlite3_column_count(stmt);
+   int num_cols;
    vector<vector<char* >> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){
       vector<char*> row;
+      num_cols = sqlite3_column_count(stmt);
       for(int i = 0; i < num_cols; i++){
          switch(sqlite3_column_type(stmt, i)){
             case(SQLITE3_TEXT):
@@ -150,7 +150,7 @@ bool db_user::find(optional<pair<string, string>> constraint, auto primary_val){
 }
 
 void db_user::delet(auto primary_val){
-   string s= fmt::format("DELETE from USER where ACCOUNT = '{}'; \
+   sql = fmt::format("DELETE from USER where ACCOUNT = '{}'; \
                 SELECT * from USER", primary_val);
    rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
