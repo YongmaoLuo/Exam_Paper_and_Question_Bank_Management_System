@@ -6,12 +6,25 @@
 #include <string.h>
 #include <vector>
 #include <set>
+#include <variant>
 #include <optional>
 #include <iostream>
 using namespace std;
 
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
+
+namespace custom {
+    string to_string(variant<string, int, double> const& value) {
+        if(int const* pval = std::get_if<int>(&value))
+        return std::to_string(*pval);
+        
+        if(double const* pval = std::get_if<double>(&value))
+        return std::to_string(*pval);
+        
+        return std::get<string>(value);
+    }
+}
 
 struct UserInfo{
             string account;
@@ -42,8 +55,8 @@ class db_user{
 
         void create();
         int insert(UserInfo user);
-        int update(auto primary_val, vector<pair<string, string>> changelist);
-        bool find(optional<pair<string, string>> constraint, auto primary_val);
+        int update(auto primary_val, vector<pair<string, variant<string, int, double>>> changelist);
+        bool find(optional<pair<string, variant<string, int, double>>> constraint, auto primary_val);
         void delet(auto primary_val);
         void drop();
 };
