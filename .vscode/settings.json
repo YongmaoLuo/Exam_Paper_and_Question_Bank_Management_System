@@ -1,5 +1,31 @@
 {
     "files.associations": {
-        "string": "cpp"
+        "string": "cpp",
+        "xstring": "cpp",
+        "format": "cpp",
+        "istream": "cpp",
+        "memory": "cpp",
+        "type_traits": "cpp",
+        "xlocmes": "cpp",
+        "xlocmon": "cpp",
+        "xlocnum": "cpp",
+        "xloctime": "cpp",
+        "xhash": "cpp",
+        "xtree": "cpp",
+        "chrono": "cpp",
+        "filesystem": "cpp",
+        "iostream": "cpp",
+        "functional": "cpp",
+        "map": "cpp",
+        "system_error": "cpp",
+        "thread": "cpp",
+        "variant": "cpp",
+        "vector": "cpp",
+        "xmemory": "cpp",
+        "xstddef": "cpp",
+        "list": "cpp",
+        "utility": "cpp",
+        "ranges": "cpp",
+        "unordered_map": "cpp"
     }
 }
