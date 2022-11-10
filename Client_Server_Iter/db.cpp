@@ -40,7 +40,7 @@ void db_user::create(){
    }
    /* Create SQL statement */
 
-   sql = "CREATE TABLE USER( \
+   sql = "CREATE TABLE IF NOT EXISTS USER( \
             IDENTITY TEXT NOT NULL,  \
             ACCOUNT TEXT NOT NULL PRIMARY KEY, \
             PASSWORD TEXT NOT NULL, \
@@ -91,7 +91,7 @@ int db_user::update(auto primary_val, vector<pair<string, variant<string, int, d
       if(key == "ACCOUNT") return -1;
       sql = fmt::format("UPDATE USER set {} = '{}' where ACCOUNT = '{}'; " \
                   "SELECT * from USER", key, custom::to_string(value), primary_val);
-      cout<<sql<<endl;
+
       rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
       if (rc != SQLITE_OK) {
             fprintf(stderr, "SQL error: %s\n", zErrMsg);
