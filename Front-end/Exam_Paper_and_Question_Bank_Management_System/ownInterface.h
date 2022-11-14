@@ -23,45 +23,43 @@ protected:
     virtual void read_users()=0; // read all users in the system
     virtual void delete_user(QString userName)=0; // delete users in the system
     virtual void register_user(QString userName,QString password)=0; // create a new user in the system
-    virtual void close_admin_panel()=0;// slot for closing admin panel
 public:
     virtual void open_admin_panel()=0;// do something before opening an admin panel
-
+    virtual void close_admin_panel()=0;// slot for closing admin panel
 };
 
-class RuleMaker{// 试卷规则制定者模块
+class RuleMaker{ // rulemaker
 protected:
-    QDir rulemakerDir;
-    virtual void create_bulletin(QDir rulemakerDir,QString timeStamp)=0;// 创建新公告
-    virtual void delete_bulletin(QDir rulemakerDir,QString timeStamp)=0;// 删除系统中自己以前发布的公告
-    virtual void load_bulletin(QDir rulemakerDir,QString timeStamp)=0;// 加载选中的某个公告到编辑板
-    virtual void write_bulletin(QDir rulemakerDir,QString timeStamp,QString bulletinText)=0;// 修改系统中存在的公告
-    virtual void read_bulletins(QDir rulemakerDir)=0;// 读取自己在系统中的所有的公告
-    virtual void close_rulemaker_panel()=0;// 关闭试卷规则制定者的界面
+    virtual void create_bulletin(QString teacherName, QString timeStamp)=0;// create bulletin
+    virtual void delete_bulletin(QString fileName)=0;// delete selected bulletin
+    virtual void load_bulletin(QString fileName)=0;// load the text of a selected bulletin into the text editor
+    virtual void write_bulletin(QString fileName,QString bulletinText)=0;// submit the modified text
+    virtual void read_bulletins()=0;// read the names of the bulletins and show them
 public:
-    virtual void open_rulemaker_panel()=0;// 打开试卷规则制定者的界面
+    virtual void open_rulemaker_panel()=0;// open the rulemaker panel
+    virtual void close_rulemaker_panel()=0;// close the rulemaker panel
 };
 
-class QuestionManagement{// 题库管理模块
+class QuestionManagement{// question management (teacher)
 protected:
     QDir libraryDir;
-    virtual void read_subjects(QDir libraryDir)=0;// 读取题库中含有的科目内容
-    virtual void read_chapters(QString subject)=0;// 读取某个科目中所有的章节
-    virtual void read_questions(QString subject,QString chapter)=0;// 读取某个科目某个章节中所有题目
-    virtual void add_subject(QString subject)=0;// 在题库中添加科目
-    virtual void add_chapter(QString subject,QString chapter)=0;// 给某一科目添加章节
-    virtual void add_question(QString subject,QString chapter,QString timeStamp)=0;// 给某一科目某一章节添加题目
-    virtual void delete_subject(QString subject)=0;// 在题库中删除题目
-    virtual void delete_chapter(QString subject,QString chapter)=0;// 从某一科目删除章节
-    virtual void delete_question(QString subject,QString chapter,QString timeStamp)=0;// 从某一科目某一章节删除题目
-    virtual void load_question(QString subject,QString chapter,QString timeStamp)=0;// 从某科目某章节加载某题目
-    virtual void write_question(QString subject,QString chapter,QString timeStamp,QString questionText)=0;// 修改某科目某章节某题目内容
-    virtual void close_question_management_panel()=0;// 关闭题库管理窗口
+    virtual void read_subjects()=0;// read all subjects into the subject area
+    virtual void read_chapters(QString subject)=0;// read all chapters for a specific subject
+    virtual void read_questions(QString subject,QString chapter)=0;// read all questions for a chapter
+    virtual void add_subject(QString subject)=0;// add a new subject
+    virtual void add_chapter(QString subject,QString chapter)=0;// add a new chapter
+    virtual void add_question(QString subject,QString chapter,QString questionName)=0;// add a new question file
+    virtual void delete_subject(QString subject)=0;// delete subject
+    virtual void delete_chapter(QString subject,QString chapter)=0;// delete chapter of a subject
+    virtual void delete_question(QString subject,QString chapter,QString questionName)=0;// delete one question
+    virtual void load_question(QString subject,QString chapter,QString timeStamp)=0;// load the question text to the editor
+    virtual void write_question(QString subject,QString chapter,QString timeStamp,QString questionText)=0;// submit question text after editing
 public:
-    virtual void open_question_management_panel()=0;// 打开题库管理窗口
+    virtual void open_question_management_panel()=0;// open the window
+    virtual void close_question_management_panel()=0;// close the window
 };
 
-class PaperProduction{// 制作试卷模块
+class PaperProduction{// paper generation
 protected:
     QStringList questionsList;// 储存试卷题目的列表
     virtual void delete_question(QString questionName)=0;// 在试卷中删除某题目

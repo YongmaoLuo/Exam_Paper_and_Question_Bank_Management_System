@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>715</width>
-    <height>350</height>
+    <width>902</width>
+    <height>416</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,8 +16,8 @@
   <widget class="QTextEdit" name="bulletinTextEdit">
    <property name="geometry">
     <rect>
-     <x>390</x>
-     <y>20</y>
+     <x>580</x>
+     <y>60</y>
      <width>291</width>
      <height>191</height>
     </rect>
@@ -26,63 +26,127 @@
   <widget class="QPushButton" name="submitButton">
    <property name="geometry">
     <rect>
-     <x>490</x>
-     <y>230</y>
+     <x>680</x>
+     <y>270</y>
      <width>93</width>
      <height>28</height>
     </rect>
    </property>
    <property name="text">
-    <string>提交</string>
+    <string>submit</string>
    </property>
   </widget>
   <widget class="QPushButton" name="exitButton">
    <property name="geometry">
     <rect>
-     <x>310</x>
-     <y>280</y>
+     <x>380</x>
+     <y>330</y>
      <width>93</width>
      <height>41</height>
     </rect>
    </property>
    <property name="text">
-    <string>退出</string>
+    <string>Log out</string>
    </property>
   </widget>
-  <widget class="QListWidget" name="bulletinListWidget">
+  <widget class="QListWidget" name="teacherListWidget">
    <property name="geometry">
     <rect>
-     <x>30</x>
-     <y>20</y>
-     <width>281</width>
+     <x>310</x>
+     <y>60</y>
+     <width>231</width>
      <height>192</height>
     </rect>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="deleteButton">
-   <property name="geometry">
-    <rect>
-     <x>40</x>
-     <y>230</y>
-     <width>93</width>
-     <height>28</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>删除</string>
    </property>
   </widget>
   <widget class="QPushButton" name="createButton">
    <property name="geometry">
     <rect>
-     <x>180</x>
-     <y>230</y>
+     <x>160</x>
+     <y>270</y>
      <width>93</width>
      <height>28</height>
     </rect>
    </property>
    <property name="text">
-    <string>创建</string>
+    <string>Create</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="deleteButton">
+   <property name="geometry">
+    <rect>
+     <x>50</x>
+     <y>270</y>
+     <width>93</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Delete</string>
+   </property>
+  </widget>
+  <widget class="QListWidget" name="bulletinListWidget">
+   <property name="geometry">
+    <rect>
+     <x>40</x>
+     <y>60</y>
+     <width>231</width>
+     <height>192</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label">
+   <property name="geometry">
+    <rect>
+     <x>110</x>
+     <y>23</y>
+     <width>71</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>18</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>Bulletins</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_2">
+   <property name="geometry">
+    <rect>
+     <x>380</x>
+     <y>24</y>
+     <width>81</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>18</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>Teachers</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_3">
+   <property name="geometry">
+    <rect>
+     <x>710</x>
+     <y>23</y>
+     <width>41</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>18</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>Text</string>
    </property>
   </widget>
  </widget>

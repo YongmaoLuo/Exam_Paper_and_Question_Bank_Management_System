@@ -35,11 +35,14 @@ set(PROJECT_SOURCES
         ui_signupdialog.h
         tcpclientsocket.h
         tcpclientsocket.cpp
+        mainwindow.h
+        mainwindow.cpp
 
         admindialog.ui
         logindialog.ui
         paperproductiondialog.ui
         rulemakerdialog.ui
+        mainwindow.ui
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

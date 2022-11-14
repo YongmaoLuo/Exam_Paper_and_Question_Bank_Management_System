@@ -33,7 +33,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>删除</string>
+    <string>Delete</string>
    </property>
   </widget>
   <widget class="QPushButton" name="outputButton">
@@ -41,12 +41,12 @@
     <rect>
      <x>340</x>
      <y>240</y>
-     <width>93</width>
+     <width>121</width>
      <height>28</height>
     </rect>
    </property>
    <property name="text">
-    <string>输出试卷</string>
+    <string>Generate paper</string>
    </property>
   </widget>
   <widget class="QPushButton" name="hideButton">
@@ -59,7 +59,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>隐藏界面</string>
+    <string>Hide</string>
    </property>
   </widget>
  </widget>

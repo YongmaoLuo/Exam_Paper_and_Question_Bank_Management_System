@@ -9,7 +9,7 @@ namespace Ui {
 class RuleMakerDialog;
 }
 
-class RuleMakerDialog : public QDialog,public RuleMaker
+class RuleMakerDialog : public QDialog, public RuleMaker
 {
     Q_OBJECT
 
@@ -30,16 +30,17 @@ private slots:
     void on_createButton_clicked();
 
 public slots:
-    void close_rulemaker_panel() override;// 关闭试卷规则制定者的界面
+    void close_rulemaker_panel() override;// close the window
 
 private:
     Ui::RuleMakerDialog *ui;
     TCPClientSocket *client;
-    void delete_bulletin(QDir rulemakerDir,QString timeStamp) override;// 删除系统中自己以前发布的公告
-    void load_bulletin(QDir rulemakerDir,QString timeStamp) override;// 加载选中的某个公告到编辑板
-    void write_bulletin(QDir rulemakerDir,QString timeStamp,QString bulletinText) override;// 修改系统中存在的公告
-    void read_bulletins(QDir bulletinDir) override;// 读取自己在系统中的所有的公告
-    void create_bulletin(QDir rulemakerDir, QString timeStamp) override;
+    QString tempBulletinName,tempBulletinText;
+    void delete_bulletin(QString fileName) override;// delete selected bulletin
+    void load_bulletin(QString fileName) override;// load the bulletin into text editor
+    void write_bulletin(QString fileName,QString bulletinText) override;// submit modification of the bulletin
+    void read_bulletins() override;// read all the bulletin
+    void create_bulletin(QString teacherName, QString timeStamp) override;
 };
 
 #endif // RULEMAKERDIALOG_H

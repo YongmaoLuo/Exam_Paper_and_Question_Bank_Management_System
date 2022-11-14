@@ -198,7 +198,7 @@ int main(int argc , char *argv[])
                         std::string ret=sendPacket.dump();
                         send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
                     }else if(recvPacket["command"]=="register user"){
-                        json sendPacket=json::parse(fmt::format("{{\"code\": 200}}"));
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 403}}"));
                         std::string ret=sendPacket.dump();
                         send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
                     }

@@ -8,8 +8,6 @@ AdminDialog::AdminDialog(QWidget *parent,TCPClientSocket *client) :
 {
     ui->setupUi(this);
     this->client=client;
-    read_users();
-
     // set the delete button to be non-touchable to prevent misuse
     ui->deleteButton->setEnabled(false);
 }
@@ -31,22 +29,22 @@ void AdminDialog::read_users(){
         QMessageBox::warning(this,"warning","receive user list failed");
     }
     int iter=0;
+    QList<QString> users;
     if(recvPacket["code"]==200){
         iter=recvPacket["counts"];
-        this->users.clear();
         for(int i=0;i<iter;i++){
             if(client->receive(recvPacket)==-1){
                 QMessageBox::warning(this,"warning","receive user names failed");
                 return;
             }
             QString userName=QString::fromUtf8(std::string(recvPacket["username"]).c_str());
-            this->users.append(userName);
+            users.append(userName);
         }
     }else{
         QMessageBox::warning(this,"warning","undefined message from server");
         return;
     }
-    ui->userListWidget->addItems(this->users);
+    ui->userListWidget->addItems(users);
     ui->deleteButton->setEnabled(false);
 }
 
@@ -94,7 +92,12 @@ void AdminDialog::register_user(QString userName, QString password){
         QMessageBox::warning(this, "warning", "fail to receive message from server");
         return;
     }
-    if(recvPacket["code"]!=200){
+    if(recvPacket["code"]==403){
+        QMessageBox::warning(this, "warning", "repeated user name");
+        ui->registerPrompt->setText("register failed");
+        return;
+
+    }else if(recvPacket["code"]!=200){
         QMessageBox::warning(this, "warning", "undefined message from server");
         return;
     }
@@ -127,6 +130,7 @@ void AdminDialog::on_userListWidget_itemSelectionChanged()
 
 void AdminDialog::open_admin_panel(){
     this->setWindowTitle("Window for system administrators");
+    this->read_users();
     this->show();
 }
 

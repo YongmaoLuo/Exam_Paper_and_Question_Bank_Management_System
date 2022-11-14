@@ -54,14 +54,33 @@ void RuleMakerDialog::write_bulletin(QDir rulemakerDir, QString timeStamp,QStrin
     writeText<< bulletinText;
 }
 
-void RuleMakerDialog::read_bulletins(QDir bulletinDir){
+void RuleMakerDialog::read_bulletins(){
     ui->bulletinListWidget->clear();
-    if(!bulletinDir.exists()){
-        bulletinDir.mkpath(".");
+    // read bulletins from the back-end and store the names in list
+    json sendPacket=R"({"command":"get bulletins"})"_json;
+    if(client->sendToServer(sendPacket)==-1){
+        QMessageBox::warning(this,"warning","send get bulletins command failed");
     }
-    bulletinDir.setFilter(QDir::Files|QDir::Hidden|QDir::NoSymLinks);
-    bulletinDir.setSorting(QDir::Name);
-    QStringList bulletinList=bulletinDir.entryList();
+    json recvPacket;
+    if(client->receive(recvPacket)==-1){
+        QMessageBox::warning(this,"warning","receive bulletin list failed");
+    }
+    int iter=0;
+    QList<QString> bulletinList;
+    if(recvPacket["code"]==200){
+        iter=recvPacket["counts"];
+        for(int i=0;i<iter;i++){
+            if(client->receive(recvPacket)==-1){
+                QMessageBox::warning(this,"warning","receive user names failed");
+                return;
+            }
+            QString bulletinName=QString::fromUtf8(std::string(recvPacket["bulletin name"]).c_str());
+            bulletinList.append(bulletinName);
+        }
+    }else{
+        QMessageBox::warning(this,"warning","undefined message from server");
+        return;
+    }
     ui->bulletinListWidget->addItems(bulletinList);
     ui->deleteButton->setEnabled(false);
 }
@@ -73,36 +92,33 @@ void RuleMakerDialog::close_rulemaker_panel(){
 }
 
 void RuleMakerDialog::open_rulemaker_panel(){
-    this->setWindowTitle("试卷规则制定");
+    this->setWindowTitle("window for rule makers");
+    this->read_bulletins();
     this->show();
 }
 
 void RuleMakerDialog::on_bulletinListWidget_itemDoubleClicked(QListWidgetItem *item)
 {
     ui->submitButton->setEnabled(true);
-    load_bulletin(rulemakerDir,item->text());
+    load_bulletin(item->text());
 }
 
 void RuleMakerDialog::on_deleteButton_clicked()
 {
-    delete_bulletin(rulemakerDir,ui->bulletinListWidget->currentItem()->text());
+    delete_bulletin(ui->bulletinListWidget->currentItem()->text());
 }
 
 void RuleMakerDialog::on_createButton_clicked()
 {
     QDateTime time=QDateTime::currentDateTime();
     QString timeStamp=time.toString("yyyy-MM-dd_hh-mm-ss");
-    create_bulletin(rulemakerDir,timeStamp);
+    QString teacherName=ui->teacherListWidget->currentItem()->text();
+    create_bulletin(teacherName,timeStamp);
 }
 
-void RuleMakerDialog::create_bulletin(QDir rulemakerDir, QString timeStamp){
-    QFile writeBulletin(rulemakerDir.path().trimmed()+"/"+timeStamp);
-    if(writeBulletin.exists()){
-        return;
-    }
-    writeBulletin.open(QIODevice::WriteOnly);
-    QTextStream write(&writeBulletin);
-    write<<"";
-    writeBulletin.close();
-    read_bulletins(this->rulemakerDir);
+void RuleMakerDialog::create_bulletin(QString teacherName,QString timeStamp){
+    this->tempBulletinName=teacherName+timeStamp;
+    this->tempBulletinText="";
+    ui->bulletinListWidget->addItem(this->tempBulletinName);
+    ui->bulletinTextEdit->setFocus();
 }

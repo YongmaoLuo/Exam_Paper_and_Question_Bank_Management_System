@@ -31,7 +31,6 @@ public slots:
 private:
     Ui::AdminDialog *ui;
     TCPClientSocket *client;
-    QList<QString> users;
     void read_users() override;
     void delete_user(QString userName) override;
     void register_user(QString userName, QString password) override;
