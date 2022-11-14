@@ -90,7 +90,7 @@ int db_user::update(auto primary_val, vector<pair<string, variant<string, int, d
       
       if(key == "ACCOUNT") return -1;
       sql = fmt::format("UPDATE USER set {} = '{}' where ACCOUNT = '{}'; " \
-                  "SELECT * from USER", key, custom::to_string(value), primary_val);
+                  "SELECT * from USER", key, custom_to_string(value), primary_val);
 
       rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
       if (rc != SQLITE_OK) {
@@ -110,7 +110,7 @@ bool db_user::find(optional<pair<string, variant<string, int, double>>> constrai
       string key = constraint_val.first;
       auto value = constraint_val.second;
       sql = fmt::format("SELECT COUNT (*) FROM USER " \
-                  "WHERE ACCOUNT = '{}' AND {} = '{}'; ", primary_val, key, custom::to_string(value));
+                  "WHERE ACCOUNT = '{}' AND {} = '{}'; ", primary_val, key, custom_to_string(value));
    }
    else sql = fmt::format("SELECT COUNT (*) FROM USER " \
                   "WHERE ACCOUNT = '{}'; ", primary_val);
@@ -165,30 +165,30 @@ void db_user::drop(){
    sqlite3_free(zErrMsg);
 }
 
-int main(int argc, char* argv[]) {
-   db_user user = db_user();
-   user.create();
+// int main(int argc, char* argv[]) {
+//    db_user user = db_user();
+//    user.create();
 
-   struct UserInfo user_example = {"admin", 
-                            "admin", 
-                            "123456", 
-                            "valid"};
-   user.insert(user_example);
-   string primekey_val = "admin";
+//    struct UserInfo user_example = {"admin", 
+//                             "admin", 
+//                             "123456", 
+//                             "valid"};
+//    user.insert(user_example);
+//    string primekey_val = "admin";
 
-   vector<pair<string, variant<string, int, double>>> changelist; // (key, value pair)
-   changelist.emplace_back("STATUS", "expired");
-   changelist.emplace_back("STATUS", "valid");
-   int status = user.update(primekey_val, changelist);
-   cout<<"update status "<<status<<endl;
+//    vector<pair<string, variant<string, int, double>>> changelist; // (key, value pair)
+//    changelist.emplace_back("STATUS", "expired");
+//    changelist.emplace_back("STATUS", "valid");
+//    int status = user.update(primekey_val, changelist);
+//    cout<<"update status "<<status<<endl;
 
-   string db_key = "IDENTITY";
-   auto identity_val = "admin";
-   optional<pair<string, variant<string, int, double>>> constraint;
-   constraint = std::make_pair(db_key, identity_val);
-   bool found = user.find(constraint, primekey_val);
-   cout<<"find status "<<found<<endl;
+//    string db_key = "IDENTITY";
+//    auto identity_val = "admin";
+//    optional<pair<string, variant<string, int, double>>> constraint;
+//    constraint = std::make_pair(db_key, identity_val);
+//    bool found = user.find(constraint, primekey_val);
+//    cout<<"find status "<<found<<endl;
 
-   user.delet(primekey_val);
-   return 0;
-}
+//    user.delet(primekey_val);
+//    return 0;
+// }

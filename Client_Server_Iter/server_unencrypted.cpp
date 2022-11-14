@@ -1,14 +1,14 @@
-#include "server.hpp"
-// #include "db.cpp"
+#include "server_unencrypted.hpp"
+#include "db.hpp"
 
-Server::Server(string digital_certificate_path, string privateKey_path)
+Server::Server()
 {
-    setup(DEFAULT_PORT, digital_certificate_path, privateKey_path);
+    setup(DEFAULT_PORT);
 }
 
-Server::Server(string digital_certificate_path, string privateKey_path, int port)
+Server::Server(int port)
 {
-    setup(port, digital_certificate_path, privateKey_path);
+    setup(port);
 }
 
 Server::Server(const Server& orig)
@@ -30,16 +30,10 @@ Server::~Server()
 	#ifdef SERVER_DEBUG
 	std::cout << "[SERVER] [DESTRUCTOR] Destroying Server...\n";
 	#endif
-	for(map<int, SSL*>::iterator iter=ssl_map.begin(); iter != ssl_map.end(); iter++){
-        SSL_shutdown(iter->second);
-        SSL_free(iter->second);
-    }
-    ssl_map.clear();
-    int close_ret = close(mastersocket_fd);
-    SSL_CTX_free(ctx);
+	close(mastersocket_fd);
 }
 
-void Server::setup(int port, string digital_certificate_path, string privateKey_path)
+void Server::setup(int port)
 {
     mastersocket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (mastersocket_fd < 0) {
@@ -54,35 +48,7 @@ void Server::setup(int port, string digital_certificate_path, string privateKey_
     servaddr.sin_addr.s_addr = htons(INADDR_ANY);
     servaddr.sin_port = htons(port);
 
-    bzero(input_buffer,INPUT_BUFFER_SIZE); //zero the input buffer before use to avoid random data appearing in first receives
-
-    SSL_library_init();
-    OpenSSL_add_all_algorithms();
-    SSL_load_error_strings();
-    ctx = SSL_CTX_new(SSLv23_server_method());
-    if(ctx == NULL){
-        ERR_print_errors_fp(stdout);
-        exit(1);
-    }
-    SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
-    // Load certificate
-    if(SSL_CTX_load_verify_locations(ctx, strcat(getenv("HOME"), "/ssl_server_client/ca/ca.crt"), NULL)<=0){
-        ERR_print_errors_fp(stdout);
-        exit(1);
-    }
-                
-    if (SSL_CTX_use_certificate_file(ctx, digital_certificate_path.c_str(), SSL_FILETYPE_PEM) <= 0) {
-        ERR_print_errors_fp(stdout);
-        exit(1);
-    }
-    if (SSL_CTX_use_PrivateKey_file(ctx, privateKey_path.c_str(), SSL_FILETYPE_PEM) <= 0) {
-        ERR_print_errors_fp(stdout);
-        exit(1);
-    }
-    if (!SSL_CTX_check_private_key(ctx)) {
-        ERR_print_errors_fp(stdout);
-        exit(1);
-    }
+    bzero(input_buffer, INPUT_BUFFER_SIZE); //zero the input buffer before use to avoid random data appearing in first receives
 }
 
 void Server::initializeSocket()
@@ -96,9 +62,9 @@ void Server::initializeSocket()
 	printf("[SERVER] setsockopt() ret %d\n", ret_test);
     #endif
 	if (ret_test < 0) {
-        perror("[SERVER] [ERROR] setsockopt() failed");
+        	perror("[SERVER] [ERROR] setsockopt() failed");
 		shutdown();
-    }
+    	}
 }
 
 void Server::bindSocket()
@@ -134,16 +100,10 @@ void Server::startListen()
 
 void Server::shutdown()
 {
-    for(map<int, SSL*>::iterator iter=ssl_map.begin(); iter != ssl_map.end(); iter++){
-        SSL_shutdown(iter->second);
-        SSL_free(iter->second);
-    }
-    ssl_map.clear();
-    int close_ret = close(mastersocket_fd);
+	int close_ret = close(mastersocket_fd);
 	#ifdef SERVER_DEBUG
 	printf("[SERVER] [DEBUG] [SHUTDOWN] closing master fd..  ret '%d'.\n",close_ret);
 	#endif
-    SSL_CTX_free(ctx);
 }
 
 void Server::handleNewConnection()
@@ -167,26 +127,14 @@ void Server::handleNewConnection()
         	}
         	#ifdef SERVER_DEBUG
         	printf("[SERVER] [CONNECTION] New connection on socket fd '%d'.\n",tempsocket_fd);
-		    #endif
-            
+		#endif
     }
-    cout<<"maxfd: "<<maxfd<<endl;
-    ssl = SSL_new(ctx);
-    SSL_set_fd(ssl, tempsocket_fd);
-    if(SSL_accept(ssl) == -1){
-        perror("accept");
-        close(tempsocket_fd);
-    }
-    ssl_map[tempsocket_fd] = ssl;
-    ShowCerts(ssl);
-
     cout<<"Successfully connected!"<<endl;
     // // newConnectionCallback(tempsocket_fd); //call the callback
     // string message = "Successfully connected!";
     // struct Connector connect_fd = Connector();
     // connect_fd.source_fd = tempsocket_fd;
-    // // sendMessage(connect_fd, message.c_str());
-    // sendMessageSSL(ssl, message.c_str());
+    // sendMessage(connect_fd, message.c_str());
 }
 
 void Server::recvInputFromExisting(int fd)
@@ -194,9 +142,7 @@ void Server::recvInputFromExisting(int fd)
     struct Connector connect_fd = Connector();
     connect_fd.source_fd = fd;
 
-    // int nbytesrecv = recvMessage(connect_fd, input_buffer);
-    ssl = ssl_map[fd];
-    int nbytesrecv = recvMessageSSL(ssl, input_buffer);
+    int nbytesrecv = recvMessage(connect_fd, input_buffer);
     // int nbytesrecv = recv(fd, input_buffer, INPUT_BUFFER_SIZE, 0);
     cout<<"Received bytes: "<<nbytesrecv<<endl;
     if (nbytesrecv <= 0)
@@ -229,7 +175,7 @@ void Server::recvInputFromExisting(int fd)
     // string status = "";
     
     if(command == "login"){
-        if(message.contains("account")) username = message["username"].get<std::string>();
+        if(message.contains("username")) username = message["username"].get<std::string>();
         else{
             perror("No account.\n");
             exit(1);
@@ -244,32 +190,95 @@ void Server::recvInputFromExisting(int fd)
         //     perror("No status.\n");
         //     exit(1);
         // }
-        // authenticateUser(connect_fd, account, password, status);
-        authenticateUser(ssl, username, password);
+        authenticateUser(connect_fd, username, password);
     }
     //memset(&input_buffer, 0, INPUT_BUFFER_SIZE); //zero buffer //bzero
     bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
 }
 
-// void Server::authenticateUser(Connector connect_fd, string account, string password, string status){
-void Server::authenticateUser(SSL *cur_ssl, string username, string password){
-    string message;
+void Server::authenticateUser(Connector connect_fd, string username, string password){
     int status_code;
     // with database logic
     status_code = 200;
     string identity = "admin";
     #ifdef __cpp_lib_format
-    message = std::format("{\"status\": \"{}\", \"identity\": \"{}\"}", status_code, identity);
+    message = std::format("{\"code\": {}, \"identity\": \"{}\"}", status_code, identity);
     #else
-    message = fmt::format("{{\"status\": \"{}\", \"identity\": \"{}\"}}", status_code, identity);
+    message = fmt::format("{{\"code\": {}, \"identity\": \"{}\"}}", status_code, identity);
     #endif
+    cout<<"checkin message: "<<message<<endl;
     
-    //int bytes = sendMessage(connect_fd, message.c_str());
-    int bytes = sendMessageSSL(cur_ssl, message.c_str());
+    int bytes = sendMessage(connect_fd, message.c_str());
     while(bytes < 0){
-        //bytes = sendMessage(connect_fd, message.c_str());
-        bytes = sendMessageSSL(cur_ssl, message.c_str());
+        bytes = sendMessage(connect_fd, message.c_str());
     }
+    bindIdentity[connect_fd.source_fd] = identity;
+}
+
+void Server::registerUser(Connector connect_fd, string username, string password){
+    int status_code;
+    // with database logic
+    status_code = 200;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{{\"code\": {}}}", status_code);
+    #endif
+    int bytes = sendMessage(connect_fd, message.c_str());
+    while(bytes < 0){
+        bytes = sendMessage(connect_fd, message.c_str());
+    }
+}
+
+void Server::getUser(Connector connect_fd){
+    int status_code;
+    // with database logic
+    status_code = 200;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{{\"code\": {}}}", status_code);
+    #endif
+    int bytes = sendMessage(connect_fd, message.c_str());
+    while(bytes < 0){
+        bytes = sendMessage(connect_fd, message.c_str());
+    }
+}
+
+void Server::deleteUser(Connector connect_fd, string username, string password){
+    int status_code;
+
+    auto it = bindIdentity.find(connect_fd.source_fd);
+    if(it == bindIdentity.end()){
+        status_code = 403;
+        cout<<"Identity not found!"<<endl;
+        #ifdef __cpp_lib_format
+        message = std::format("{\"code\": {}}", status_code);
+        #else
+        message = fmt::format("{{\"code\": {}}}", status_code);
+        #endif
+        int bytes = sendMessage(connect_fd, message.c_str());
+        while(bytes < 0){
+            bytes = sendMessage(connect_fd, message.c_str());
+        }
+        return;
+    } else {
+        status_code = 200;
+        cout<<"Identity found!"<<endl;
+        bindIdentity.erase(it);
+    }
+    // with database logic
+    status_code = 200;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{{\"code\": {}}}", status_code);
+    #endif
+    int bytes = sendMessage(connect_fd, message.c_str());
+    while(bytes < 0){
+        bytes = sendMessage(connect_fd, message.c_str());
+    }
+    return;
 }
 
 void Server::loop()
@@ -329,38 +338,18 @@ uint16_t Server::sendMessage(Connector conn, char *messageBuffer) {
     return send(conn.source_fd, messageBuffer, strlen(messageBuffer), 0);
 }
 
-uint16_t Server::sendMessageSSL(SSL *ssl, char *messageBuffer){
-    return SSL_write(ssl, messageBuffer, strlen(messageBuffer));
-}
-
 uint16_t Server::sendMessage(Connector conn, const char *messageBuffer) {
     return send(conn.source_fd, messageBuffer, strlen(messageBuffer), 0);
-}
-
-uint16_t Server::sendMessageSSL(SSL *ssl, const char *messageBuffer){
-    return SSL_write(ssl, messageBuffer, strlen(messageBuffer));
 }
 
 uint16_t Server::recvMessage(Connector conn, char *messageBuffer){
     return recv(conn.source_fd, messageBuffer, INPUT_BUFFER_SIZE, 0);
 }
 
-uint16_t Server::recvMessageSSL(SSL *ssl, char *messageBuffer){
-    return SSL_read(ssl, messageBuffer, INPUT_BUFFER_SIZE);
-}
 
 
-
-int main(int argc, char *argv[]){
-    string digital_certificate_path = argv[1];
-    string privateKey_path = argv[2];
-
-    /*******************/
-    // db_user user = db_user();
-    // user.create();
-    /*****************/
-
-    Server server_object = Server(digital_certificate_path, privateKey_path);
+int main(){
+    Server server_object = Server();
     server_object.init();
     while(true)
         server_object.loop();

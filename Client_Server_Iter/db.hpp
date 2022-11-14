@@ -14,17 +14,16 @@ using namespace std;
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
-namespace custom {
-    string to_string(variant<string, int, double> const& value) {
-        if(int const* pval = std::get_if<int>(&value))
-        return std::to_string(*pval);
-        
-        if(double const* pval = std::get_if<double>(&value))
-        return std::to_string(*pval);
-        
-        return std::get<string>(value);
-    }
+inline string custom_to_string(variant<string, int, double> const& value) {
+    if(int const* pval = std::get_if<int>(&value))
+    return std::to_string(*pval);
+    
+    if(double const* pval = std::get_if<double>(&value))
+    return std::to_string(*pval);
+    
+    return std::get<string>(value);
 }
+
 
 struct UserInfo{
             string account;
