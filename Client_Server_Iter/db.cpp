@@ -26,32 +26,38 @@ db_user::~db_user(){
    sqlite3_close(db);
 }
 
-void db_user::create(){
-   // rc = sqlite3_open("userinfo.db", &db);
+void db_user::create(bool clear/*= false*/, string database_name/*= "userinfo.db"*/){
+   // rc = sqlite3_open(database_name, &db);
    // CREATE/OPEN
-   rc = sqlite3_open_v2("userinfo.db", &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, 
+   rc = sqlite3_open_v2(database_name.data(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, 
                         NULL);
    
    if(rc != SQLITE_OK) {
-      fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-      return;
+      fprintf(stderr, "Can't create database: %s\n", sqlite3_errmsg(db));
+      if(!clear) return;
+      else{
+         clean();
+         rc = sqlite3_open_v2(database_name.data(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, 
+                        NULL);
+      }
    } else {
       fprintf(stdout, "Opened database successfully\n");
    }
    /* Create SQL statement */
 
-   sql = "CREATE TABLE USER( \
+   sql = "CREATE TABLE IF NOT EXISTS USER( \
             IDENTITY TEXT NOT NULL,  \
-            ACCOUNT TEXT NOT NULL PRIMARY KEY, \
+            USERNAME TEXT NOT NULL PRIMARY KEY, \
             PASSWORD TEXT NOT NULL, \
-            STATUS TEXT NOT NULL \
+            STATUS TEXT DEFAULT valid\
             );" ;
 
    /* Execute SQL statement */
    rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
 
    if(rc != SQLITE_OK){
-      drop();
+      fprintf(stderr, "SQL dropped: %s\n", zErrMsg);
+      sqlite3_free(zErrMsg);
    } else {
       fprintf(stdout, "Table created successfully\n");
    }
@@ -59,11 +65,12 @@ void db_user::create(){
 
 int db_user::insert(UserInfo user){
    string identity = user.identity;
-   string account = user.account;
+   string username = user.username;
    string password = user.password;
    string status = user.status;
-   sql = fmt::format("INSERT INTO USER (IDENTITY, ACCOUNT, PASSWORD, STATUS) "  \
-            "VALUES ('{}', '{}', '{}', '{}'); ", identity, account, password, status);
+   if(status.empty()) status = "valid";
+   sql = fmt::format("INSERT INTO USER (IDENTITY, USERNAME, PASSWORD, STATUS) "  \
+            "VALUES ('{}', '{}', '{}', '{}'); ", identity, username, password, status);
    rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
          fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -75,7 +82,7 @@ int db_user::insert(UserInfo user){
    return rc;
 }
 
-int db_user::update(auto primary_val, vector<pair<string, variant<string, int, double>>> changelist){
+int db_user::update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist){
    std::set<string> keys;
    string key;
    while(!changelist.empty()){
@@ -88,10 +95,10 @@ int db_user::update(auto primary_val, vector<pair<string, variant<string, int, d
       }
       keys.insert(key);
       
-      if(key == "ACCOUNT") return -1;
-      sql = fmt::format("UPDATE USER set {} = '{}' where ACCOUNT = '{}'; " \
-                  "SELECT * from USER", key, custom::to_string(value), primary_val);
-      cout<<sql<<endl;
+      if(key == "USERNAME") return -1;
+      sql = fmt::format("UPDATE USER set {} = '{}' where USERNAME = '{}'; " \
+                  "SELECT * from USER", key, custom_to_string(value), primary_val);
+
       rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
       if (rc != SQLITE_OK) {
             fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -104,16 +111,16 @@ int db_user::update(auto primary_val, vector<pair<string, variant<string, int, d
    return rc;
 }
 
-bool db_user::find(optional<pair<string, variant<string, int, double>>> constraint, auto primary_val){
+string db_user::findUser(optional<pair<string, variant<string, int, double>>> constraint, string primary_val){
    if(constraint){
       auto constraint_val = constraint.value();
       string key = constraint_val.first;
       auto value = constraint_val.second;
-      sql = fmt::format("SELECT COUNT (*) FROM USER " \
-                  "WHERE ACCOUNT = '{}' AND {} = '{}'; ", primary_val, key, custom::to_string(value));
+      sql = fmt::format("SELECT IDENTITY FROM USER " \
+                  "WHERE USERNAME = '{}' AND {} = '{}'; ", primary_val, key, custom_to_string(value));
    }
-   else sql = fmt::format("SELECT COUNT (*) FROM USER " \
-                  "WHERE ACCOUNT = '{}'; ", primary_val);
+   else sql = fmt::format("SELECT IDENTITY FROM USER " \
+                  "WHERE USERNAME = '{}'; ", primary_val);
    // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
    sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
@@ -144,51 +151,72 @@ bool db_user::find(optional<pair<string, variant<string, int, double>>> constrai
       output.push_back(row);
    }
    
-   if(atoi(output[0][0]) == 0) return false;
-   return true;
+   if(output.size()) return output[0][0];
+   cout<<"user not found"<<endl;
+   return {};
 }
 
-void db_user::delet(auto primary_val){
-   sql = fmt::format("DELETE from USER where ACCOUNT = '{}'; \
-                SELECT * from USER", primary_val);
+int db_user::delet(string primary_val, pair<string, variant<string, int, double>> authenticated_info){
+   string key = authenticated_info.first;
+   auto value = authenticated_info.second;
+   sql = fmt::format("DELETE from USER where USERNAME = '{}' AND {} = '{}'; \
+                SELECT * from USER", primary_val, key, custom_to_string(value));
+   rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+   if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error: %s\n", zErrMsg);
+      sqlite3_free(zErrMsg);
+      return -1;
+   } else {
+      fprintf(stdout, "Element(s) deleted successfully\n");
+   }
+   return rc;
+}
+
+void db_user::clean(){
+   sql = "DROP TABLE IF EXISTS USER;";
    rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);
    } else {
-      fprintf(stdout, "Element(s) deleted successfully\n");
+      fprintf(stdout, "Table dropped successfully\n");
    }
 }
 
-void db_user::drop(){
-   fprintf(stderr, "SQL dropped: %s\n", zErrMsg);
-   sqlite3_free(zErrMsg);
+void db_user::close(){
+   sqlite3_finalize(stmt);
+   sqlite3_close(db);
 }
 
-int main(int argc, char* argv[]) {
-   db_user user = db_user();
-   user.create();
+// int main(int argc, char* argv[]) {
+//    db_user user = db_user();
+//    bool clear = true;
+//    user.create(clear);
 
-   struct UserInfo user_example = {"admin", 
-                            "admin", 
-                            "123456", 
-                            "valid"};
-   user.insert(user_example);
-   string primekey_val = "admin";
+//    struct UserInfo user_example = {"admin", 
+//                             "admin", 
+//                             "123456"};
+//    user.insert(user_example);
+//    string primekey_val = "admin";
 
-   vector<pair<string, variant<string, int, double>>> changelist; // (key, value pair)
-   changelist.emplace_back("STATUS", "expired");
-   changelist.emplace_back("STATUS", "valid");
-   int status = user.update(primekey_val, changelist);
-   cout<<"update status "<<status<<endl;
+//    vector<pair<string, variant<string, int, double>>> changelist; // (key, value pair)
+//    changelist.emplace_back("STATUS", "expired");
+//    changelist.emplace_back("STATUS", "valid");
+//    int status = user.update(primekey_val, changelist);
+//    cout<<"update status "<<status<<endl;
 
-   string db_key = "IDENTITY";
-   auto identity_val = "admin";
-   optional<pair<string, variant<string, int, double>>> constraint;
-   constraint = std::make_pair(db_key, identity_val);
-   bool found = user.find(constraint, primekey_val);
-   cout<<"find status "<<found<<endl;
+//    string db_key = "IDENTITY";
+//    auto identity_val = "admin";
+//    optional<pair<string, variant<string, int, double>>> constraint;
+//    constraint = std::make_pair(db_key, identity_val);
+//    string found = user.findUser(constraint, primekey_val);
+//    cout<<"find status "<<found<<endl;
 
-   user.delet(primekey_val);
-   return 0;
-}
+//    string key = "password";
+//    auto val = static_cast<string>("123456");
+//    pair<string, variant<string, int, double>> deleted_info = std::make_pair("password", "123456");
+
+//    status = user.delet(primekey_val, deleted_info);
+//    cout<<"delete status "<<status<<endl;
+//    return 0;
+// }

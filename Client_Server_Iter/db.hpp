@@ -14,25 +14,24 @@ using namespace std;
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
-namespace custom {
-    string to_string(variant<string, int, double> const& value) {
-        if(int const* pval = std::get_if<int>(&value))
-        return std::to_string(*pval);
-        
-        if(double const* pval = std::get_if<double>(&value))
-        return std::to_string(*pval);
-        
-        return std::get<string>(value);
-    }
+inline string custom_to_string(variant<string, int, double> const& value) {
+    if(int const* pval = std::get_if<int>(&value))
+    return std::to_string(*pval);
+    
+    if(double const* pval = std::get_if<double>(&value))
+    return std::to_string(*pval);
+    
+    return std::get<string>(value);
 }
 
+
 struct UserInfo{
-            string account;
+            string username;
             string password;
             string identity;
-            string status;
+            string status {};
             UserInfo operator=(UserInfo newuser){
-                account = newuser.account;
+                username = newuser.username;
                 password = newuser.password;
                 identity = newuser.identity;
                 status = newuser.status;
@@ -53,11 +52,12 @@ class db_user{
         db_user(const db_user& database);
         virtual ~db_user(); //drop the table?
 
-        void create();
+        void create(bool = false, string = "userinfo.db");
         int insert(UserInfo user);
-        int update(auto primary_val, vector<pair<string, variant<string, int, double>>> changelist);
-        bool find(optional<pair<string, variant<string, int, double>>> constraint, auto primary_val);
-        void delet(auto primary_val);
-        void drop();
+        int update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
+        string findUser(optional<pair<string, variant<string, int, double>>> constraint, string primary_val);
+        int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info);
+        void clean();
+        void close();
 };
 #endif
