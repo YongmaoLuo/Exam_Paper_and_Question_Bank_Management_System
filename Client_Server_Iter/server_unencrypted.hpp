@@ -26,6 +26,9 @@ using namespace std;
 #define FMT_HEADER_ONLY
 #include <fmt/format.h>
 
+// #include "db.hpp"
+
+class db_user;
 class Server
 {
 public:
@@ -37,17 +40,10 @@ public:
     struct Connector {
         uint16_t source_fd;
     };
-
-    struct UserInfo {
-        string account;
-        string password;
-        string identity;
-        string status;
-    };
     
     void shutdown();
     void init();
-    void loop();
+    void loop(db_user);
 
     //callback setters
     void onConnect(void (*ncc)(uint16_t fd));
@@ -94,11 +90,11 @@ private:
     void bindSocket();
     void startListen();
     void handleNewConnection();
-    void recvInputFromExisting(int fd);
-    void registerUser(Connector connect_fd, string username, string password);
-    void authenticateUser(Connector conn, string username, string password);
-    void deleteUser(Connector connect_fd, string username, string password);
-    void getUser(Connector connect_fd);
+    void recvInputFromExisting(int fd, db_user);
+    void registerUser(Connector connect_fd, string username, string password, string identity, db_user);
+    void authenticateUser(Connector conn, string username, string password, db_user);
+    void deleteUser(Connector connect_fd, string username, string password, db_user);
+    void getUser(Connector connect_fd, db_user);
 
     //void *getInetAddr(struct sockaddr *saddr);
 };

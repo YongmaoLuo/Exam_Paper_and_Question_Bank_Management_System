@@ -26,12 +26,12 @@ inline string custom_to_string(variant<string, int, double> const& value) {
 
 
 struct UserInfo{
-            string account;
+            string username;
             string password;
             string identity;
-            string status;
+            string status {};
             UserInfo operator=(UserInfo newuser){
-                account = newuser.account;
+                username = newuser.username;
                 password = newuser.password;
                 identity = newuser.identity;
                 status = newuser.status;
@@ -52,11 +52,12 @@ class db_user{
         db_user(const db_user& database);
         virtual ~db_user(); //drop the table?
 
-        void create();
-        int insert(UserInfo user);
+        void create(bool = false, string = "userinfo.db");
+        int insert(UserInfo& user);
         int update(auto primary_val, vector<pair<string, variant<string, int, double>>> changelist);
-        bool find(optional<pair<string, variant<string, int, double>>> constraint, auto primary_val);
-        void delet(auto primary_val);
-        void drop();
+        string findUser(optional<pair<string, variant<string, int, double>>> constraint, auto primary_val);
+        int delet(auto primary_val, auto deleted_info);
+        void clean();
+        void close();
 };
 #endif

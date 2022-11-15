@@ -137,7 +137,7 @@ void Server::handleNewConnection()
     // sendMessage(connect_fd, message.c_str());
 }
 
-void Server::recvInputFromExisting(int fd)
+void Server::recvInputFromExisting(int fd, db_user user)
 {
     struct Connector connect_fd = Connector();
     connect_fd.source_fd = fd;
@@ -172,35 +172,61 @@ void Server::recvInputFromExisting(int fd)
     auto command = message["command"];
     string username = "";
     string password = "";
+    string identity = "";
     // string status = "";
+
+    if(message.contains("username")) username = message["username"].get<std::string>();
+    else{
+        perror("No account.\n");
+        exit(1);
+    }
+    if(message.contains("password")) password = message["password"].get<std::string>();
+    else{
+        perror("No password.\n");
+        exit(1);
+    }
     
     if(command == "login"){
-        if(message.contains("username")) username = message["username"].get<std::string>();
-        else{
-            perror("No account.\n");
-            exit(1);
-            }
-        if(message.contains("password")) password = message["password"].get<std::string>();
-        else{
-            perror("No password.\n");
-            exit(1);
-        }
         // if(message.contains("status")) status = message["status"].get<std::string>();
         // else{
         //     perror("No status.\n");
         //     exit(1);
         // }
-        authenticateUser(connect_fd, username, password);
+        authenticateUser(connect_fd, username, password, user);
     }
+    else if(command == "get users"){
+        getUser(connect_fd, user);
+    }
+    else if(command == "register user"){
+        if(message.contains("identity")) identity = message["identity"].get<std::string>();
+        else{
+            perror("No identity.\n");
+            exit(1);
+        }
+        registerUser(connect_fd, username, password, identity, user);
+    }
+    else if(command == "delete user"){
+        deleteUser(connect_fd, username, password, user);
+    }
+    else cout<<"Invalid command."<<endl;
     //memset(&input_buffer, 0, INPUT_BUFFER_SIZE); //zero buffer //bzero
     bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
 }
 
-void Server::authenticateUser(Connector connect_fd, string username, string password){
+void Server::authenticateUser(Connector connect_fd, string username, string password, db_user user){
     int status_code;
     // with database logic
-    status_code = 200;
-    string identity = "admin";
+    optional<pair<string, variant<string, int, double>>> constraint;
+    constraint = std::make_pair("password", password);
+    string identity = user.findUser(constraint, username);
+    if(identity.empty()){
+        status_code = 200;
+    }
+    else{
+        status_code = 403;
+        cout<<"User exists!"<<endl;
+    }
+
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}, \"identity\": \"{}\"}", status_code, identity);
     #else
@@ -215,7 +241,25 @@ void Server::authenticateUser(Connector connect_fd, string username, string pass
     bindIdentity[connect_fd.source_fd] = identity;
 }
 
-void Server::registerUser(Connector connect_fd, string username, string password){
+void Server::registerUser(Connector connect_fd, string username, string password, string identity, db_user user){
+    int status_code;
+    // with database logic
+    UserInfo new_user = {username, password, identity};
+    int result = user.insert(new_user);
+    if(result == -1) status_code = 403;
+    else status_code = 200;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{{\"code\": {}}}", status_code);
+    #endif
+    int bytes = sendMessage(connect_fd, message.c_str());
+    while(bytes < 0){
+        bytes = sendMessage(connect_fd, message.c_str());
+    }
+}
+
+void Server::getUser(Connector connect_fd, db_user user){
     int status_code;
     // with database logic
     status_code = 200;
@@ -230,22 +274,7 @@ void Server::registerUser(Connector connect_fd, string username, string password
     }
 }
 
-void Server::getUser(Connector connect_fd){
-    int status_code;
-    // with database logic
-    status_code = 200;
-    #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}}", status_code);
-    #else
-    message = fmt::format("{{\"code\": {}}}", status_code);
-    #endif
-    int bytes = sendMessage(connect_fd, message.c_str());
-    while(bytes < 0){
-        bytes = sendMessage(connect_fd, message.c_str());
-    }
-}
-
-void Server::deleteUser(Connector connect_fd, string username, string password){
+void Server::deleteUser(Connector connect_fd, string username, string password, db_user user){
     int status_code;
 
     auto it = bindIdentity.find(connect_fd.source_fd);
@@ -268,7 +297,9 @@ void Server::deleteUser(Connector connect_fd, string username, string password){
         bindIdentity.erase(it);
     }
     // with database logic
-    status_code = 200;
+    int result = user.delet(username, std::make_pair("password", password));
+    if(result == -1) status_code = 403;
+    else status_code = 200;
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}}", status_code);
     #else
@@ -281,7 +312,7 @@ void Server::deleteUser(Connector connect_fd, string username, string password){
     return;
 }
 
-void Server::loop()
+void Server::loop(db_user user)
 {
     tempfds = masterfds; //copy fd_set for select()
     #ifdef SERVER_DEBUG
@@ -306,7 +337,7 @@ void Server::loop()
                 handleNewConnection();
             } else {
                 //exisiting connection has new data
-                recvInputFromExisting(i);
+                recvInputFromExisting(i, user);
             }
         } //loop on to see if there is more
     }
@@ -350,8 +381,10 @@ uint16_t Server::recvMessage(Connector conn, char *messageBuffer){
 
 int main(){
     Server server_object = Server();
+    db_user user = db_user();
+    user.create();
     server_object.init();
     while(true)
-        server_object.loop();
+        server_object.loop(user);
     return 0;
 }

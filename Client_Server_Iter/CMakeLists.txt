@@ -20,6 +20,6 @@ include_directories(./sqlite)
 
 
 add_executable(cplusplusproject2022fall
-        server_unencrypted.cpp)
+               db.cpp server_unencrypted.cpp)
 
 target_link_libraries(cplusplusproject2022fall -lsqlite3)
