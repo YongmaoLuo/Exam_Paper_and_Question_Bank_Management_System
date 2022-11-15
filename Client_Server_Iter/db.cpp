@@ -63,7 +63,7 @@ void db_user::create(bool clear/*= false*/, string database_name/*= "userinfo.db
    }
 }
 
-int db_user::insert(UserInfo& user){
+int db_user::insert(UserInfo user){
    string identity = user.identity;
    string username = user.username;
    string password = user.password;
@@ -82,7 +82,7 @@ int db_user::insert(UserInfo& user){
    return rc;
 }
 
-int db_user::update(auto primary_val, vector<pair<string, variant<string, int, double>>> changelist){
+int db_user::update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist){
    std::set<string> keys;
    string key;
    while(!changelist.empty()){
@@ -111,7 +111,7 @@ int db_user::update(auto primary_val, vector<pair<string, variant<string, int, d
    return rc;
 }
 
-string db_user::findUser(optional<pair<string, variant<string, int, double>>> constraint, auto primary_val){
+string db_user::findUser(optional<pair<string, variant<string, int, double>>> constraint, string primary_val){
    if(constraint){
       auto constraint_val = constraint.value();
       string key = constraint_val.first;
@@ -156,7 +156,7 @@ string db_user::findUser(optional<pair<string, variant<string, int, double>>> co
    return {};
 }
 
-int db_user::delet(auto primary_val, auto authenticated_info){
+int db_user::delet(string primary_val, pair<string, variant<string, int, double>> authenticated_info){
    string key = authenticated_info.first;
    auto value = authenticated_info.second;
    sql = fmt::format("DELETE from USER where USERNAME = '{}' AND {} = '{}'; \
@@ -212,7 +212,9 @@ void db_user::close(){
 //    string found = user.findUser(constraint, primekey_val);
 //    cout<<"find status "<<found<<endl;
 
-//    auto deleted_info = std::make_pair("password", "123456");
+//    string key = "password";
+//    auto val = static_cast<string>("123456");
+//    pair<string, variant<string, int, double>> deleted_info = std::make_pair("password", "123456");
 
 //    status = user.delet(primekey_val, deleted_info);
 //    cout<<"delete status "<<status<<endl;

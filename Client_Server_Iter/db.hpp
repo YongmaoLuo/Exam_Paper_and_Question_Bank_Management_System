@@ -53,10 +53,10 @@ class db_user{
         virtual ~db_user(); //drop the table?
 
         void create(bool = false, string = "userinfo.db");
-        int insert(UserInfo& user);
-        int update(auto primary_val, vector<pair<string, variant<string, int, double>>> changelist);
-        string findUser(optional<pair<string, variant<string, int, double>>> constraint, auto primary_val);
-        int delet(auto primary_val, auto deleted_info);
+        int insert(UserInfo user);
+        int update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
+        string findUser(optional<pair<string, variant<string, int, double>>> constraint, string primary_val);
+        int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info);
         void clean();
         void close();
 };
