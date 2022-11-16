@@ -156,6 +156,65 @@ string db_user::findUser(optional<pair<string, variant<string, int, double>>> co
    return {};
 }
 
+int db_user::count(){
+   sql = "COUNT (*) from USER;"; 
+   sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
+   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   int num_cols;
+   vector<vector<char* >> output;
+   while(sqlite3_step(stmt) != SQLITE_DONE){
+      vector<char*> row;
+      num_cols = sqlite3_column_count(stmt);
+      for(int i = 0; i < num_cols; i++){
+         switch(sqlite3_column_type(stmt, i)){
+            case(SQLITE3_TEXT):
+               row.push_back((char*) sqlite3_column_text(stmt, i));
+               break;
+            case(SQLITE_INTEGER):
+               row.push_back((char*) to_string(sqlite3_column_int(stmt, i)).data());
+               break;
+            case(SQLITE_FLOAT):
+               row.push_back((char*) to_string(sqlite3_column_double(stmt, i)).data());
+               break;
+            default:
+               break;
+         }
+      }
+      output.push_back(row);
+   }
+   if(output.empty()) return -1;
+   return atoi(output[0][0]);
+}
+
+vector<string> db_user::getUsers(){
+   sql = "SELECT USERNAME from USER;";
+   sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
+   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   int num_cols;
+   vector<string> output;
+   while(sqlite3_step(stmt) != SQLITE_DONE){
+      vector<string> row;
+      num_cols = sqlite3_column_count(stmt);
+      for(int i = 0; i < num_cols; i++){
+         switch(sqlite3_column_type(stmt, i)){
+            case(SQLITE3_TEXT):
+               row.push_back(sqlite3_column_text(stmt, i));
+               break;
+            case(SQLITE_INTEGER):
+               row.push_back(to_string(sqlite3_column_int(stmt, i)));
+               break;
+            case(SQLITE_FLOAT):
+               row.push_back(to_string(sqlite3_column_double(stmt, i)));
+               break;
+            default:
+               break;
+         }
+      }
+      output.insert(output.end(), row.begin(), row.end());
+   }
+   return output;
+}
+
 int db_user::delet(string primary_val, pair<string, variant<string, int, double>> authenticated_info){
    string key = authenticated_info.first;
    auto value = authenticated_info.second;

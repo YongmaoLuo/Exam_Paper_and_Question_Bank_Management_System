@@ -257,17 +257,29 @@ void Server::registerUser(Connector connect_fd, string username, auto password, 
 }
 
 void Server::getUser(Connector connect_fd, db_user& user){
+    vector<string> usernames;
     int status_code;
     // with database logic
-    status_code = 200;
+    int numUsers = user.count();
+    if(numUsers < 0) status_code = 403;
+    else status_code = 200;
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}}", status_code);
+    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, numUsers);
     #else
-    message = fmt::format("{{\"code\": {}}}", status_code);
+    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, numUsers);
     #endif
     int bytes = sendMessage(connect_fd, message.c_str());
     while(bytes < 0){
         bytes = sendMessage(connect_fd, message.c_str());
+    }
+    if(numUsers < 0) return;
+    usernames = user.getUsers();
+    for(int i=0; i<usernames.size(); i++){
+        message = fmt::format("{{\"username\": \"{}\"}}", usernames[i]);
+        bytes = sendMessage(connect_fd, message.c_str());
+        while(bytes < 0){
+            bytes = sendMessage(connect_fd, message.c_str());
+        }
     }
 }
 
