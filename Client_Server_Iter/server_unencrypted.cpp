@@ -1,5 +1,6 @@
 #include "server_unencrypted.hpp"
 #include "db.hpp"
+using namespace std;
 
 Server::Server()
 {
@@ -137,7 +138,7 @@ void Server::handleNewConnection()
     // sendMessage(connect_fd, message.c_str());
 }
 
-void Server::recvInputFromExisting(int fd, db_user user)
+void Server::recvInputFromExisting(int fd, db_user& user)
 {
     struct Connector connect_fd = Connector();
     connect_fd.source_fd = fd;
@@ -187,11 +188,6 @@ void Server::recvInputFromExisting(int fd, db_user user)
     }
     
     if(command == "login"){
-        // if(message.contains("status")) status = message["status"].get<std::string>();
-        // else{
-        //     perror("No status.\n");
-        //     exit(1);
-        // }
         authenticateUser(connect_fd, username, password, user);
     }
     else if(command == "get users"){
@@ -213,7 +209,7 @@ void Server::recvInputFromExisting(int fd, db_user user)
     bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
 }
 
-void Server::authenticateUser(Connector connect_fd, string username, auto password, db_user user){
+void Server::authenticateUser(Connector connect_fd, string username, auto password, db_user& user){
     int status_code;
     // with database logic
     optional<pair<string, variant<string, int, double>>> constraint;
@@ -227,7 +223,7 @@ void Server::authenticateUser(Connector connect_fd, string username, auto passwo
         status_code = 403;
         cout<<"User exists!"<<endl;
     }
-
+    cout<<identity<<endl;
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}, \"identity\": \"{}\"}", status_code, identity);
     #else
@@ -242,7 +238,7 @@ void Server::authenticateUser(Connector connect_fd, string username, auto passwo
     bindIdentity[connect_fd.source_fd] = identity;
 }
 
-void Server::registerUser(Connector connect_fd, string username, auto password, string identity, db_user user){
+void Server::registerUser(Connector connect_fd, string username, auto password, string identity, db_user& user){
     int status_code;
     // with database logic
     UserInfo new_user = {static_cast<std::string>(username), static_cast<std::string>(password), identity};
@@ -260,7 +256,7 @@ void Server::registerUser(Connector connect_fd, string username, auto password, 
     }
 }
 
-void Server::getUser(Connector connect_fd, db_user user){
+void Server::getUser(Connector connect_fd, db_user& user){
     int status_code;
     // with database logic
     status_code = 200;
@@ -275,7 +271,7 @@ void Server::getUser(Connector connect_fd, db_user user){
     }
 }
 
-void Server::deleteUser(Connector connect_fd, string username, auto password, db_user user){
+void Server::deleteUser(Connector connect_fd, string username, auto password, db_user& user){
     int status_code;
 
     auto it = bindIdentity.find(connect_fd.source_fd);
@@ -315,7 +311,7 @@ void Server::deleteUser(Connector connect_fd, string username, auto password, db
     return;
 }
 
-void Server::loop(db_user user)
+void Server::loop(db_user& user)
 {
     tempfds = masterfds; //copy fd_set for select()
     #ifdef SERVER_DEBUG
@@ -382,12 +378,13 @@ uint16_t Server::recvMessage(Connector conn, char *messageBuffer){
 
 
 
-int main(){
+int main(int argc, char* argv[]){
     Server server_object = Server();
     db_user user = db_user();
     user.create();
     server_object.init();
-    while(true)
+    while(true){
         server_object.loop(user);
+    }
     return 0;
 }
