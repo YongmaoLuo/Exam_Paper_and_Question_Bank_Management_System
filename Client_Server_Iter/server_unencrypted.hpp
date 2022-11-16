@@ -43,7 +43,7 @@ public:
     
     void shutdown();
     void init();
-    void loop(db_user);
+    void loop(db_user&);
 
     //callback setters
     void onConnect(void (*ncc)(uint16_t fd));
@@ -90,11 +90,11 @@ private:
     void bindSocket();
     void startListen();
     void handleNewConnection();
-    void recvInputFromExisting(int fd, db_user);
-    void registerUser(Connector connect_fd, string username, auto password, string identity, db_user);
-    void authenticateUser(Connector conn, string username, auto password, db_user);
-    void deleteUser(Connector connect_fd, string username, auto password, db_user);
-    void getUser(Connector connect_fd, db_user);
+    void recvInputFromExisting(int fd, db_user&);
+    void registerUser(Connector connect_fd, string username, auto password, string identity, db_user&);
+    void authenticateUser(Connector conn, string username, auto password, db_user&);
+    void deleteUser(Connector connect_fd, string username, auto password, db_user&);
+    void getUser(Connector connect_fd, db_user&);
 
     //void *getInetAddr(struct sockaddr *saddr);
 };
