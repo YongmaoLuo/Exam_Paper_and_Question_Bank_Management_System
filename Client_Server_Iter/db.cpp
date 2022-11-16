@@ -46,9 +46,9 @@ void db_user::create(bool clear/*= false*/, string database_name/*= "userinfo.db
    /* Create SQL statement */
 
    sql = "CREATE TABLE IF NOT EXISTS USER( \
-            IDENTITY TEXT NOT NULL,  \
-            USERNAME TEXT NOT NULL PRIMARY KEY, \
+            USERNAME TEXT NOT NULL PRIMARY KEY,  \
             PASSWORD TEXT NOT NULL, \
+            IDENTITY TEXT NOT NULL, \
             STATUS TEXT DEFAULT valid\
             );" ;
 
@@ -69,8 +69,8 @@ int db_user::insert(UserInfo user){
    string password = user.password;
    string status = user.status;
    if(status.empty()) status = "valid";
-   sql = fmt::format("INSERT INTO USER (IDENTITY, USERNAME, PASSWORD, STATUS) "  \
-            "VALUES ('{}', '{}', '{}', '{}'); ", identity, username, password, status);
+   sql = fmt::format("INSERT INTO USER (USERNAME, PASSWORD, IDENTITY, STATUS) "  \
+            "VALUES ('{}', '{}', '{}', '{}'); SELECT * FROM USER", username, password, identity, status);
    rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
          fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -96,8 +96,7 @@ int db_user::update(string primary_val, vector<pair<string, variant<string, int,
       keys.insert(key);
       
       if(key == "USERNAME") return -1;
-      sql = fmt::format("UPDATE USER set {} = '{}' where USERNAME = '{}'; " \
-                  "SELECT * from USER", key, custom_to_string(value), primary_val);
+      sql = fmt::format("UPDATE USER set {} = '{}' where USERNAME = '{}'; SELECT * FROM USER", key, custom_to_string(value), primary_val);
 
       rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
       if (rc != SQLITE_OK) {
@@ -116,7 +115,7 @@ string db_user::findUser(optional<pair<string, variant<string, int, double>>> co
       auto constraint_val = constraint.value();
       string key = constraint_val.first;
       auto value = constraint_val.second;
-      sql = fmt::format("SELECT IDENTITY FROM USER " \
+      sql = fmt::format("SELECT IDENTITY FROM USER "  \
                   "WHERE USERNAME = '{}' AND {} = '{}'; ", primary_val, key, custom_to_string(value));
    }
    else sql = fmt::format("SELECT IDENTITY FROM USER " \
@@ -129,20 +128,20 @@ string db_user::findUser(optional<pair<string, variant<string, int, double>>> co
    //    return false;
    // }
    int num_cols;
-   vector<vector<char* >> output;
+   vector<vector<string>> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){
-      vector<char*> row;
+      vector<string> row;
       num_cols = sqlite3_column_count(stmt);
       for(int i = 0; i < num_cols; i++){
          switch(sqlite3_column_type(stmt, i)){
             case(SQLITE3_TEXT):
-               row.push_back((char*) sqlite3_column_text(stmt, i));
+               row.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, i))));
                break;
             case(SQLITE_INTEGER):
-               row.push_back((char*) to_string(sqlite3_column_int(stmt, i)).data());
+               row.push_back(to_string(sqlite3_column_int(stmt, i)));
                break;
             case(SQLITE_FLOAT):
-               row.push_back((char*) to_string(sqlite3_column_double(stmt, i)).data());
+               row.push_back(to_string(sqlite3_column_double(stmt, i)));
                break;
             default:
                break;
@@ -151,13 +150,13 @@ string db_user::findUser(optional<pair<string, variant<string, int, double>>> co
       output.push_back(row);
    }
    
-   if(output.size()) return output[0][0];
+   if(!output.empty()) return output[0][0];
    cout<<"user not found"<<endl;
    return {};
 }
 
 int db_user::count(){
-   sql = "COUNT (*) from USER;"; 
+   sql = "SELECT COUNT (*) from USER;"; 
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
    sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
    int num_cols;
@@ -198,7 +197,7 @@ vector<string> db_user::getUsers(){
       for(int i = 0; i < num_cols; i++){
          switch(sqlite3_column_type(stmt, i)){
             case(SQLITE3_TEXT):
-               row.push_back(sqlite3_column_text(stmt, i));
+               row.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, i))));
                break;
             case(SQLITE_INTEGER):
                row.push_back(to_string(sqlite3_column_int(stmt, i)));
@@ -252,9 +251,10 @@ void db_user::close(){
 //    bool clear = true;
 //    user.create(clear);
 
-//    struct UserInfo user_example = {"admin", 
-//                             "admin", 
-//                             "123456"};
+//    UserInfo user_example = {username: "admin", 
+//                             password: "123456",
+//                             identity: "admin" 
+//                             };
 //    user.insert(user_example);
 //    string primekey_val = "admin";
 
@@ -263,6 +263,10 @@ void db_user::close(){
 //    changelist.emplace_back("STATUS", "valid");
 //    int status = user.update(primekey_val, changelist);
 //    cout<<"update status "<<status<<endl;
+
+//    // vector<string> usernames = user.getUsers();
+//    int user_num = user.count();
+//    cout<<user_num<<endl;
 
 //    string db_key = "IDENTITY";
 //    auto identity_val = "admin";

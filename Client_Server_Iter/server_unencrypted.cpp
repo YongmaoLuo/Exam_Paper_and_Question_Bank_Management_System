@@ -190,7 +190,7 @@ void Server::recvInputFromExisting(int fd, db_user& user)
     if(command == "login"){
         authenticateUser(connect_fd, username, password, user);
     }
-    else if(command == "get users"){
+    else if(command == "get users" && bindIdentity[fd] == "admin"){
         getUser(connect_fd, user);
     }
     else if(command == "register user"){
@@ -204,7 +204,7 @@ void Server::recvInputFromExisting(int fd, db_user& user)
     else if(command == "delete user"){
         deleteUser(connect_fd, username, password, user);
     }
-    else cout<<"Invalid command."<<endl;
+    else cout<<"Invalid command or not enough permission."<<endl;
     //memset(&input_buffer, 0, INPUT_BUFFER_SIZE); //zero buffer //bzero
     bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
 }
