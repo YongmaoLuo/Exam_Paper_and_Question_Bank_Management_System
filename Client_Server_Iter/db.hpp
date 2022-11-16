@@ -56,6 +56,8 @@ class db_user{
         int insert(UserInfo user);
         int update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
         string findUser(optional<pair<string, variant<string, int, double>>> constraint, string primary_val);
+        int count();
+        vector<string> getUsers();
         int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info);
         void clean();
         void close();
