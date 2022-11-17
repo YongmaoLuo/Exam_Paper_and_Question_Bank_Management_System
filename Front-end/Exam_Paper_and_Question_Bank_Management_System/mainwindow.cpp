@@ -7,9 +7,10 @@
 #include <QMessageBox>
 #include <QTextStream>
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(QWidget *parent, TCPClientSocket *client)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
+    this->client=client;
     ui->subjectDeleteButton->setEnabled(false);
     ui->chapterDeleteButton->setEnabled(false);
     ui->chapterCreateButton->setEnabled(false);
@@ -152,7 +153,7 @@ void MainWindow::load_question(QString subject,QString chapter,QString timeStamp
     QFile questionFile(libraryDir.path().trimmed()+"/"+subject.trimmed()+"/"+chapter.trimmed()+"/"+timeStamp.trimmed());
     questionFile.open(QIODevice::ReadOnly);
     QTextStream readQuestion(&questionFile);
-    readQuestion.setCodec("GBK");
+    readQuestion.setEncoding(QStringConverter::Utf8);
     QString questionText=readQuestion.readAll();
     questionFile.close();
     ui->textEdit->setText(questionText.trimmed());
@@ -161,11 +162,12 @@ void MainWindow::write_question(QString subject,QString chapter,QString timeStam
     QFile questionFile(libraryDir.path().trimmed()+"/"+subject.trimmed()+"/"+chapter.trimmed()+"/"+timeStamp.trimmed());
     questionFile.open(QIODevice::WriteOnly);
     QTextStream writeQuestion(&questionFile);
-    writeQuestion.setCodec("GBK");
+    writeQuestion.setEncoding(QStringConverter::Utf8);
     writeQuestion<<questionText;
 }
 void MainWindow::close_question_management_panel(){
     this->deleteLater();
+    delete this->client;
     parentWidget()->show();
 }
 
@@ -297,7 +299,7 @@ void MainWindow::on_bulletinAction_triggered(){
         return;
     }
     QString identityString="teacher";
-    rulemakerPanel=new RuleMakerDialog(this,&rulemakerName,&identityString);
+    rulemakerPanel=new RuleMakerDialog(this);
     connect(rulemakerPanel,&RuleMakerDialog::rulemaker_panel_be_closed,this,&MainWindow::receive_rulemaker_panel_closure);
     connect(this,&MainWindow::teacher_close_rulemaker,rulemakerPanel,&RuleMakerDialog::close_rulemaker_panel);
     rulemakerPanel->open_rulemaker_panel();

@@ -1,6 +1,4 @@
-#include "mainwindow.h"
 #include "logindialog.h"
-#include "admindialog.h"
 #include <QApplication>
 #include <QDir>
 #include <QFile>
@@ -10,7 +8,7 @@
 #include <QDebug>
 
 int main(int argc, char *argv[]) {
-    // 创建必要的User,Question,SignUp和Bulletin目录
+    // create cache directory for Question and Bulletin
     QDir dir("./User");
     if(!dir.exists()){
         dir.mkpath(".");
@@ -28,13 +26,13 @@ int main(int argc, char *argv[]) {
         dir.mkpath(".");
     }
 
-    // 创建管理员账户
+    // create admin account
     QFile writeFile("./User/admin");
     writeFile.open(QIODevice::ReadWrite | QIODevice::Text);
     QTextStream adminCStream(&writeFile);
-    adminCStream.setCodec("UTF-8");
+    adminCStream.setEncoding(QStringConverter::Utf8);
     QString adminOriginalCipher=adminCStream.readAll();
-    if(adminOriginalCipher.trimmed().length()==0){ // 说明admin的密码原本不存在，需要重置密码。
+    if(adminOriginalCipher.trimmed().length()==0){ // admin password does not exist
         QString initial="admin";
         QByteArray adminCipher=QCryptographicHash::hash(("admin"+initial).toLocal8Bit(),QCryptographicHash::Sha3_512);
         adminCStream<<adminCipher.toHex();

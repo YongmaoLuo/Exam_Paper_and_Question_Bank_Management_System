@@ -29,18 +29,18 @@
      <rect>
       <x>90</x>
       <y>20</y>
-      <width>40</width>
+      <width>71</width>
       <height>23</height>
      </rect>
     </property>
     <property name="font">
      <font>
       <family>Arial</family>
-      <pointsize>12</pointsize>
+      <pointsize>18</pointsize>
      </font>
     </property>
     <property name="text">
-     <string>科目</string>
+     <string>Subject</string>
     </property>
     <property name="indent">
      <number>0</number>
@@ -49,7 +49,7 @@
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>270</x>
+      <x>250</x>
       <y>20</y>
       <width>88</width>
       <height>23</height>
@@ -64,11 +64,11 @@
     <property name="font">
      <font>
       <family>Arial</family>
-      <pointsize>12</pointsize>
+      <pointsize>18</pointsize>
      </font>
     </property>
     <property name="text">
-     <string>章节</string>
+     <string>Chapters</string>
     </property>
     <property name="indent">
      <number>0</number>
@@ -86,11 +86,11 @@
     <property name="font">
      <font>
       <family>Arial</family>
-      <pointsize>12</pointsize>
+      <pointsize>18</pointsize>
      </font>
     </property>
     <property name="text">
-     <string>文本</string>
+     <string>Text</string>
     </property>
     <property name="indent">
      <number>0</number>
@@ -106,7 +106,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>保存</string>
+     <string>Store</string>
     </property>
    </widget>
    <widget class="QListWidget" name="subjectListWidget">
@@ -139,7 +139,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>删除</string>
+     <string>Delete</string>
     </property>
    </widget>
    <widget class="QPushButton" name="subjectCreateButton">
@@ -152,7 +152,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>新建</string>
+     <string>Create</string>
     </property>
    </widget>
    <widget class="QPushButton" name="chapterDeleteButton">
@@ -165,7 +165,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>删除</string>
+     <string>Delete</string>
     </property>
    </widget>
    <widget class="QPushButton" name="chapterCreateButton">
@@ -178,7 +178,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>新建</string>
+     <string>Create</string>
     </property>
    </widget>
    <widget class="QListWidget" name="questionListWidget">
@@ -194,20 +194,20 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>460</x>
+      <x>440</x>
       <y>20</y>
-      <width>40</width>
+      <width>81</width>
       <height>23</height>
      </rect>
     </property>
     <property name="font">
      <font>
       <family>Arial</family>
-      <pointsize>12</pointsize>
+      <pointsize>18</pointsize>
      </font>
     </property>
     <property name="text">
-     <string>题目</string>
+     <string>Questions</string>
     </property>
    </widget>
    <widget class="QPushButton" name="questionCreateButton">
@@ -220,7 +220,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>新建</string>
+     <string>Create</string>
     </property>
    </widget>
    <widget class="QPushButton" name="questionDeleteButton">
@@ -233,7 +233,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>删除</string>
+     <string>Delete</string>
     </property>
    </widget>
    <widget class="QPushButton" name="exitButton">
@@ -246,7 +246,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>退出</string>
+     <string>Log out</string>
     </property>
    </widget>
    <widget class="QPushButton" name="addPaperButton">
@@ -254,12 +254,12 @@
      <rect>
       <x>470</x>
       <y>500</y>
-      <width>91</width>
-      <height>28</height>
+      <width>121</width>
+      <height>31</height>
      </rect>
     </property>
     <property name="text">
-     <string>新增至试卷</string>
+     <string>Add to the paper</string>
     </property>
    </widget>
   </widget>
@@ -269,7 +269,7 @@
      <x>0</x>
      <y>0</y>
      <width>841</width>
-     <height>26</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">

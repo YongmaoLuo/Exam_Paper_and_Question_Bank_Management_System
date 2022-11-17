@@ -17,7 +17,7 @@ class MainWindow : public QMainWindow,public QuestionManagement
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(QWidget *parent = nullptr,TCPClientSocket *client=nullptr);
     ~MainWindow();
 
 signals:
@@ -54,6 +54,7 @@ public slots:
 
 private:
     Ui::MainWindow *ui;
+    TCPClientSocket *client;
     RuleMakerDialog *rulemakerPanel=nullptr;
     PaperProductionDialog *paperPanel=nullptr;
     bool canMakePaper=false;
