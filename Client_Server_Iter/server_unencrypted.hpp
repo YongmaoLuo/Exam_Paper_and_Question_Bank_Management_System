@@ -90,11 +90,12 @@ private:
     void bindSocket();
     void startListen();
     void handleNewConnection();
-    void recvInputFromExisting(int fd, db_user&);
-    void registerUser(Connector connect_fd, string username, auto password, string identity, db_user&);
-    void authenticateUser(Connector conn, string username, auto password, db_user&);
-    void deleteUser(Connector connect_fd, string username, auto password, db_user&);
-    void getUser(Connector connect_fd, db_user&);
+    vector<string> recvInputFromExisting(Connector, db_user&);
+    void sendMsgToExisting(Connector, vector<string>);
+    vector<string> registerUser(Connector connect_fd, string username, auto password, string identity, db_user&);
+    vector<string> authenticateUser(Connector conn, string username, auto password, db_user&);
+    vector<string> deleteUser(Connector connect_fd, string username, auto password, db_user&);
+    vector<string> getUser(Connector connect_fd, db_user&);
 
     //void *getInetAddr(struct sockaddr *saddr);
 };

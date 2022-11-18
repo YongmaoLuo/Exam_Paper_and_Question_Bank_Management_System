@@ -49,7 +49,7 @@ void Server::setup(int port)
     servaddr.sin_addr.s_addr = htons(INADDR_ANY);
     servaddr.sin_port = htons(port);
 
-    bzero(input_buffer, INPUT_BUFFER_SIZE); //zero the input buffer before use to avoid random data appearing in first receives
+    bzero(&input_buffer, INPUT_BUFFER_SIZE); //zero the input buffer before use to avoid random data appearing in first receives
 }
 
 void Server::initializeSocket()
@@ -138,30 +138,33 @@ void Server::handleNewConnection()
     // sendMessage(connect_fd, message.c_str());
 }
 
-void Server::recvInputFromExisting(int fd, db_user& user)
-{
-    struct Connector connect_fd = Connector();
-    connect_fd.source_fd = fd;
+void Server::sendMsgToExisting(Connector connect_fd, vector<string> messages){
+    for(int i=0; i<messages.size(); i++){
+        int bytes = sendMessage(connect_fd, messages[i].c_str());
+        while(bytes < 0){
+            bytes = sendMessage(connect_fd, messages[i].c_str());
+        }
+    }
 
+}
+
+vector<string> Server::recvInputFromExisting(Connector connect_fd, db_user& user)
+{
+    vector<string> messages;
     int nbytesrecv = recvMessage(connect_fd, input_buffer);
     // int nbytesrecv = recv(fd, input_buffer, INPUT_BUFFER_SIZE, 0);
     cout<<"Received bytes: "<<nbytesrecv<<endl;
     if (nbytesrecv <= 0)
     {
         //problem
-        if (0 == nbytesrecv)
-	    {
+        if (nbytesrecv < 0)
+	    {   
+            perror("[SERVER] [ERROR] recv() failed");
         	//disconnectCallback((uint16_t)fd);
-		    close(fd); //well then, bye bye.
-        	FD_CLR(fd, &masterfds);
-        	return;
-        } else 
-	    {
-        	perror("[SERVER] [ERROR] recv() failed");
         }
-        close(fd); //close connection to client
-        FD_CLR(fd, &masterfds); //clear the client fd from fd set
-        return;
+        close(connect_fd.source_fd); //close connection to client
+        FD_CLR(connect_fd.source_fd, &masterfds); //clear the client fd from fd set
+        return messages;
     }
     #ifdef SERVER_DEBUG
     printf("[SERVER] [RECV] Received '%s' from client!\n", input_buffer);
@@ -186,12 +189,12 @@ void Server::recvInputFromExisting(int fd, db_user& user)
         perror("No password.\n");
         // exit(1);
     }
-    
+
     if(command == "login"){
-        authenticateUser(connect_fd, username, password, user);
+        messages = authenticateUser(connect_fd, username, password, user);
     }
-    else if(command == "get users" && bindIdentity[fd] == "admin"){
-        getUser(connect_fd, user);
+    else if(command == "get users" && bindIdentity[connect_fd.source_fd] == "admin"){
+        messages = getUser(connect_fd, user);
     }
     else if(command == "register user"){
         if(message.contains("identity")) identity = message["identity"].get<std::string>();
@@ -199,17 +202,20 @@ void Server::recvInputFromExisting(int fd, db_user& user)
             perror("No identity.\n");
             exit(1);
         }
-        registerUser(connect_fd, username, password, identity, user);
+        messages = registerUser(connect_fd, username, password, identity, user);
     }
     else if(command == "delete user"){
-        deleteUser(connect_fd, username, password, user);
+        messages = deleteUser(connect_fd, username, password, user);
     }
-    else cout<<"Invalid command or not enough permission."<<endl;
+    else{
+        cout<<"Invalid command or not enough permission."<<endl;
+    } 
     //memset(&input_buffer, 0, INPUT_BUFFER_SIZE); //zero buffer //bzero
-    bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
+    // bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
+    return messages;
 }
 
-void Server::authenticateUser(Connector connect_fd, string username, auto password, db_user& user){
+vector<string> Server::authenticateUser(Connector connect_fd, string username, auto password, db_user& user){
     int status_code;
     // with database logic
     optional<pair<string, variant<string, int, double>>> constraint;
@@ -223,67 +229,63 @@ void Server::authenticateUser(Connector connect_fd, string username, auto passwo
         status_code = 403;
         cout<<"User exists!"<<endl;
     }
-    cout<<identity<<endl;
+    vector<string> messages;
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}, \"identity\": \"{}\"}", status_code, identity);
     #else
     message = fmt::format("{{\"code\": {}, \"identity\": \"{}\"}}", status_code, identity);
     #endif
     cout<<"checkin message: "<<message<<endl;
+    messages.push_back(message);
     
-    int bytes = sendMessage(connect_fd, message.c_str());
-    while(bytes < 0){
-        bytes = sendMessage(connect_fd, message.c_str());
-    }
     bindIdentity[connect_fd.source_fd] = identity;
+    return messages;
 }
 
-void Server::registerUser(Connector connect_fd, string username, auto password, string identity, db_user& user){
+vector<string> Server::registerUser(Connector connect_fd, string username, auto password, string identity, db_user& user){
     int status_code;
     // with database logic
-    UserInfo new_user = {static_cast<std::string>(username), static_cast<std::string>(password), identity};
+    UserInfo new_user = {username, static_cast<std::string>(password), identity};
     int result = user.insert(new_user);
     if(result == -1) status_code = 403;
     else status_code = 200;
+    vector<string> messages;
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}}", status_code);
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    int bytes = sendMessage(connect_fd, message.c_str());
-    while(bytes < 0){
-        bytes = sendMessage(connect_fd, message.c_str());
-    }
+    messages.push_back(message);
+    return messages;
 }
 
-void Server::getUser(Connector connect_fd, db_user& user){
+vector<string> Server::getUser(Connector connect_fd, db_user& user){
     vector<string> usernames;
     int status_code;
     // with database logic
     int numUsers = user.count();
     if(numUsers < 0) status_code = 403;
     else status_code = 200;
+
+    vector<string> messages;
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}, \"counts\": {}}", status_code, numUsers);
     #else
     message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, numUsers);
     #endif
-    int bytes = sendMessage(connect_fd, message.c_str());
-    while(bytes < 0){
-        bytes = sendMessage(connect_fd, message.c_str());
-    }
-    if(numUsers < 0) return;
+
+    messages.push_back(message);
+    if(numUsers < 0) return messages;
     usernames = user.getUsers();
+
     for(int i=0; i<usernames.size(); i++){
         message = fmt::format("{{\"username\": \"{}\"}}", usernames[i]);
-        bytes = sendMessage(connect_fd, message.c_str());
-        while(bytes < 0){
-            bytes = sendMessage(connect_fd, message.c_str());
-        }
+        messages.push_back(message);
     }
+    return messages;
 }
 
-void Server::deleteUser(Connector connect_fd, string username, auto password, db_user& user){
+vector<string> Server::deleteUser(Connector connect_fd, string username, auto password, db_user& user){
     int status_code;
 
     auto it = bindIdentity.find(connect_fd.source_fd);
@@ -295,11 +297,6 @@ void Server::deleteUser(Connector connect_fd, string username, auto password, db
         #else
         message = fmt::format("{{\"code\": {}}}", status_code);
         #endif
-        int bytes = sendMessage(connect_fd, message.c_str());
-        while(bytes < 0){
-            bytes = sendMessage(connect_fd, message.c_str());
-        }
-        return;
     } else {
         status_code = 200;
         cout<<"Identity found!"<<endl;
@@ -309,18 +306,17 @@ void Server::deleteUser(Connector connect_fd, string username, auto password, db
     string key = "password";
     pair<string, variant<string, int, double>> deleted_detail = std::make_pair(key, password);
     int result = user.delet(username, deleted_detail);
-    if(result == -1) status_code = 404;
-    else status_code = 200;
+    if(result == -1 && status_code == 200) status_code = 404;
+    else if(result >= 0) status_code = 200;
+
+    vector<string> messages;
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}}", status_code);
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    int bytes = sendMessage(connect_fd, message.c_str());
-    while(bytes < 0){
-        bytes = sendMessage(connect_fd, message.c_str());
-    }
-    return;
+    messages.push_back(message);
+    return messages;
 }
 
 void Server::loop(db_user& user)
@@ -348,7 +344,13 @@ void Server::loop(db_user& user)
                 handleNewConnection();
             } else {
                 //exisiting connection has new data
-                recvInputFromExisting(i, user);
+                Connector connect_fd = Connector();
+                connect_fd.source_fd = i;
+                vector<string> messages = recvInputFromExisting(connect_fd, user);
+                if(!messages.empty()){
+                    sendMsgToExisting(connect_fd, messages);
+                    bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
+                }
             }
         } //loop on to see if there is more
     }
