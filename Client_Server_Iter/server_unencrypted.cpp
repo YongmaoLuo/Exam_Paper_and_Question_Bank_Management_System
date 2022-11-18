@@ -138,7 +138,7 @@ void Server::handleNewConnection()
     // sendMessage(connect_fd, message.c_str());
 }
 
-void Server::sendMsgToExisting(Connector connect_fd, vector<string> messages){
+void Server::sendMsgToExisting(Connector& connect_fd, vector<string>& messages){
     for(int i=0; i<messages.size(); i++){
         int bytes = sendMessage(connect_fd, messages[i].c_str());
         while(bytes < 0){
@@ -148,7 +148,7 @@ void Server::sendMsgToExisting(Connector connect_fd, vector<string> messages){
 
 }
 
-vector<string> Server::recvInputFromExisting(Connector connect_fd, db_user& user)
+vector<string> Server::recvInputFromExisting(Connector& connect_fd, db_user& user)
 {
     vector<string> messages;
     int nbytesrecv = recvMessage(connect_fd, input_buffer);
@@ -200,7 +200,7 @@ vector<string> Server::recvInputFromExisting(Connector connect_fd, db_user& user
         if(message.contains("identity")) identity = message["identity"].get<std::string>();
         else{
             perror("No identity.\n");
-            exit(1);
+            // exit(1);
         }
         messages = registerUser(connect_fd, username, password, identity, user);
     }
@@ -215,7 +215,7 @@ vector<string> Server::recvInputFromExisting(Connector connect_fd, db_user& user
     return messages;
 }
 
-vector<string> Server::authenticateUser(Connector connect_fd, string username, auto password, db_user& user){
+vector<string> Server::authenticateUser(Connector& connect_fd, string username, auto password, db_user& user){
     int status_code;
     // with database logic
     optional<pair<string, variant<string, int, double>>> constraint;
@@ -242,7 +242,7 @@ vector<string> Server::authenticateUser(Connector connect_fd, string username, a
     return messages;
 }
 
-vector<string> Server::registerUser(Connector connect_fd, string username, auto password, string identity, db_user& user){
+vector<string> Server::registerUser(Connector& connect_fd, string username, auto password, string identity, db_user& user){
     int status_code;
     // with database logic
     UserInfo new_user = {username, static_cast<std::string>(password), identity};
@@ -259,7 +259,7 @@ vector<string> Server::registerUser(Connector connect_fd, string username, auto 
     return messages;
 }
 
-vector<string> Server::getUser(Connector connect_fd, db_user& user){
+vector<string> Server::getUser(Connector& connect_fd, db_user& user){
     vector<string> usernames;
     int status_code;
     // with database logic
@@ -285,7 +285,7 @@ vector<string> Server::getUser(Connector connect_fd, db_user& user){
     return messages;
 }
 
-vector<string> Server::deleteUser(Connector connect_fd, string username, auto password, db_user& user){
+vector<string> Server::deleteUser(Connector& connect_fd, string username, auto password, db_user& user){
     int status_code;
 
     auto it = bindIdentity.find(connect_fd.source_fd);

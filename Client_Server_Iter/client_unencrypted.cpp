@@ -173,10 +173,10 @@ void Client::loop(){
     struct Connector connect_fd = Connector();
     connect_fd.source_fd = socket_fd;
     
-    num_bytes = recvMessage(connect_fd, buffer);
-    printf("%s \n", buffer);
-    if (num_bytes < 0) 
-         error("ERROR reading from socket");
+    // num_bytes = recvMessage(connect_fd, buffer);
+    // printf("%s \n", buffer);
+    // if (num_bytes < 0) 
+    //      error("ERROR reading from socket");
     bzero(buffer,256);
 
     string username = "\"admin\"";
@@ -185,15 +185,15 @@ void Client::loop(){
     string status = "\"valid\"";
     struct UserInfo user = {username, password, identity, status};
 
-    string login_msg = fmt::format("{{\"command\": \"login\",\"username\": {},\"password\": {}}}", 
-    user.username, user.password);
+    string login_msg = fmt::format("{{\"command\": \"register user\",\"username\": {},\"password\": {}, \"identity\": {}}}", 
+    user.username, user.password, user.identity);
     cout<<"login msg: "<<login_msg<<endl;
     // login_msg[strlen(login_msg)] = '\0';
 
     num_bytes = sendMessage(connect_fd, login_msg.c_str());
     if (num_bytes < 0) 
          error("ERROR writing to socket");
-    cout<<"Sent a login command!"<<endl;
+    cout<<"Sent a register command!"<<endl;
     
     bzero(buffer, 256);
     num_bytes = recvMessage(connect_fd, buffer);
