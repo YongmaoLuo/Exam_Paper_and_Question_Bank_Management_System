@@ -1,5 +1,5 @@
 #include "server_unencrypted.hpp"
-#include "db.hpp"
+#include "db.cpp"
 using namespace std;
 
 Server::Server()
@@ -309,7 +309,7 @@ void Server::deleteUser(Connector connect_fd, string username, auto password, db
     string key = "password";
     pair<string, variant<string, int, double>> deleted_detail = std::make_pair(key, password);
     int result = user.delet(username, deleted_detail);
-    if(result == -1) status_code = 403;
+    if(result == -1) status_code = 404;
     else status_code = 200;
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}}", status_code);
