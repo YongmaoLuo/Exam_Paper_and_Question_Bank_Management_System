@@ -274,6 +274,7 @@ vector<string> Server::getUser(Connector& connect_fd, db_user& user){
     message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, numUsers);
     #endif
 
+    messages.reserve(numUsers+1);
     messages.push_back(message);
     if(numUsers < 0) return messages;
     usernames = user.getUsers();
@@ -348,6 +349,7 @@ void Server::loop(db_user& user)
                 connect_fd.source_fd = i;
                 vector<string> messages = recvInputFromExisting(connect_fd, user);
                 if(!messages.empty()){
+                    messages.shrink_to_fit();
                     sendMsgToExisting(connect_fd, messages);
                     bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
                 }

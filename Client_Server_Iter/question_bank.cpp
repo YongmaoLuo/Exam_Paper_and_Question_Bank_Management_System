@@ -1,4 +1,4 @@
-#include "db.hpp"
+#include "question_bank.hpp"
 
 static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
    int i;
@@ -9,7 +9,7 @@ static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
    return 0;
 }
 
-db_user::db_user(){
+question_bank::question_bank(){
    db = 0;
    stmt = 0;
    zErrMsg = 0;
@@ -17,16 +17,16 @@ db_user::db_user(){
    // sql = NULL;
 }
 
-db_user::db_user(const db_user& database){
+question_bank::question_bank(const question_bank& database){
 
 }
 
-db_user::~db_user(){
+question_bank::~question_bank(){
    sqlite3_finalize(stmt);
    sqlite3_close(db);
 }
 
-void db_user::create(bool clear/*= false*/, string database_name/*= "userinfo.db"*/){
+void question_bank::create(bool clear/*= false*/, string database_name/*= "questions.db"*/){
    // rc = sqlite3_open(database_name, &db);
    // CREATE/OPEN
    rc = sqlite3_open_v2(database_name.data(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, 
@@ -45,11 +45,11 @@ void db_user::create(bool clear/*= false*/, string database_name/*= "userinfo.db
    }
    /* Create SQL statement */
 
-   sql = "CREATE TABLE IF NOT EXISTS USER( \
-            USERNAME TEXT NOT NULL PRIMARY KEY,  \
-            PASSWORD TEXT NOT NULL, \
-            IDENTITY TEXT NOT NULL, \
-            STATUS TEXT DEFAULT valid\
+   sql = "CREATE TABLE IF NOT EXISTS QUESTIONS( \
+            PATH varchar(20) NOT NULL,  \
+            CONTENT TEXT NOT NULL, \
+            CATEGORY varchar(20) default undefined, \
+            PRIMARY KEY (PATH, CONTENT)\
             );" ;
 
    /* Execute SQL statement */
@@ -63,14 +63,13 @@ void db_user::create(bool clear/*= false*/, string database_name/*= "userinfo.db
    }
 }
 
-int db_user::insert(UserInfo user){
-   string identity = user.identity;
-   string username = user.username;
-   string password = user.password;
-   string status = user.status;
-   if(status.empty()) status = "valid";
-   sql = fmt::format("INSERT INTO USER (USERNAME, PASSWORD, IDENTITY, STATUS) "  \
-            "VALUES ('{}', '{}', '{}', '{}'); SELECT * FROM USER", username, password, identity, status);
+int question_bank::insert(QuestionInfo& question){
+   string path = question.path;
+   string content = question.content;
+   string category = question.category;
+   if(category.empty()) category = "undefined";
+   sql = fmt::format("INSERT INTO QUESTIONS (PATH, CONTENT, CATEGORY) "  \
+            "VALUES ('{}', '{}', '{}'); SELECT * FROM QUESTIONS", path, content, category);
    rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
          fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -82,7 +81,7 @@ int db_user::insert(UserInfo user){
    return rc;
 }
 
-int db_user::update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist){
+int question_bank::update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist){
    std::set<string> keys;
    string key;
    while(!changelist.empty()){
@@ -95,8 +94,8 @@ int db_user::update(string primary_val, vector<pair<string, variant<string, int,
       }
       keys.insert(key);
       
-      if(key == "USERNAME") return -1;
-      sql = fmt::format("UPDATE USER set {} = '{}' where USERNAME = '{}'; SELECT * FROM USER", key, custom_to_string(value), primary_val);
+      if(key == "PATH") return -1;
+      sql = fmt::format("UPDATE QUESTIONS set {} = '{}' where PATH = '{}'; SELECT * FROM QUESTIONS", key, custom_to_string(value), primary_val);
 
       rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
       if (rc != SQLITE_OK) {
@@ -110,16 +109,16 @@ int db_user::update(string primary_val, vector<pair<string, variant<string, int,
    return rc;
 }
 
-string db_user::findUser(optional<pair<string, variant<string, int, double>>> constraint, string primary_val){
+string question_bank::getQuestion(optional<pair<string, variant<string, int, double>>> constraint, string primary_val){
    if(constraint){
       auto constraint_val = constraint.value();
       string key = constraint_val.first;
       auto value = constraint_val.second;
-      sql = fmt::format("SELECT IDENTITY FROM USER "  \
-                  "WHERE USERNAME = '{}' AND {} = '{}'; ", primary_val, key, custom_to_string(value));
+      sql = fmt::format("SELECT CONTENT FROM QUESTIONS "  \
+                  "WHERE PATH = '{}' AND {} = '{}'; ", primary_val, key, custom_to_string(value));
    }
-   else sql = fmt::format("SELECT IDENTITY FROM USER " \
-                  "WHERE USERNAME = '{}'; ", primary_val);
+   else sql = fmt::format("SELECT CONTENT FROM QUESTIONS " \
+                  "WHERE PATH = '{}'; ", primary_val);
    // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
    sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
@@ -151,12 +150,12 @@ string db_user::findUser(optional<pair<string, variant<string, int, double>>> co
    }
    
    if(!output.empty()) return output[0];
-   cout<<"user not found"<<endl;
+   cout<<"question not found"<<endl;
    return {};
 }
 
-int db_user::count(){
-   sql = "SELECT COUNT (*) from USER;"; 
+int question_bank::count(){
+   sql = "SELECT COUNT (*) from QUESTIONS;"; 
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
    sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
    int num_cols;
@@ -185,8 +184,8 @@ int db_user::count(){
    return atoi(output[0]);
 }
 
-vector<string> db_user::getUsers(){
-   sql = "SELECT USERNAME from USER;";
+vector<string> question_bank::getQuestionPaths(){
+   sql = "SELECT PATH from QUESTIONS;";
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
    sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
    int num_cols;
@@ -214,11 +213,11 @@ vector<string> db_user::getUsers(){
    return output;
 }
 
-int db_user::delet(string primary_val, pair<string, variant<string, int, double>> authenticated_info){
+int question_bank::delet(string primary_val, pair<string, variant<string, int, double>> authenticated_info){
    string key = authenticated_info.first;
    auto value = authenticated_info.second;
-   sql = fmt::format("DELETE from USER where USERNAME = '{}' AND {} = '{}'; \
-                SELECT * from USER", primary_val, key, custom_to_string(value));
+   sql = fmt::format("DELETE from QUESTIONS where PATH = '{}' AND {} = '{}'; \
+                SELECT * from QUESTIONS", primary_val, key, custom_to_string(value));
    rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -230,8 +229,8 @@ int db_user::delet(string primary_val, pair<string, variant<string, int, double>
    return rc;
 }
 
-void db_user::clean(){
-   sql = "DROP TABLE IF EXISTS USER;";
+void question_bank::clean(){
+   sql = "DROP TABLE IF EXISTS QUESTIONS;";
    rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -241,45 +240,42 @@ void db_user::clean(){
    }
 }
 
-void db_user::close(){
+void question_bank::close(){
    sqlite3_finalize(stmt);
    sqlite3_close(db);
 }
 
-// int main(int argc, char* argv[]) {
-//    db_user user = db_user();
-//    bool clear = true;
-//    user.create(clear);
+int main(int argc, char* argv[]) {
+   question_bank question = question_bank();
+   bool clear = true;
+   question.create(clear);
 
-//    UserInfo user_example = {username: "admin", 
-//                             password: "123456",
-//                             identity: "admin" 
-//                             };
-//    user.insert(user_example);
-//    string primekey_val = "admin";
+   QuestionInfo question_example = {path: "http://123.com", 
+                            content: "123456",
+                            category: "multiple choice" 
+                            };
+   question.insert(question_example);
+   string primekey_val = "http://123.com";
 
-//    vector<pair<string, variant<string, int, double>>> changelist; // (key, value pair)
-//    changelist.emplace_back("STATUS", "expired");
-//    changelist.emplace_back("STATUS", "valid");
-//    int status = user.update(primekey_val, changelist);
-//    cout<<"update status "<<status<<endl;
+   vector<pair<string, variant<string, int, double>>> changelist; // (key, value pair)
+   changelist.emplace_back("category", "normal");
+   changelist.emplace_back("category", "multiple choice");
+   int status = question.update(primekey_val, changelist);
+   cout<<"update status "<<status<<endl;
 
-//    // vector<string> usernames = user.getUsers();
-//    int user_num = user.count();
-//    cout<<user_num<<endl;
+   int question_num = question.count();
+   cout<<question_num<<endl;
 
-//    string db_key = "IDENTITY";
-//    auto identity_val = "admin";
-//    optional<pair<string, variant<string, int, double>>> constraint;
-//    constraint = std::make_pair(db_key, identity_val);
-//    string found = user.findUser(constraint, primekey_val);
-//    cout<<"find status "<<found<<endl;
+   optional<pair<string, variant<string, int, double>>> constraint;
+   // constraint = std::make_pair(db_key, identity_val);
+   string found = question.getQuestion(constraint, primekey_val);
+   cout<<"find status "<<found<<endl;
 
-//    string key = "password";
-//    auto val = static_cast<string>("123456");
-//    pair<string, variant<string, int, double>> deleted_info = std::make_pair("password", "123456");
+   string key = "CONTENT";
+   auto val = static_cast<string>("123456");
+   pair<string, variant<string, int, double>> deleted_info = std::make_pair(key, "123456");
 
-//    status = user.delet(primekey_val, deleted_info);
-//    cout<<"delete status "<<status<<endl;
-//    return 0;
-// }
+   status = question.delet(primekey_val, deleted_info);
+   cout<<"delete status "<<status<<endl;
+   return 0;
+}

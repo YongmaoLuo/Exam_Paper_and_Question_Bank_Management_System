@@ -44,10 +44,10 @@ class question_bank{
         question_bank(const question_bank& database);
         virtual ~question_bank(); //drop the table?
 
-        void create(bool = false, string = "question_bank.db");
+        void create(bool = false, string = "questions.db");
         int insert(QuestionInfo&);
         int update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
-        string findPath(optional<pair<string, variant<string, int, double>>> constraint, string primary_val);
+        string getQuestion(optional<pair<string, variant<string, int, double>>> constraint, string primary_val);
         int count();
         vector<string> getQuestionPaths();
         int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info);
