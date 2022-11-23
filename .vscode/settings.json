@@ -78,5 +78,6 @@
         "xiosbase": "cpp",
         "xlocbuf": "cpp",
         "xutility": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "${workspaceFolder}/Client_Server_Iter"
 }

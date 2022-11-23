@@ -245,7 +245,7 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
 vector<string> Server::registerUser(Connector& connect_fd, string username, auto password, string identity, db_user& user){
     int status_code;
     // with database logic
-    UserInfo new_user = {username, static_cast<std::string>(password), identity};
+    UserInfo<string> new_user = {username, static_cast<std::string>(password), identity};
     int result = user.insert(new_user);
     if(result == -1) status_code = 403;
     else status_code = 200;

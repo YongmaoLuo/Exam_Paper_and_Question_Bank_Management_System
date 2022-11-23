@@ -26,21 +26,19 @@ db_user::~db_user(){
    sqlite3_close(db);
 }
 
-void db_user::create(bool clear/*= false*/, string database_name/*= "userinfo.db"*/){
+void db_user::create(bool clear/*= false*/, const char* database_name/*= "userinfo.db"*/){
    // rc = sqlite3_open(database_name, &db);
    // CREATE/OPEN
-   rc = sqlite3_open_v2(database_name.data(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, 
+   rc = sqlite3_open_v2(database_name, &db, SQLITE_OPEN_READWRITE, 
                         NULL);
    
    if(rc != SQLITE_OK) {
-      fprintf(stderr, "Can't create database: %s\n", sqlite3_errmsg(db));
-      if(!clear) return;
-      else{
-         clean();
-         rc = sqlite3_open_v2(database_name.data(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, 
-                        NULL);
-      }
+      fprintf(stderr, "No such database, creating a new one: %s\n", sqlite3_errmsg(db));
+      rc = sqlite3_open_v2(database_name, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, 
+                     NULL);
+
    } else {
+      if(clear) clean();
       fprintf(stdout, "Opened database successfully\n");
    }
    /* Create SQL statement */
@@ -48,8 +46,8 @@ void db_user::create(bool clear/*= false*/, string database_name/*= "userinfo.db
    sql = "CREATE TABLE IF NOT EXISTS USER( \
             USERNAME TEXT NOT NULL PRIMARY KEY,  \
             PASSWORD TEXT NOT NULL, \
-            IDENTITY TEXT NOT NULL, \
-            STATUS TEXT DEFAULT valid\
+            IDENTITY VARCHAR(15) CHECK(IDENTITY IN ('admin', 'rule maker', 'teacher')), \
+            STATUS VARCHAR(10) DEFAULT valid\
             );" ;
 
    /* Execute SQL statement */
@@ -63,7 +61,7 @@ void db_user::create(bool clear/*= false*/, string database_name/*= "userinfo.db
    }
 }
 
-int db_user::insert(UserInfo user){
+int db_user::insert(UserInfo<string>& user){
    string identity = user.identity;
    string username = user.username;
    string password = user.password;
@@ -251,9 +249,10 @@ void db_user::close(){
 //    bool clear = true;
 //    user.create(clear);
 
-//    UserInfo user_example = {username: "admin", 
-//                             password: "123456",
-//                             identity: "admin" 
+//    UserInfo<string> user_example = {username: string("admin"), 
+//                             password: string("123456"),
+//                             identity: "admin",
+//                             status: "valid"
 //                             };
 //    user.insert(user_example);
 //    string primekey_val = "admin";
@@ -264,7 +263,9 @@ void db_user::close(){
 //    int status = user.update(primekey_val, changelist);
 //    cout<<"update status "<<status<<endl;
 
-//    // vector<string> usernames = user.getUsers();
+//    vector<string> usernames = user.getUsers();
+//    for(int i=0; i<std::ssize(usernames); i++) cout<<usernames[i]<<"\t";
+//    cout<<endl;
 //    int user_num = user.count();
 //    cout<<user_num<<endl;
 

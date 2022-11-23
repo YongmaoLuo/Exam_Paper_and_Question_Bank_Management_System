@@ -26,21 +26,19 @@ question_bank::~question_bank(){
    sqlite3_close(db);
 }
 
-void question_bank::create(bool clear/*= false*/, string database_name/*= "questions.db"*/){
+void question_bank::create(bool clear/*= false*/, const char* database_name/*= "questions.db"*/){
    // rc = sqlite3_open(database_name, &db);
    // CREATE/OPEN
-   rc = sqlite3_open_v2(database_name.data(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, 
+   rc = sqlite3_open_v2(database_name, &db, SQLITE_OPEN_READWRITE, 
                         NULL);
    
    if(rc != SQLITE_OK) {
-      fprintf(stderr, "Can't create database: %s\n", sqlite3_errmsg(db));
-      if(!clear) return;
-      else{
-         clean();
-         rc = sqlite3_open_v2(database_name.data(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, 
-                        NULL);
-      }
+      fprintf(stderr, "No such database, creating a new one: %s\n", sqlite3_errmsg(db));
+      rc = sqlite3_open_v2(database_name, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, 
+                     NULL);
+
    } else {
+      if(clear) clean();
       fprintf(stdout, "Opened database successfully\n");
    }
    /* Create SQL statement */
@@ -49,6 +47,7 @@ void question_bank::create(bool clear/*= false*/, string database_name/*= "quest
             PATH varchar(20) NOT NULL,  \
             CONTENT TEXT NOT NULL, \
             CATEGORY varchar(20) default undefined, \
+            RUBRIC INTEGER CHECK(RUBRIC >= 0),\
             PRIMARY KEY (PATH, CONTENT)\
             );" ;
 
@@ -63,13 +62,14 @@ void question_bank::create(bool clear/*= false*/, string database_name/*= "quest
    }
 }
 
-int question_bank::insert(QuestionInfo& question){
+int question_bank::insert(QuestionInfo<string>& question){
    string path = question.path;
    string content = question.content;
    string category = question.category;
+   int rubric = question.rubric;
    if(category.empty()) category = "undefined";
-   sql = fmt::format("INSERT INTO QUESTIONS (PATH, CONTENT, CATEGORY) "  \
-            "VALUES ('{}', '{}', '{}'); SELECT * FROM QUESTIONS", path, content, category);
+   sql = fmt::format("INSERT INTO QUESTIONS (PATH, CONTENT, CATEGORY, RUBRIC) "  \
+            "VALUES ('{}', '{}', '{}', '{}'); SELECT * FROM QUESTIONS", path, content, category, rubric);
    rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
          fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -245,37 +245,38 @@ void question_bank::close(){
    sqlite3_close(db);
 }
 
-int main(int argc, char* argv[]) {
-   question_bank question = question_bank();
-   bool clear = true;
-   question.create(clear);
+// int main(int argc, char* argv[]) {
+//    question_bank question = question_bank();
+//    bool clear = true;
+//    question.create(clear);
 
-   QuestionInfo question_example = {path: "http://123.com", 
-                            content: "123456",
-                            category: "multiple choice" 
-                            };
-   question.insert(question_example);
-   string primekey_val = "http://123.com";
+//    QuestionInfo<string> question_example = {path: "http://123.com", 
+//                             content: "123456",
+//                             category: "multiple choice",
+//                             rubric: 10 
+//                             };
+//    question.insert(question_example);
+//    string primekey_val = "http://123.com";
 
-   vector<pair<string, variant<string, int, double>>> changelist; // (key, value pair)
-   changelist.emplace_back("category", "normal");
-   changelist.emplace_back("category", "multiple choice");
-   int status = question.update(primekey_val, changelist);
-   cout<<"update status "<<status<<endl;
+//    vector<pair<string, variant<string, int, double>>> changelist; // (key, value pair)
+//    changelist.emplace_back("category", "normal");
+//    changelist.emplace_back("category", "multiple choice");
+//    int status = question.update(primekey_val, changelist);
+//    cout<<"update status "<<status<<endl;
 
-   int question_num = question.count();
-   cout<<question_num<<endl;
+//    int question_num = question.count();
+//    cout<<question_num<<endl;
 
-   optional<pair<string, variant<string, int, double>>> constraint;
-   // constraint = std::make_pair(db_key, identity_val);
-   string found = question.getQuestion(constraint, primekey_val);
-   cout<<"find status "<<found<<endl;
+//    optional<pair<string, variant<string, int, double>>> constraint;
+//    // constraint = std::make_pair(db_key, identity_val);
+//    string found = question.getQuestion(constraint, primekey_val);
+//    cout<<"find status "<<found<<endl;
 
-   string key = "CONTENT";
-   auto val = static_cast<string>("123456");
-   pair<string, variant<string, int, double>> deleted_info = std::make_pair(key, "123456");
+//    string key = "CONTENT";
+//    auto val = static_cast<string>("123456");
+//    pair<string, variant<string, int, double>> deleted_info = std::make_pair(key, "123456");
 
-   status = question.delet(primekey_val, deleted_info);
-   cout<<"delete status "<<status<<endl;
-   return 0;
-}
+//    status = question.delet(primekey_val, deleted_info);
+//    cout<<"delete status "<<status<<endl;
+//    return 0;
+// }
