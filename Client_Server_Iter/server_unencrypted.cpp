@@ -253,6 +253,7 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     messages.push_back(message);
     
     bindIdentity[connect_fd.source_fd] = identity;
+    bindUsername[connect_fd.source_fd] = username;
     return messages;
 }
 
@@ -271,6 +272,17 @@ vector<string> Server::registerUser(Connector& connect_fd, string username, auto
     #endif
     messages.push_back(message);
     return messages;
+}
+
+
+int Server::logout(Connector& connect_fd, db_user& user){
+    int activity_updated = 0;
+    string username = bindUsername[connect_fd.source_fd];
+    vector<pair<string, variant<string, int, double>>> constraint;
+    constraint.emplace_back(activity, activity_updated);
+    int res = user.update(username, constraint);
+    if(res < 0) cout<<"logout failed."<<endl;
+    return res;
 }
 
 vector<string> Server::getUser(Connector& connect_fd, db_user& user){
@@ -316,6 +328,7 @@ vector<string> Server::deleteUser(Connector& connect_fd, string username, auto p
         status_code = 200;
         cout<<"Identity found!"<<endl;
         bindIdentity.erase(it);
+        bindUsername.erase(it);
     }
     // with database logic
     string key = "password";
