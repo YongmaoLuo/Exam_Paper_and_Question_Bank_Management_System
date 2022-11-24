@@ -220,10 +220,24 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     // with database logic
     optional<pair<string, variant<string, int, double>>> constraint;
     string key = "password";
+    string target_attribute = "identity";
     constraint = std::make_pair(key, password);
-    string identity = user.findUser(constraint, username);
+    string identity = user.findUserAttribute<string>(constraint, username, target_attribute);
     if(identity.empty()){
-        status_code = 200;
+        target_attribute = "activity";
+        int activity = user.findUserAttribute<int>(constraint, username, target_attribute);
+        if(!activity){
+            status_code = 200;
+            activity = 1;
+            string primary_val = username;
+            vector<pair<string, variant<string, int, double>>> changelist;
+            changelist.emplace_back("activity", activity);
+            user.update(primary_val, changelist);
+        } else {
+            status_code = 403;
+            cout<<"User already login!"<<endl;
+        }
+        
     }
     else{
         status_code = 403;
