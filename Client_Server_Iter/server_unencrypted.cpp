@@ -230,7 +230,7 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     string key = "password";
     string target_attribute = "identity";
     constraint = std::make_pair(key, password);
-    string identity = user.findUserAttribute<string>(constraint, username, target_attribute);
+    string identity = std::get<string>(user.findUserAttribute(constraint, username, target_attribute));
     if(identity.empty()){
         target_attribute = "activity";
         int activity = user.findUserAttribute<int>(constraint, username, target_attribute);
