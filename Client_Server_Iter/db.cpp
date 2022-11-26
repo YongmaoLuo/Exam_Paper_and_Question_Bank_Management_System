@@ -47,7 +47,8 @@ void db_user::create(bool clear/*= false*/, const char* database_name/*= "userin
             USERNAME TEXT NOT NULL PRIMARY KEY,  \
             PASSWORD TEXT NOT NULL, \
             IDENTITY VARCHAR(15) CHECK(IDENTITY IN ('admin', 'rule maker', 'teacher')), \
-            STATUS VARCHAR(10) DEFAULT valid\
+            STATUS VARCHAR(10) DEFAULT valid, \
+            ACTIVITY BOOLEAN NOT NULL CHECK(ACTIVITY IN (0, 1))\
             );" ;
 
    /* Execute SQL statement */
@@ -66,9 +67,10 @@ int db_user::insert(UserInfo<string>& user){
    string username = user.username;
    string password = user.password;
    string status = user.status;
+   int activity = user.activity;
    if(status.empty()) status = "valid";
-   sql = fmt::format("INSERT INTO USER (USERNAME, PASSWORD, IDENTITY, STATUS) "  \
-            "VALUES ('{}', '{}', '{}', '{}'); SELECT * FROM USER", username, password, identity, status);
+   sql = fmt::format("INSERT INTO USER (USERNAME, PASSWORD, IDENTITY, STATUS, ACTIVITY) "  \
+            "VALUES ('{}', '{}', '{}', '{}', '{}'); SELECT * FROM USER", username, password, identity, status, activity);
    rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
          fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -108,50 +110,94 @@ int db_user::update(string primary_val, vector<pair<string, variant<string, int,
    return rc;
 }
 
-string db_user::findUser(optional<pair<string, variant<string, int, double>>> constraint, string primary_val){
-   if(constraint){
-      auto constraint_val = constraint.value();
-      string key = constraint_val.first;
-      auto value = constraint_val.second;
-      sql = fmt::format("SELECT IDENTITY FROM USER "  \
-                  "WHERE USERNAME = '{}' AND {} = '{}'; ", primary_val, key, custom_to_string(value));
+auto db_user::checkType(string target_attribute){
+   sql = fmt::format("SELECT typeof({}) FROM USER LIMIT 1;", target_attribute);
+   sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
+   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   int num_cols;
+   int bytes;
+   char* row_content_raw;
+   string res;
+   while(sqlite3_step(stmt) != SQLITE_DONE){
+         num_cols = sqlite3_column_count(stmt);
+         for(int i = 0; i < num_cols; i++){
+            row_content_raw = const_cast<char*>(static_cast<const char *>(sqlite3_column_blob(stmt, i)));
+            bytes = sqlite3_column_bytes(stmt, i);
+            res = string(row_content_raw, bytes);
+         }
    }
-   else sql = fmt::format("SELECT IDENTITY FROM USER " \
-                  "WHERE USERNAME = '{}'; ", primary_val);
+   transform(res.begin(), res.end(), res.begin(), ::toupper);
+   return res;
+}
+
+
+variant<int, double, string> db_user::findUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute)
+{
+   if(constraint){
+         auto constraint_val = constraint.value();
+         string key = constraint_val.first;
+         auto value = constraint_val.second;
+         sql = fmt::format("SELECT {} FROM USER "  \
+                     "WHERE USERNAME = '{}' AND {} = '{}' LIMIT 1; ", target_attribute, primary_val, key, custom_to_string(value));
+   }
+   else sql = fmt::format("SELECT {} FROM USER " \
+                     "WHERE USERNAME = '{}' LIMIT 1; ", target_attribute, primary_val);
    // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
    sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
-   // if(sqlite3_step(stmt) != SQLITE_DONE){
-   //    fprintf(stderr, "SQL error");
-   //    return false;
-   // }
    int num_cols;
-   vector<string> output;
+   int bytes;
+   char* row_content_raw;
+   string res;
    while(sqlite3_step(stmt) != SQLITE_DONE){
-      vector<string> row;
-      num_cols = sqlite3_column_count(stmt);
-      for(int i = 0; i < num_cols; i++){
-         switch(sqlite3_column_type(stmt, i)){
-            case(SQLITE3_TEXT):
-               row.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, i))));
-               break;
-            case(SQLITE_INTEGER):
-               row.push_back(to_string(sqlite3_column_int(stmt, i)));
-               break;
-            case(SQLITE_FLOAT):
-               row.push_back(to_string(sqlite3_column_double(stmt, i)));
-               break;
-            default:
-               break;
+         num_cols = sqlite3_column_count(stmt);
+         for(int i = 0; i < num_cols; i++){
+            row_content_raw = const_cast<char*>(static_cast<const char *>(sqlite3_column_blob(stmt, i)));
+            bytes = sqlite3_column_bytes(stmt, i);
+            res = string(row_content_raw, bytes);
          }
-      }
-      output.insert(output.end(), row.begin(), row.end());
+   }
+   string type = checkType(target_attribute);
+   if(type == "TEXT") return res;
+   else if (type == "INTEGER") return stoi(res);
+   else return stod(res);
+}
+
+
+vector<string> db_user::getUserAttributes(string target_attribute, string constraint_key, string constraint_val)
+{
+   sql = fmt::format("SELECT {} FROM USER " \
+                     "WHERE {} = '{}'; ", target_attribute, constraint_key, constraint_val);
+   // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
+   sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
+   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+
+   int num_cols;
+   int bytes;
+   vector<string> output;
+   char* row_content_raw;
+   string res;
+   while(sqlite3_step(stmt) != SQLITE_DONE){
+         vector<string> row;
+         num_cols = sqlite3_column_count(stmt);
+         for(int i = 0; i < num_cols; i++){
+            row_content_raw = const_cast<char*>(static_cast<const char *>(sqlite3_column_blob(stmt, i)));
+            bytes = sqlite3_column_bytes(stmt, i);
+
+            res = string(row_content_raw, bytes);
+            
+            row.push_back(res);
+         }
+         output.insert(output.end(), row.begin(), row.end());
    }
    
-   if(!output.empty()) return output[0];
-   cout<<"user not found"<<endl;
-   return {};
+   if(output.empty()) {
+         cout<<"User attribute not found"<<endl;
+         return {};
+   }
+   return output;
 }
+
 
 int db_user::count(){
    sql = "SELECT COUNT (*) from USER;"; 
@@ -273,8 +319,16 @@ void db_user::close(){
 //    auto identity_val = "admin";
 //    optional<pair<string, variant<string, int, double>>> constraint;
 //    constraint = std::make_pair(db_key, identity_val);
-//    string found = user.findUser(constraint, primekey_val);
-//    cout<<"find status "<<found<<endl;
+//    string target_attributes = "ACTIVITY";
+//    auto activity = user.findUserAttribute(constraint, primekey_val, target_attributes);
+//    auto type = user.checkType(target_attributes);
+
+//    int a = std::get<int>(activity);
+//    cout<<"find status "<<std::get<int>(activity)<<endl;
+
+//    target_attributes = "PASSWORD";
+//    auto password = user.findUserAttribute(constraint, primekey_val, target_attributes);
+//    cout<<std::get<string>(password)<<endl;
 
 //    string key = "password";
 //    auto val = static_cast<string>("123456");

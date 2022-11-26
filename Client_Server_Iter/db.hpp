@@ -9,6 +9,9 @@
 #include <variant>
 #include <optional>
 #include <iostream>
+#include <cstddef>
+#include <concepts>
+#include <cctype>
 using namespace std;
 
 #define FMT_HEADER_ONLY
@@ -25,16 +28,24 @@ inline string custom_to_string(variant<string, int, double> const& value) {
 }
 
 template<typename T>
+concept hashable = requires(T a)
+{
+    { std::hash<T>{}(a) } -> std::convertible_to<std::size_t>;
+};
+
+template<hashable T>
 struct UserInfo{
             string username;
             string password;
             T identity;
             T status;
+            int activity = 0; // no boolean inside sqlite
             UserInfo<T> operator=(UserInfo<T> newuser){
                 username = newuser.username;
                 password = newuser.password;
                 identity = newuser.identity;
                 status = newuser.status;
+                activity = newuser.activity;
                 return *this;
             }
         };
@@ -55,7 +66,12 @@ class db_user{
         void create(bool = false, const char* = "userinfo.db");
         int insert(UserInfo<string>& user);
         int update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
-        string findUser(optional<pair<string, variant<string, int, double>>> constraint, string primary_val);
+
+        auto checkType(string target_attribute);
+        
+        variant<int, double, string> findUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute);
+        vector<string> getUserAttributes(string target_attribute, string constraint_key, string constraint_val);
+
         int count();
         vector<string> getUsers();
         int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info);

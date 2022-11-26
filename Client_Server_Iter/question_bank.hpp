@@ -25,7 +25,7 @@ inline string custom_to_string(variant<string, int, double> const& value) {
 }
 
 
-template <typename T>
+template <hashable T>
 struct QuestionInfo{
             string path;
             string content;
