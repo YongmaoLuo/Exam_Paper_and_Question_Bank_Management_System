@@ -193,7 +193,9 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd, db_user& use
     if(command == "login"){
         messages = authenticateUser(connect_fd, username, password, user);
     }
-    else if(command == "get users" && bindIdentity[connect_fd.source_fd] == "admin"){
+    else if(command == "get users" && 
+            bindIdentity.find(connect_fd.source_fd) != bindIdentity.end() && 
+            bindIdentity[connect_fd.source_fd] == "admin"){
         messages = getUser(connect_fd, user);
     }
     else if(command == "register user"){
@@ -204,8 +206,14 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd, db_user& use
         }
         messages = registerUser(connect_fd, username, password, identity, user);
     }
-    else if(command == "delete user"){
+    else if(command == "delete user" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()){
         messages = deleteUser(connect_fd, username, password, user);
+    }
+    else if(command == "logout" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
+        messages = logout(connect_fd, user);
+    }
+    else if(command == "get teachers" && bindIdentity.find(connect_fd.source_fd) != bindIdentity.end() && bindIdentity[connect_fd.source_fd] == "rule maker") {
+        messages = getTeachers(connect_fd, user);
     }
     else{
         cout<<"Invalid command or not enough permission."<<endl;
@@ -220,10 +228,24 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     // with database logic
     optional<pair<string, variant<string, int, double>>> constraint;
     string key = "password";
+    string target_attribute = "identity";
     constraint = std::make_pair(key, password);
-    string identity = user.findUser(constraint, username);
+    string identity = std::get<string>(user.findUserAttribute(constraint, username, target_attribute));
     if(identity.empty()){
-        status_code = 200;
+        target_attribute = "activity";
+        int activity = user.findUserAttribute<int>(constraint, username, target_attribute);
+        if(!activity){
+            status_code = 200;
+            activity = 1;
+            string primary_val = username;
+            vector<pair<string, variant<string, int, double>>> changelist;
+            changelist.emplace_back("activity", activity);
+            user.update(primary_val, changelist);
+        } else {
+            status_code = 403;
+            cout<<"User already login!"<<endl;
+        }
+        
     }
     else{
         status_code = 403;
@@ -239,16 +261,44 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     messages.push_back(message);
     
     bindIdentity[connect_fd.source_fd] = identity;
+    bindUsername[connect_fd.source_fd] = username;
     return messages;
 }
 
 vector<string> Server::registerUser(Connector& connect_fd, string username, auto password, string identity, db_user& user){
     int status_code;
     // with database logic
-    UserInfo new_user = {username, static_cast<std::string>(password), identity};
+    UserInfo<string> new_user = {username, static_cast<std::string>(password), identity};
     int result = user.insert(new_user);
     if(result == -1) status_code = 403;
     else status_code = 200;
+    vector<string> messages;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{{\"code\": {}}}", status_code);
+    #endif
+    messages.push_back(message);
+    return messages;
+}
+
+
+vector<string> Server::logout(Connector& connect_fd, db_user& user){
+    int status_code;
+    int activity_updated = 0;
+    string username = bindUsername[connect_fd.source_fd];
+    vector<pair<string, variant<string, int, double>>> constraint;
+    constraint.emplace_back(activity, activity_updated);
+    int res = user.update(username, constraint);
+    if(res < 0){
+        cout<<"logout failed."<<endl;
+        status_code = 403;
+    }
+    else {
+        bindUsername.erase(connect_fd.source_fd);
+        bindIdentity.erase(connect_fd.source_fd);
+        status_code = 200;
+    }
     vector<string> messages;
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}}", status_code);
@@ -302,6 +352,7 @@ vector<string> Server::deleteUser(Connector& connect_fd, string username, auto p
         status_code = 200;
         cout<<"Identity found!"<<endl;
         bindIdentity.erase(it);
+        bindUsername.erase(it);
     }
     // with database logic
     string key = "password";
@@ -317,6 +368,30 @@ vector<string> Server::deleteUser(Connector& connect_fd, string username, auto p
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
     messages.push_back(message);
+    return messages;
+}
+
+vector<string> Server::getTeachers(Connector& connect_fd, db_user& user){
+    int status_code;
+    vector<string> teachers = user.getUserAttributes<string>("USERNAME", "ACTIVITY", 1);
+    if(teachers.empty()) status_code = 403;
+    else status_code = 200; 
+    vector<string> messages;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, teachers.size());
+    #else
+    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, teachers.size());
+    #endif
+    messages.push_back(message);
+
+    for(auto it=teachers.begin(); it!=teachers.end(); it++) {
+        #ifdef __cpp_lib_format
+        message = std::format("{\"username\": {}}", *it);
+        #else
+        message = fmt::format("{{\"username\": {}}}", *it);
+        #endif
+        messages.push_back(message);
+    }
     return messages;
 }
 

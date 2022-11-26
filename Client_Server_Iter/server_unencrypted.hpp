@@ -78,6 +78,7 @@ private:
 
     string message;
     map<int, string> bindIdentity;
+    map<int, string> bindUsername;
 
     void (*newConnectionCallback) (uint16_t fd);
     void (*receiveCallback) (uint16_t fd, char *buffer);
@@ -94,8 +95,10 @@ private:
     void sendMsgToExisting(Connector&, vector<string>&);
     vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity, db_user&);
     vector<string> authenticateUser(Connector& conn, string username, auto password, db_user&);
+    vector<string> logout(Connector&, db_user&);
     vector<string> deleteUser(Connector& connect_fd, string username, auto password, db_user&);
     vector<string> getUser(Connector& connect_fd, db_user&);
+    vector<string> getTeachers(Connector&, db_user&);
 
     //void *getInetAddr(struct sockaddr *saddr);
 };
