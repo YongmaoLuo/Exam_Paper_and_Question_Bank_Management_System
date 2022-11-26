@@ -13,15 +13,34 @@
 #include <string>
 #include <iostream>
 #include <string>
+#include <chrono>
+//#include "date.h"
 #include "nlohmann/json.hpp"
 using json=nlohmann::json;
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
+#include "fmt/chrono.h"
      
 #define TRUE   1 
 #define FALSE  0 
 #define PORT 9999
 #define BUFF_LENGTH 4096
+
+std::string escapeJsonString(std::string input){
+    for(int i=0;;i++){
+        if(i>=input.length())
+            break;
+        if(input[i]=='\n'){
+            input.erase(i,1);
+            input.insert(i,"\\n");
+            i++;
+        }else if(input[i]=='\\'){
+            input.insert(i,"\\");
+            i++;
+    }
+    }
+    return input;
+}
      
 int main(int argc , char *argv[])  
 {  
@@ -81,6 +100,8 @@ int main(int argc , char *argv[])
     //accept the incoming connection 
     addrlen = sizeof(address);  
     puts("Waiting for connections ...");  
+    std::string bulletinText="";
+    std::string teacherName="";
          
     while(TRUE)  
     {  
@@ -176,7 +197,8 @@ int main(int argc , char *argv[])
                     //of the data read 
                     buffer[valread] = '\0';
                     json recvPacket=json::parse(buffer);
-                    std::cout<<"user name:"<<recvPacket["username"]<<std::endl;
+                    std::cout<<"recvPacket:"<<recvPacket<<std::endl;
+                    
                     //packet=R"({"code": 200, "identity": "admin"})"_json;
                     //packet=R"({"code": 200, "identity": "teacher"})"_json;
                     //packet=R"({"code": 200, "identity": "rulemaker"})"_json;
@@ -192,6 +214,7 @@ int main(int argc , char *argv[])
                             sendPacket=json::parse(fmt::format("{{\"username\": \"{}\"}}","admin"+std::to_string(i)));
                             std::string ret=sendPacket.dump();
                             send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                            usleep(100);
                         }
                     }else if(recvPacket["command"]=="delete user"){
                         json sendPacket=json::parse(fmt::format("{{\"code\": 200}}"));
@@ -199,6 +222,50 @@ int main(int argc , char *argv[])
                         send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
                     }else if(recvPacket["command"]=="register user"){
                         json sendPacket=json::parse(fmt::format("{{\"code\": 403}}"));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                    }else if(recvPacket["command"]=="get bulletins"){
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200, \"counts\": {}}}",5));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                        usleep(100);
+                        for(int i=0;i<5;i++){
+                            auto t=std::chrono::system_clock::now();
+                            sendPacket=json::parse(fmt::format("{{\"bulletin name\": \"{}\"}}",
+                            "teachers"+std::to_string(i)+'+'+fmt::format("{:%Y-%m-%d_%H-%M-%S}",std::chrono::floor<std::chrono::seconds>(t))));
+                            std::cout<<"sendPackets: "<<sendPacket<<std::endl;
+                            std::string ret=sendPacket.dump();
+                            send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                            usleep(100);
+                        }
+                    }else if(recvPacket["command"]=="get teachers"){
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200, \"counts\": {}}}",5));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                        usleep(100);
+                        for(int i=0;i<5;i++){
+                            sendPacket=json::parse(fmt::format("{{\"username\": \"{}\"}}","teacher"+std::to_string(i)));
+                            std::string ret=sendPacket.dump();
+                            send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                            usleep(100);
+                        }
+                    }else if(recvPacket["command"]=="write bulletin"){
+                        std::cout<<recvPacket["bulletin text"]<<std::endl;
+                        bulletinText=recvPacket["bulletin text"];
+                        teacherName=recvPacket["teacher name"];
+                        std::cout<<bulletinText<<std::endl;
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200}}"));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                    }else if(recvPacket["command"]=="read bulletin"){
+                        std::cout<<bulletinText<<std::endl;
+                        std::string escapeBulletin=escapeJsonString(bulletinText);
+                        auto escapeTeacher=escapeJsonString(teacherName);
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200,\"bulletin text\":\"{}\"}}",escapeBulletin));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                    }else if(recvPacket["command"]=="delete bulletin"){
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200}}"));
                         std::string ret=sendPacket.dump();
                         send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
                     }

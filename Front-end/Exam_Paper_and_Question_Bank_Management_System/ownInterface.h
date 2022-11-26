@@ -4,6 +4,9 @@
 #include <QString>
 #include <QDir>
 #include <QDialog>
+#include <iostream>
+#include <algorithm>
+#include <sstream>
 #include "tcpclientsocket.h"
 #include <nlohmann/json.hpp>
 #include <unistd.h>
@@ -32,9 +35,10 @@ class RuleMaker{ // rulemaker
 protected:
     virtual void create_bulletin(QString teacherName, QString timeStamp)=0;// create bulletin
     virtual void delete_bulletin(QString fileName)=0;// delete selected bulletin
-    virtual void load_bulletin(QString fileName)=0;// load the text of a selected bulletin into the text editor
+    virtual void read_bulletin(QString fileName)=0;// load the text of a selected bulletin into the text editor
     virtual void write_bulletin(QString fileName,QString bulletinText)=0;// submit the modified text
-    virtual void read_bulletins()=0;// read the names of the bulletins and show them
+    virtual void get_bulletins()=0;// read the names of the bulletins and show them
+    virtual void get_teachers()=0;
 public:
     virtual void open_rulemaker_panel()=0;// open the rulemaker panel
     virtual void close_rulemaker_panel()=0;// close the rulemaker panel
@@ -42,17 +46,16 @@ public:
 
 class QuestionManagement{// question management (teacher)
 protected:
-    QDir libraryDir;
-    virtual void read_subjects()=0;// read all subjects into the subject area
-    virtual void read_chapters(QString subject)=0;// read all chapters for a specific subject
-    virtual void read_questions(QString subject,QString chapter)=0;// read all questions for a chapter
+    virtual void get_subjects()=0;// read all subjects into the subject area
+    virtual void get_chapters(QString subject)=0;// read all chapters for a specific subject
+    virtual void get_questions(QString subject,QString chapter)=0;// read all questions for a chapter
     virtual void add_subject(QString subject)=0;// add a new subject
     virtual void add_chapter(QString subject,QString chapter)=0;// add a new chapter
     virtual void add_question(QString subject,QString chapter,QString questionName)=0;// add a new question file
     virtual void delete_subject(QString subject)=0;// delete subject
     virtual void delete_chapter(QString subject,QString chapter)=0;// delete chapter of a subject
     virtual void delete_question(QString subject,QString chapter,QString questionName)=0;// delete one question
-    virtual void load_question(QString subject,QString chapter,QString timeStamp)=0;// load the question text to the editor
+    virtual void read_question(QString subject,QString chapter,QString timeStamp)=0;// load the question text to the editor
     virtual void write_question(QString subject,QString chapter,QString timeStamp,QString questionText)=0;// submit question text after editing
 public:
     virtual void open_question_management_panel()=0;// open the window
@@ -61,14 +64,14 @@ public:
 
 class PaperProduction{// paper generation
 protected:
-    QStringList questionsList;// 储存试卷题目的列表
-    virtual void delete_question(QString questionName)=0;// 在试卷中删除某题目
-    virtual void output_paper(QDir paperDir,QStringList questionsList)=0;// 输出试卷
-    virtual void read_questions(QStringList questionsList)=0;// 读取目前试卷题目列表中的所有题目，并且呈现出来
+    QStringList questionsList;// store question list
+    virtual void delete_question(QString questionName)=0;// delete question from the list
+    virtual void output_paper(QDir paperDir,QStringList questionsList)=0;// output paper
+    virtual void read_questions(QStringList questionsList)=0;// read all questions and display
 public:
-    virtual void add_question(QString subject,QString chapter,QString timeStamp)=0;// 向试卷中添加某题目
-    virtual void open_paper_production_panel()=0;// 打开试卷制作窗口
-    virtual void close_paper_production_panel()=0;// 关闭试卷制作窗口
+    virtual void add_question(QString subject,QString chapter,QString timeStamp)=0;// add question into the paper
+    virtual void open_paper_production_panel()=0;
+    virtual void close_paper_production_panel()=0;
 };
 
 #endif

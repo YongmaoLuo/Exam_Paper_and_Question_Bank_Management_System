@@ -44,7 +44,7 @@ void LoginDialog::submit_login(QString userName, QString password){
         return;
     }
 
-    TCPClientSocket *client=new TCPClientSocket();
+    std::unique_ptr<TCPClientSocket> client=std::make_unique<TCPClientSocket>();
     if(client->updateServerAddress("127.0.0.1",9999)==-1){
         QMessageBox::warning(this, "warning", "fail to update address");
         return;
@@ -69,23 +69,23 @@ void LoginDialog::submit_login(QString userName, QString password){
     }
     if(packet["code"]==200){
         if(packet["identity"]=="admin"){
-            adminPanel=new AdminDialog(this,client);
+            this->adminPanel=std::move(std::make_unique<AdminDialog>(this,std::move(client)));
             // signal-slot connection between adminPanel and loginPanel, since loginPanel control all generated widgets
-            connect(adminPanel,&AdminDialog::admin_panel_be_closed,this,&LoginDialog::receive_admin_panel_closure);
-            connect(this,&LoginDialog::login_close_admin,adminPanel,&AdminDialog::close_admin_panel);
+            connect(adminPanel.get(),&AdminDialog::admin_panel_be_closed,this,&LoginDialog::receive_admin_panel_closure);
+            connect(this,&LoginDialog::login_close_admin,adminPanel.get(),&AdminDialog::close_admin_panel);
             adminPanel->open_admin_panel();
             this->hide();
         }else if(packet["identity"]=="teacher"){
-            mainwindowPanel=new MainWindow(this,client);
-            connect(mainwindowPanel,&MainWindow::teacher_panel_be_closed,this,&LoginDialog::receive_teacher_panel_closure);
-            connect(this,&LoginDialog::login_close_teacher,mainwindowPanel,&MainWindow::close_question_management_panel);
+            this->mainwindowPanel=std::move(std::make_unique<MainWindow>(this,std::move(client)));
+            connect(mainwindowPanel.get(),&MainWindow::teacher_panel_be_closed,this,&LoginDialog::receive_teacher_panel_closure);
+            connect(this,&LoginDialog::login_close_teacher,mainwindowPanel.get(),&MainWindow::close_question_management_panel);
             mainwindowPanel->open_question_management_panel();
             this->hide();
         }else if(packet["identity"]=="rulemaker"){
-            ruleMakerPanel=new RuleMakerDialog(this,client);
+            this->ruleMakerPanel=std::move(std::make_unique<RuleMakerDialog>(this,std::move(client)));
             // signal-slot connections for closing rulemaker panel
-            connect(ruleMakerPanel,&RuleMakerDialog::rulemaker_panel_be_closed,this,&LoginDialog::receive_rulemaker_panel_closure);
-            connect(this,&LoginDialog::login_close_rulemaker,ruleMakerPanel,&RuleMakerDialog::close_rulemaker_panel);
+            connect(ruleMakerPanel.get(),&RuleMakerDialog::rulemaker_panel_be_closed,this,&LoginDialog::receive_rulemaker_panel_closure);
+            connect(this,&LoginDialog::login_close_rulemaker,ruleMakerPanel.get(),&RuleMakerDialog::close_rulemaker_panel);
             ruleMakerPanel->open_rulemaker_panel();
             this->hide();
         }else{
@@ -115,17 +115,19 @@ void LoginDialog::open_login_panel(){
 //}
 
 void LoginDialog::receive_admin_panel_closure(){
-    adminPanel=nullptr;
+    //adminPanel=nullptr;
     emit login_close_admin();
+    adminPanel.reset(nullptr);
 }
 
 void LoginDialog::receive_rulemaker_panel_closure(){
-    rulemakerDir=nullptr;
-    ruleMakerPanel=nullptr;
+    //ruleMakerPanel=nullptr;
     emit login_close_rulemaker();
+    ruleMakerPanel.reset();
 }
 
 void LoginDialog::receive_teacher_panel_closure(){
-    mainwindowPanel=nullptr;
+    //mainwindowPanel=nullptr;
     emit login_close_teacher();
+    mainwindowPanel.reset();
 }

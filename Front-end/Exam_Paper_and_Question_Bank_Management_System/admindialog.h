@@ -13,7 +13,7 @@ class AdminDialog : public QDialog,public Admin
     Q_OBJECT
 
 public:
-    explicit AdminDialog(QWidget *parent = nullptr,TCPClientSocket *client=nullptr);
+    explicit AdminDialog(QWidget *parent = nullptr,std::unique_ptr<TCPClientSocket> client=nullptr);
     ~AdminDialog();
     void open_admin_panel() override;
 
@@ -25,12 +25,18 @@ private slots:
     void on_deleteButton_clicked();
 
     void on_userListWidget_itemSelectionChanged();
+    void on_checkBoxAdmin_pressed();
+
+    void on_checkBoxTeacher_pressed();
+
+    void on_checkBoxRuleMaker_pressed();
+
 public slots:
     void close_admin_panel() override;
 
 private:
     Ui::AdminDialog *ui;
-    TCPClientSocket *client;
+    std::unique_ptr<TCPClientSocket> client;
     void read_users() override;
     void delete_user(QString userName) override;
     void register_user(QString userName, QString password) override;

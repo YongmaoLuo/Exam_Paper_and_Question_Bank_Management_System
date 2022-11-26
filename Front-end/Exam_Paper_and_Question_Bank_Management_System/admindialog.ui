@@ -135,7 +135,7 @@
    <property name="geometry">
     <rect>
      <x>510</x>
-     <y>310</y>
+     <y>360</y>
      <width>93</width>
      <height>28</height>
     </rect>
@@ -188,6 +188,45 @@
    </property>
    <property name="text">
     <string/>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="checkBoxAdmin">
+   <property name="geometry">
+    <rect>
+     <x>450</x>
+     <y>300</y>
+     <width>85</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Admin</string>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="checkBoxTeacher">
+   <property name="geometry">
+    <rect>
+     <x>550</x>
+     <y>300</y>
+     <width>85</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Teacher</string>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="checkBoxRuleMaker">
+   <property name="geometry">
+    <rect>
+     <x>650</x>
+     <y>300</y>
+     <width>101</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Rule Maker</string>
    </property>
   </widget>
  </widget>

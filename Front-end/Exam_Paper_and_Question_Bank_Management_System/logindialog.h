@@ -34,9 +34,9 @@ private slots:
 
 private:
     Ui::LoginDialog *ui;
-    AdminDialog *adminPanel;
-    RuleMakerDialog *ruleMakerPanel;
-    MainWindow *mainwindowPanel;
+    std::unique_ptr<AdminDialog> adminPanel;
+    std::unique_ptr<RuleMakerDialog> ruleMakerPanel;
+    std::unique_ptr<MainWindow> mainwindowPanel;
     void submit_login(QString userName, QString password) override;
 };
 

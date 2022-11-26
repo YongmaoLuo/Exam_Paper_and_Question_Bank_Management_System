@@ -2,12 +2,12 @@
 #include "ui_admindialog.h"
 #include <QMessageBox>
 
-AdminDialog::AdminDialog(QWidget *parent,TCPClientSocket *client) :
+AdminDialog::AdminDialog(QWidget *parent,std::unique_ptr<TCPClientSocket> client) :
     QDialog(parent),
     ui(new Ui::AdminDialog)
 {
     ui->setupUi(this);
-    this->client=client;
+    this->client=std::move(client);
     // set the delete button to be non-touchable to prevent misuse
     ui->deleteButton->setEnabled(false);
 }
@@ -79,9 +79,21 @@ void AdminDialog::register_user(QString userName, QString password){
         ui->password->setFocus();
         return;
     }
+    if(ui->checkBoxAdmin->isChecked()==false&&ui->checkBoxRuleMaker->isChecked()==false&&ui->checkBoxTeacher->isChecked()==false){
+        ui->registerPrompt->setText("no identity is selected");
+        return;
+    }
+    std::string rawJson;
     // encryption: QCryptographicHash::hash((password).toLocal8Bit(),QCryptographicHash::Sha3_512).toHex().toStdString()
-    std::string rawJson=fmt::format("{{\"command\": \"{}\", \"username\": \"{}\", \"password\": \"{}\"}}","register user",
-                                    userName.toStdString(),password.toStdString());
+    if(ui->checkBoxAdmin->isChecked())
+        rawJson=fmt::format("{{\"command\": \"{}\", \"username\": \"{}\", \"password\": \"{}\",\"identity\":\"{}\"}}",
+                                        "register user",userName.toStdString(),password.toStdString(),"admin");
+    else if(ui->checkBoxRuleMaker)
+        rawJson=fmt::format("{{\"command\": \"{}\", \"username\": \"{}\", \"password\": \"{}\",\"identity\":\"{}\"}}",
+                                        "register user",userName.toStdString(),password.toStdString(),"rulemaker");
+    else
+        rawJson=fmt::format("{{\"command\": \"{}\", \"username\": \"{}\", \"password\": \"{}\",\"identity\":\"{}\"}}",
+                                        "register user",userName.toStdString(),password.toStdString(),"teacher");
     json sendPacket=json::parse(rawJson);
     if(client->sendToServer(sendPacket)==-1){
         QMessageBox::warning(this, "warning", "fail to register user to server");
@@ -136,6 +148,25 @@ void AdminDialog::open_admin_panel(){
 
 void AdminDialog::close_admin_panel(){
     this->deleteLater();
-    delete this->client;
     parentWidget()->show();
 }
+
+void AdminDialog::on_checkBoxAdmin_pressed()
+{
+    ui->checkBoxRuleMaker->setChecked(false);
+    ui->checkBoxTeacher->setChecked(false);
+}
+
+void AdminDialog::on_checkBoxTeacher_pressed()
+{
+    ui->checkBoxRuleMaker->setChecked(false);
+    ui->checkBoxAdmin->setChecked(false);
+}
+
+
+void AdminDialog::on_checkBoxRuleMaker_pressed()
+{
+    ui->checkBoxTeacher->setChecked(false);
+    ui->checkBoxAdmin->setChecked(false);
+}
+

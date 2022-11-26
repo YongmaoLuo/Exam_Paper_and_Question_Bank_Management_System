@@ -14,7 +14,7 @@ class RuleMakerDialog : public QDialog, public RuleMaker
     Q_OBJECT
 
 public:
-    explicit RuleMakerDialog(QWidget *parent = nullptr, TCPClientSocket *client=nullptr);
+    explicit RuleMakerDialog(QWidget *parent = nullptr, std::unique_ptr<TCPClientSocket> client=nullptr);
     ~RuleMakerDialog();
     void open_rulemaker_panel() override;
 
@@ -29,18 +29,22 @@ private slots:
     void on_deleteButton_clicked();
     void on_createButton_clicked();
 
+    void on_teacherListWidget_itemSelectionChanged();
+
 public slots:
     void close_rulemaker_panel() override;// close the window
 
 private:
     Ui::RuleMakerDialog *ui;
-    TCPClientSocket *client;
-    QString tempBulletinName,tempBulletinText;
-    void delete_bulletin(QString fileName) override;// delete selected bulletin
-    void load_bulletin(QString fileName) override;// load the bulletin into text editor
-    void write_bulletin(QString fileName,QString bulletinText) override;// submit modification of the bulletin
-    void read_bulletins() override;// read all the bulletin
+    std::unique_ptr<TCPClientSocket> client;
+    QString tempBulletinName,tempBulletinText,tempTeacherName;
+    void delete_bulletin(QString bulletinName) override;// delete selected bulletin
+    void read_bulletin(QString bulletinName) override;// load the bulletin into text editor
+    void write_bulletin(QString bulletinName,QString bulletinText) override;// submit modification of the bulletin
+    void get_bulletins() override;// read all the bulletin
     void create_bulletin(QString teacherName, QString timeStamp) override;
+    void get_teachers() override;
+    void replace_current_bulletin_file(QString bulletinName);
 };
 
 #endif // RULEMAKERDIALOG_H

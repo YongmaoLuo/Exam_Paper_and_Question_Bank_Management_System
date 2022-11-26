@@ -17,7 +17,7 @@ class MainWindow : public QMainWindow,public QuestionManagement
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr,TCPClientSocket *client=nullptr);
+    MainWindow(QWidget *parent = nullptr,std::unique_ptr<TCPClientSocket> client=nullptr);
     ~MainWindow();
 
 signals:
@@ -54,25 +54,23 @@ public slots:
 
 private:
     Ui::MainWindow *ui;
-    TCPClientSocket *client;
+    std::unique_ptr<TCPClientSocket> client;
     RuleMakerDialog *rulemakerPanel=nullptr;
     PaperProductionDialog *paperPanel=nullptr;
+    QString tempSubject,tempChapter,tempQuestionName,tempQuestionText;
     bool canMakePaper=false;
-    void read_subjects(QDir libraryDir) override;
-    void read_chapters(QString subject) override;
-    void read_questions(QString subject,QString chapter) override;
+    void get_subjects() override;
+    void get_chapters(QString subject) override;
+    void get_questions(QString subject,QString chapter) override;
     void add_subject(QString subject) override;
     void add_chapter(QString subject,QString chapter) override;
     void add_question(QString subject,QString chapter,QString timeStamp) override;
     void delete_subject(QString subject) override;
     void delete_chapter(QString subject,QString chapter) override;
     void delete_question(QString subject,QString chapter,QString timeStamp) override;
-    void load_question(QString subject,QString chapter,QString timeStamp) override;
+    void read_question(QString subject,QString chapter,QString timeStamp) override;
     void write_question(QString subject,QString chapter,QString timeStamp,QString questionText) override;
-
-    void recursive_delete_chapter(QString subject,QString chapter);
-    void recursive_delete_question(QString subject,QString chapter,QString timeStamp);
 public:
-    void open_question_management_panel() override;// 打开题库管理窗口
+    void open_question_management_panel() override;
 };
 #endif // MAINWINDOW_H

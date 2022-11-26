@@ -75,7 +75,7 @@ int TCPClientSocket::receive(json &receivedJson){
         perror("receiving message too long");
         return -1;
     }
-    std::cout<<recvBuff<<std::endl;
+    //std::cout<<"recv message: "<<recvBuff<<std::endl;
     receivedJson=json::parse(recvBuff);
     return 0;
 }
