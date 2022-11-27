@@ -110,7 +110,7 @@ int db_user::update(string primary_val, vector<pair<string, variant<string, int,
    return rc;
 }
 
-auto db_user::checkType(string target_attribute){
+string db_user::checkType(string target_attribute){
    sql = fmt::format("SELECT typeof({}) FROM USER LIMIT 1;", target_attribute);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
    sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
@@ -321,7 +321,7 @@ void db_user::close(){
 //    constraint = std::make_pair(db_key, identity_val);
 //    string target_attributes = "ACTIVITY";
 //    auto activity = user.findUserAttribute(constraint, primekey_val, target_attributes);
-//    auto type = user.checkType(target_attributes);
+//    string type = user.checkType(target_attributes);
 
 //    int a = std::get<int>(activity);
 //    cout<<"find status "<<std::get<int>(activity)<<endl;

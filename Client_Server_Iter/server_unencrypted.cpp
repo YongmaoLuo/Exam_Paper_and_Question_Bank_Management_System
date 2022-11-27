@@ -373,7 +373,7 @@ vector<string> Server::deleteUser(Connector& connect_fd, string username, auto p
 
 vector<string> Server::getTeachers(Connector& connect_fd, db_user& user){
     int status_code;
-    vector<string> teachers = user.getUserAttributes<string>("USERNAME", "ACTIVITY", 1);
+    vector<string> teachers = user.getUserAttributes("USERNAME", "ACTIVITY", 1);
     if(teachers.empty()) status_code = 403;
     else status_code = 200; 
     vector<string> messages;

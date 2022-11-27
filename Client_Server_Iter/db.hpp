@@ -67,7 +67,7 @@ class db_user{
         int insert(UserInfo<string>& user);
         int update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
 
-        auto checkType(string target_attribute);
+        string checkType(string target_attribute);
         
         variant<int, double, string> findUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute);
         vector<string> getUserAttributes(string target_attribute, string constraint_key, string constraint_val);
