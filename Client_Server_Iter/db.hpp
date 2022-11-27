@@ -57,6 +57,7 @@ class db_user{
         char *zErrMsg;
         int rc;
         string sql;
+        string checkType(string target_attribute);
         
     public:
         db_user();
@@ -66,8 +67,6 @@ class db_user{
         void create(bool = false, const char* = "userinfo.db");
         int insert(UserInfo<string>& user);
         int update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
-
-        string checkType(string target_attribute);
         
         variant<int, double, string> getUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute);
         

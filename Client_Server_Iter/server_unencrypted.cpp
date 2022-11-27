@@ -207,7 +207,8 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd, db_user& use
         messages = registerUser(connect_fd, username, password, identity, user);
     }
     else if(command == "delete user" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()){
-        messages = deleteUser(connect_fd, username, password, user);
+        if(bindIdentity[connect_fd.source_fd] == "admin") messages = deleteUser(connect_fd, username, user);
+        else messages = deleteUserSelf(connect_fd, password, user);
     }
     else if(command == "logout" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
         messages = logout(connect_fd, user);
@@ -336,24 +337,52 @@ vector<string> Server::getUser(Connector& connect_fd, db_user& user){
     return messages;
 }
 
-vector<string> Server::deleteUser(Connector& connect_fd, string username, auto password, db_user& user){
+vector<string> Server::deleteUser(Connector& connect_fd, string username, db_user& user){
     int status_code;
 
     auto it = bindIdentity.find(connect_fd.source_fd);
     if(it == bindIdentity.end()){
         status_code = 403;
         cout<<"Identity not found!"<<endl;
-        #ifdef __cpp_lib_format
-        message = std::format("{\"code\": {}}", status_code);
-        #else
-        message = fmt::format("{{\"code\": {}}}", status_code);
-        #endif
     } else {
         status_code = 200;
         cout<<"Identity found!"<<endl;
         bindIdentity.erase(it);
         bindUsername.erase(it);
     }
+    // with database logic
+    string key = "status";
+    auto val = "valid";
+    pair<string, variant<string, int, double>> deleted_detail = std::make_pair(key, val);
+    int result = user.delet(username, deleted_detail);
+    if(result == -1 && status_code == 200) status_code = 404;
+    else if(result >= 0) status_code = 200;
+
+    vector<string> messages;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{{\"code\": {}}}", status_code);
+    #endif
+    messages.push_back(message);
+    return messages;
+}
+
+vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password, db_user& user){
+    string username = bindUsername[connect_fd.source_fd];
+    int status_code;
+
+    auto it = bindIdentity.find(connect_fd.source_fd);
+    if(it == bindIdentity.end()){
+        status_code = 403;
+        cout<<"Identity not found!"<<endl;
+    } else {
+        status_code = 200;
+        cout<<"Identity found!"<<endl;
+        bindIdentity.erase(it);
+        bindUsername.erase(it);
+    }
+
     // with database logic
     string key = "password";
     pair<string, variant<string, int, double>> deleted_detail = std::make_pair(key, password);
@@ -384,6 +413,8 @@ vector<string> Server::getTeachers(Connector& connect_fd, db_user& user){
     #else
     message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, teachers.size());
     #endif
+
+    messages.reserve(teachers.size()+1);
     messages.push_back(message);
 
     for(auto it=teachers.begin(); it!=teachers.end(); it++) {
