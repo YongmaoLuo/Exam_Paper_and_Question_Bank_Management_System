@@ -230,10 +230,10 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     string key = "password";
     string target_attribute = "identity";
     constraint = std::make_pair(key, password);
-    string identity = std::get<string>(user.findUserAttribute(constraint, username, target_attribute));
+    string identity = std::get<std::string>(user.getUserAttribute(constraint, username, target_attribute));
     if(identity.empty()){
         target_attribute = "activity";
-        int activity = user.findUserAttribute<int>(constraint, username, target_attribute);
+        int activity = std::get<int>(user.getUserAttribute(constraint, username, target_attribute));
         if(!activity){
             status_code = 200;
             activity = 1;
@@ -288,7 +288,7 @@ vector<string> Server::logout(Connector& connect_fd, db_user& user){
     int activity_updated = 0;
     string username = bindUsername[connect_fd.source_fd];
     vector<pair<string, variant<string, int, double>>> constraint;
-    constraint.emplace_back(activity, activity_updated);
+    constraint.emplace_back("activity", activity_updated);
     int res = user.update(username, constraint);
     if(res < 0){
         cout<<"logout failed."<<endl;
@@ -373,7 +373,9 @@ vector<string> Server::deleteUser(Connector& connect_fd, string username, auto p
 
 vector<string> Server::getTeachers(Connector& connect_fd, db_user& user){
     int status_code;
-    vector<string> teachers = user.getUserAttributes("USERNAME", "ACTIVITY", 1);
+    optional<pair<string, int>> constraint;
+    constraint = std::make_pair("ACTIVITY", 1);
+    vector<string> teachers = user.getUserAttributes<string, int>(constraint, "USERNAME");
     if(teachers.empty()) status_code = 403;
     else status_code = 200; 
     vector<string> messages;
