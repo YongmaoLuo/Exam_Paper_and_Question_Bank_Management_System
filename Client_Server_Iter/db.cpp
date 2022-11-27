@@ -131,7 +131,7 @@ string db_user::checkType(string target_attribute){
 }
 
 
-variant<int, double, string> db_user::findUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute)
+variant<int, double, string> db_user::getUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute)
 {
    if(constraint){
          auto constraint_val = constraint.value();
@@ -164,39 +164,39 @@ variant<int, double, string> db_user::findUserAttribute(optional<pair<string, va
 }
 
 
-vector<string> db_user::getUserAttributes(string target_attribute, string constraint_key, string constraint_val)
-{
-   sql = fmt::format("SELECT {} FROM USER " \
-                     "WHERE {} = '{}'; ", target_attribute, constraint_key, constraint_val);
-   // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
-   sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+// vector<string> db_user::getUserAttributes(string target_attribute, string constraint_key, string constraint_val)
+// {
+//    sql = fmt::format("SELECT {} FROM USER " \
+//                      "WHERE {} = '{}'; ", target_attribute, constraint_key, constraint_val);
+//    // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
+//    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
+//    sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
 
-   int num_cols;
-   int bytes;
-   vector<string> output;
-   char* row_content_raw;
-   string res;
-   while(sqlite3_step(stmt) != SQLITE_DONE){
-         vector<string> row;
-         num_cols = sqlite3_column_count(stmt);
-         for(int i = 0; i < num_cols; i++){
-            row_content_raw = const_cast<char*>(static_cast<const char *>(sqlite3_column_blob(stmt, i)));
-            bytes = sqlite3_column_bytes(stmt, i);
+//    int num_cols;
+//    int bytes;
+//    vector<string> output;
+//    char* row_content_raw;
+//    string res;
+//    while(sqlite3_step(stmt) != SQLITE_DONE){
+//          vector<string> row;
+//          num_cols = sqlite3_column_count(stmt);
+//          for(int i = 0; i < num_cols; i++){
+//             row_content_raw = const_cast<char*>(static_cast<const char *>(sqlite3_column_blob(stmt, i)));
+//             bytes = sqlite3_column_bytes(stmt, i);
 
-            res = string(row_content_raw, bytes);
+//             res = string(row_content_raw, bytes);
             
-            row.push_back(res);
-         }
-         output.insert(output.end(), row.begin(), row.end());
-   }
+//             row.push_back(res);
+//          }
+//          output.insert(output.end(), row.begin(), row.end());
+//    }
    
-   if(output.empty()) {
-         cout<<"User attribute not found"<<endl;
-         return {};
-   }
-   return output;
-}
+//    if(output.empty()) {
+//          cout<<"User attribute not found"<<endl;
+//          return {};
+//    }
+//    return output;
+// }
 
 
 int db_user::count(){
@@ -320,15 +320,16 @@ void db_user::close(){
 //    optional<pair<string, variant<string, int, double>>> constraint;
 //    constraint = std::make_pair(db_key, identity_val);
 //    string target_attributes = "ACTIVITY";
-//    auto activity = user.findUserAttribute(constraint, primekey_val, target_attributes);
+//    auto activity = user.getUserAttribute(constraint, primekey_val, target_attributes);
 //    string type = user.checkType(target_attributes);
 
 //    int a = std::get<int>(activity);
 //    cout<<"find status "<<std::get<int>(activity)<<endl;
 
-//    target_attributes = "PASSWORD";
-//    auto password = user.findUserAttribute(constraint, primekey_val, target_attributes);
-//    cout<<std::get<string>(password)<<endl;
+//    // target_attributes = "PASSWORD";
+//    optional<pair<string, string>> constraint2;
+//    vector<int> activity_int = user.getUserAttributes<int, string>(constraint2, target_attributes);
+//    cout<<*activity_int.begin()<<endl;
 
 //    string key = "password";
 //    auto val = static_cast<string>("123456");
