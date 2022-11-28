@@ -96,7 +96,8 @@ private:
     vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity, db_user&);
     vector<string> authenticateUser(Connector& conn, string username, auto password, db_user&);
     vector<string> logout(Connector&, db_user&);
-    vector<string> deleteUser(Connector& connect_fd, string username, auto password, db_user&);
+    vector<string> deleteUser(Connector& connect_fd, string username, db_user&);
+    vector<string> deleteUserSelf(Connector&, auto password, db_user&);
     vector<string> getUser(Connector& connect_fd, db_user&);
     vector<string> getTeachers(Connector&, db_user&);
 
