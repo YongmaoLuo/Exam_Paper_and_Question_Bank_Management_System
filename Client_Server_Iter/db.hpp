@@ -71,14 +71,17 @@ class db_user{
         variant<int, double, string> getUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute);
         
         // vector<string> getUserAttributes(string target_attributes, string constraint_key, string constraint_val);
-        template<hashable T, hashable T_input>
+        template<hashable T = string, hashable T_input = string>
         vector<T> getUserAttributes(optional<pair<string, T_input>> constraint, string target_attribute){
             if(constraint){
                 string constraint_key = constraint->first;
                 // auto constraint_val = constraint->second;
                 T_input constraint_val = constraint->second;
+                string constraint_val_str;
+                if constexpr(std::is_same_v<T_input, int> || std::is_same_v<T_input, double> || std::is_same_v<T_input, float>) constraint_val_str = to_string(constraint_val);
+                else constraint_val_str = constraint_val;
                 sql = fmt::format("SELECT {} FROM USER " \
-                     "WHERE {} = '{}'; ", target_attribute, constraint_key, to_string(constraint_val));
+                     "WHERE {} = '{}'; ", target_attribute, constraint_key, constraint_val_str);
             } else sql = fmt::format("SELECT {} FROM USER ;", target_attribute);
             
             sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
@@ -109,7 +112,6 @@ class db_user{
         }
 
         int count();
-        vector<string> getUsers();
         int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info);
         void clean();
         void close();

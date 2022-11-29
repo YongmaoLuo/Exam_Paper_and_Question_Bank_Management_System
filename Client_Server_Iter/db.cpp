@@ -229,35 +229,6 @@ int db_user::count(){
    return atoi(output[0]);
 }
 
-vector<string> db_user::getUsers(){
-   sql = "SELECT USERNAME from USER;";
-   sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
-   int num_cols;
-   vector<string> output;
-   while(sqlite3_step(stmt) != SQLITE_DONE){
-      vector<string> row;
-      num_cols = sqlite3_column_count(stmt);
-      for(int i = 0; i < num_cols; i++){
-         switch(sqlite3_column_type(stmt, i)){
-            case(SQLITE3_TEXT):
-               row.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, i))));
-               break;
-            case(SQLITE_INTEGER):
-               row.push_back(to_string(sqlite3_column_int(stmt, i)));
-               break;
-            case(SQLITE_FLOAT):
-               row.push_back(to_string(sqlite3_column_double(stmt, i)));
-               break;
-            default:
-               break;
-         }
-      }
-      output.insert(output.end(), row.begin(), row.end());
-   }
-   return output;
-}
-
 int db_user::delet(string primary_val, pair<string, variant<string, int, double>> authenticated_info){
    string key = authenticated_info.first;
    auto value = authenticated_info.second;
@@ -309,7 +280,8 @@ void db_user::close(){
 //    int status = user.update(primekey_val, changelist);
 //    cout<<"update status "<<status<<endl;
 
-//    vector<string> usernames = user.getUsers();
+//    optional<pair<string, string>> constraint2;
+//    vector<string> usernames = user.getUserAttributes(constraint2, "USERNAME");
 //    for(int i=0; i<std::ssize(usernames); i++) cout<<usernames[i]<<"\t";
 //    cout<<endl;
 //    int user_num = user.count();
@@ -321,14 +293,12 @@ void db_user::close(){
 //    constraint = std::make_pair(db_key, identity_val);
 //    string target_attributes = "ACTIVITY";
 //    auto activity = user.getUserAttribute(constraint, primekey_val, target_attributes);
-//    string type = user.checkType(target_attributes);
 
 //    int a = std::get<int>(activity);
 //    cout<<"find status "<<std::get<int>(activity)<<endl;
 
 //    // target_attributes = "PASSWORD";
-//    optional<pair<string, string>> constraint2;
-//    vector<int> activity_int = user.getUserAttributes<int, string>(constraint2, target_attributes);
+//    vector<int> activity_int = user.getUserAttributes<int>(constraint2, target_attributes);
 //    cout<<*activity_int.begin()<<endl;
 
 //    string key = "password";

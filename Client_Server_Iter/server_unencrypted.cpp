@@ -328,7 +328,8 @@ vector<string> Server::getUser(Connector& connect_fd, db_user& user){
     messages.reserve(numUsers+1);
     messages.push_back(message);
     if(numUsers < 0) return messages;
-    usernames = user.getUsers();
+    optional<pair<string, string>> constraint;
+    usernames = user.getUserAttributes(constraint, "USERNAME");
 
     for(int i=0; i<usernames.size(); i++){
         message = fmt::format("{{\"username\": \"{}\"}}", usernames[i]);
