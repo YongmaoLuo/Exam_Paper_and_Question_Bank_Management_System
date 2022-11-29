@@ -179,7 +179,7 @@ void Client::loop(){
     //      error("ERROR reading from socket");
     bzero(buffer,256);
 
-    string username = "\"admin\"";
+    string username = "\"testuser\"";
     string password = "\"123456\"";
     string identity = "\"admin\"";
     string status = "\"valid\"";
@@ -187,7 +187,7 @@ void Client::loop(){
 
     string login_msg = fmt::format("{{\"command\": \"register user\",\"username\": {},\"password\": {}, \"identity\": {}}}", 
     user.username, user.password, user.identity);
-    cout<<"login msg: "<<login_msg<<endl;
+    cout<<"register msg: "<<login_msg<<endl;
     // login_msg[strlen(login_msg)] = '\0';
 
     num_bytes = sendMessage(connect_fd, login_msg.c_str());
@@ -204,6 +204,51 @@ void Client::loop(){
     json response = json::parse(buffer);
     auto response_code = response["code"];
     auto response_identity = response["identity"];
+    cout<<"Response code: "<<response_code<<"\t"<<"Identity: "<<response_identity<<endl;
+
+
+    login_msg = fmt::format("{{\"command\": \"login\",\"username\": {},\"password\": {}, \"identity\": {}}}", 
+    user.username, user.password, user.identity);
+    cout<<"login msg: "<<login_msg<<endl;
+    // login_msg[strlen(login_msg)] = '\0';
+
+    num_bytes = sendMessage(connect_fd, login_msg.c_str());
+    if (num_bytes < 0) 
+         error("ERROR writing to socket");
+    cout<<"Sent a register command!"<<endl;
+    
+    bzero(buffer, 256);
+    num_bytes = recvMessage(connect_fd, buffer);
+    // num_bytes = recvMessageSSL(ssl, buffer);
+    buffer[num_bytes] = '\0';
+    cout<<"buffer: "<<buffer<<endl;
+
+    response = json::parse(buffer);
+    response_code = response["code"];
+    response_identity = response["identity"];
+    cout<<"Response code: "<<response_code<<"\t"<<"Identity: "<<response_identity<<endl;
+
+
+
+    login_msg = fmt::format("{{\"command\": \"delete user\",\"username\": {},\"password\": {}, \"identity\": {}}}", 
+    user.username, user.password, user.identity);
+    cout<<"delete msg: "<<login_msg<<endl;
+    // login_msg[strlen(login_msg)] = '\0';
+
+    num_bytes = sendMessage(connect_fd, login_msg.c_str());
+    if (num_bytes < 0) 
+         error("ERROR writing to socket");
+    cout<<"Sent a register command!"<<endl;
+    
+    bzero(buffer, 256);
+    num_bytes = recvMessage(connect_fd, buffer);
+    // num_bytes = recvMessageSSL(ssl, buffer);
+    buffer[num_bytes] = '\0';
+    cout<<"buffer: "<<buffer<<endl;
+
+    response = json::parse(buffer);
+    response_code = response["code"];
+    response_identity = response["identity"];
     cout<<"Response code: "<<response_code<<"\t"<<"Identity: "<<response_identity<<endl;
     
 }

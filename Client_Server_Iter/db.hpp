@@ -68,7 +68,7 @@ class db_user{
         int insert(UserInfo<string>& user);
         int update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
         
-        variant<int, double, string> getUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute);
+        string getUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute);
         
         // vector<string> getUserAttributes(string target_attributes, string constraint_key, string constraint_val);
         template<hashable T = string, hashable T_input = string>
