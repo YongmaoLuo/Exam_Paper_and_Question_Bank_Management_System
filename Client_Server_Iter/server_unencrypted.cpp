@@ -144,6 +144,7 @@ void Server::sendMsgToExisting(Connector& connect_fd, vector<string>& messages){
         while(bytes < 0){
             bytes = sendMessage(connect_fd, messages[i].c_str());
         }
+        usleep(20000);
     }
 
 }
@@ -206,7 +207,7 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd, db_user& use
         }
         messages = registerUser(connect_fd, username, password, identity, user);
     }
-    else if(command == "delete user" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()){
+    else if(command == "delete user" && bindIdentity.find(connect_fd.source_fd) != bindIdentity.end()){
         if(bindIdentity[connect_fd.source_fd] == "admin") messages = deleteUser(connect_fd, username, user);
         else messages = deleteUserSelf(connect_fd, password, user);
     }
@@ -231,10 +232,10 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     string key = "password";
     string target_attribute = "identity";
     constraint = std::make_pair(key, password);
-    string identity = std::get<std::string>(user.getUserAttribute(constraint, username, target_attribute));
-    if(identity.empty()){
+    string identity = user.getUserAttribute(constraint, username, target_attribute);
+    if(!identity.empty()){
         target_attribute = "activity";
-        int activity = std::get<int>(user.getUserAttribute(constraint, username, target_attribute));
+        int activity = stoi(user.getUserAttribute(constraint, username, target_attribute));
         if(!activity){
             status_code = 200;
             activity = 1;
@@ -246,11 +247,10 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
             status_code = 403;
             cout<<"User already login!"<<endl;
         }
-        
     }
     else{
-        status_code = 403;
-        cout<<"User exists!"<<endl;
+        status_code = 404;
+        cout<<"Wrong authentication!"<<endl;
     }
     vector<string> messages;
     #ifdef __cpp_lib_format
@@ -280,6 +280,7 @@ vector<string> Server::registerUser(Connector& connect_fd, string username, auto
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
     messages.push_back(message);
+    usernameSet.insert(username);
     return messages;
 }
 
@@ -339,22 +340,20 @@ vector<string> Server::getUser(Connector& connect_fd, db_user& user){
 }
 
 vector<string> Server::deleteUser(Connector& connect_fd, string username, db_user& user){
-    int status_code;
+    int status_code = 200;
 
-    auto it = bindIdentity.find(connect_fd.source_fd);
-    if(it == bindIdentity.end()){
-        status_code = 403;
-        cout<<"Identity not found!"<<endl;
-    } else {
+    auto un = usernameSet.find(username);
+    if(un != usernameSet.end()) {
         status_code = 200;
-        cout<<"Identity found!"<<endl;
-        bindIdentity.erase(it);
-        bindUsername.erase(it);
+        usernameSet.erase(un);
+    } else {
+        status_code = 403;
     }
+    
     // with database logic
     string key = "status";
-    auto val = "valid";
-    pair<string, variant<string, int, double>> deleted_detail = std::make_pair(key, val);
+    pair<string, variant<string, int, double>> deleted_detail;
+    deleted_detail = std::make_pair(key, "valid");
     int result = user.delet(username, deleted_detail);
     if(result == -1 && status_code == 200) status_code = 404;
     else if(result >= 0) status_code = 200;
@@ -373,15 +372,26 @@ vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password, db_u
     string username = bindUsername[connect_fd.source_fd];
     int status_code;
 
-    auto it = bindIdentity.find(connect_fd.source_fd);
-    if(it == bindIdentity.end()){
+    auto identity_iter = bindIdentity.find(connect_fd.source_fd);
+    if(identity_iter == bindIdentity.end()){
         status_code = 403;
         cout<<"Identity not found!"<<endl;
     } else {
         status_code = 200;
         cout<<"Identity found!"<<endl;
-        bindIdentity.erase(it);
-        bindUsername.erase(it);
+        bindIdentity.erase(identity_iter);
+        // bindUsername.erase(it);
+    }
+
+    auto username_iter = bindUsername.find(connect_fd.source_fd);
+    if(username_iter == bindUsername.end()){
+        status_code = 403;
+        cout<<"Username not found!"<<endl;
+    } else {
+        status_code = 200;
+        cout<<"Username found!"<<endl;
+        // bindIdentity.erase(it);
+        bindUsername.erase(username_iter);
     }
 
     // with database logic
@@ -507,7 +517,7 @@ uint16_t Server::recvMessage(Connector conn, char *messageBuffer){
 int main(int argc, char* argv[]){
     Server server_object = Server();
     db_user user = db_user();
-    user.create();
+    user.create(false);
     server_object.init();
     while(true){
         server_object.loop(user);

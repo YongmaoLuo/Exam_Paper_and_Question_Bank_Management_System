@@ -48,7 +48,7 @@ void db_user::create(bool clear/*= false*/, const char* database_name/*= "userin
             PASSWORD TEXT NOT NULL, \
             IDENTITY VARCHAR(15) CHECK(IDENTITY IN ('admin', 'rule maker', 'teacher')), \
             STATUS VARCHAR(10) DEFAULT valid, \
-            ACTIVITY BOOLEAN NOT NULL CHECK(ACTIVITY IN (0, 1))\
+            ACTIVITY BOOLEAN DEFAULT 0 CHECK(ACTIVITY IN (0, 1))\
             );" ;
 
    /* Execute SQL statement */
@@ -71,6 +71,7 @@ int db_user::insert(UserInfo<string>& user){
    if(status.empty()) status = "valid";
    sql = fmt::format("INSERT INTO USER (USERNAME, PASSWORD, IDENTITY, STATUS, ACTIVITY) "  \
             "VALUES ('{}', '{}', '{}', '{}', '{}'); SELECT * FROM USER", username, password, identity, status, activity);
+   cout<<sql<<endl;
    rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
          fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -131,7 +132,7 @@ string db_user::checkType(string target_attribute){
 }
 
 
-variant<int, double, string> db_user::getUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute)
+string db_user::getUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute)
 {
    if(constraint){
          auto constraint_val = constraint.value();
@@ -142,13 +143,15 @@ variant<int, double, string> db_user::getUserAttribute(optional<pair<string, var
    }
    else sql = fmt::format("SELECT {} FROM USER " \
                      "WHERE USERNAME = '{}' LIMIT 1; ", target_attribute, primary_val);
+   cout<<sql<<endl;
    // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
    sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
    int num_cols;
-   int bytes;
+   int bytes = 0;
    char* row_content_raw;
    string res;
+   
    while(sqlite3_step(stmt) != SQLITE_DONE){
          num_cols = sqlite3_column_count(stmt);
          for(int i = 0; i < num_cols; i++){
@@ -157,10 +160,8 @@ variant<int, double, string> db_user::getUserAttribute(optional<pair<string, var
             res = string(row_content_raw, bytes);
          }
    }
-   string type = checkType(target_attribute);
-   if(type == "TEXT") return res;
-   else if (type == "INTEGER") return stoi(res);
-   else return stod(res);
+   if(bytes) return res;
+   else return {};
 }
 
 
