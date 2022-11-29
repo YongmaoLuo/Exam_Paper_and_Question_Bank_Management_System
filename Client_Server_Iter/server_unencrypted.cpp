@@ -328,7 +328,8 @@ vector<string> Server::getUser(Connector& connect_fd, db_user& user){
     messages.reserve(numUsers+1);
     messages.push_back(message);
     if(numUsers < 0) return messages;
-    usernames = user.getUsers();
+    optional<pair<string, string>> constraint;
+    usernames = user.getUserAttributes(constraint, "USERNAME");
 
     for(int i=0; i<usernames.size(); i++){
         message = fmt::format("{{\"username\": \"{}\"}}", usernames[i]);
@@ -402,9 +403,10 @@ vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password, db_u
 
 vector<string> Server::getTeachers(Connector& connect_fd, db_user& user){
     int status_code;
-    optional<pair<string, int>> constraint;
-    constraint = std::make_pair("ACTIVITY", 1);
-    vector<string> teachers = user.getUserAttributes<string, int>(constraint, "USERNAME");
+    vector<pair<string, string>> constraint;
+    constraint.push_back(std::make_pair("ACTIVITY", "1"));
+    constraint.push_back(std::make_pair("IDENTITY", "teacher"));
+    vector<string> teachers = user.getUserAttributes(constraint, "USERNAME");
     if(teachers.empty()) status_code = 403;
     else status_code = 200; 
     vector<string> messages;
