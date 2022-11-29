@@ -298,7 +298,10 @@ void db_user::close(){
 //    cout<<"find status "<<std::get<int>(activity)<<endl;
 
 //    // target_attributes = "PASSWORD";
-//    vector<int> activity_int = user.getUserAttributes<int>(constraint2, target_attributes);
+//    vector<pair<string, string>> constraint3;
+//    constraint3.emplace_back(std::make_pair("ACTIVITY", "0"));
+//    constraint3.emplace_back(std::make_pair("IDENTITY", "admin"));
+//    vector<int> activity_int = user.getUserAttributes<int>(constraint3, target_attributes);
 //    cout<<*activity_int.begin()<<endl;
 
 //    string key = "password";
