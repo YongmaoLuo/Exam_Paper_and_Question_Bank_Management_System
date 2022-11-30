@@ -30,7 +30,7 @@ using namespace std;
 
 // #include "db.hpp"
 
-class db_user;
+class question_bank;
 class Server
 {
 public:
@@ -105,7 +105,10 @@ private:
     vector<string> deleteUserSelf(Connector&, auto password, db_user&);
     vector<string> getUser(Connector& connect_fd, db_user&);
     vector<string> getTeachers(Connector&, db_user&);
-
+    vector<string> getSubjects(Connector&, question_bank&);
+    vector<string> getChapters(Connector&, question_bank&);
+    vector<string> getQuestions(Connector&, db_user&, question_bank&);
+    vector<string> readQuestions(Connector&, auto subjectname, auto chaptername, auto questionname, question_bank&);
     //void *getInetAddr(struct sockaddr *saddr);
 };
 

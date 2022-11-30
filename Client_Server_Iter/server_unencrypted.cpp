@@ -1,4 +1,5 @@
 #include "server_unencrypted.hpp"
+#include "question_bank.cpp"
 #include "db.cpp"
 using namespace std;
 
@@ -432,6 +433,127 @@ vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password, db_u
     messages.push_back(message);
     return messages;
 }
+
+vector<string> Server::getSubjects(Connector& connect_fd, question_bank& q){
+    int status_code;
+    int numq = q.count();
+    if(numq < 0) status_code = 403;
+    else status_code = 200;
+
+    optional<pair<string, string>> constraint;
+    // constraint.push_back(std::make_pair("SUBJECT", "subject"));
+    vector<string> subjects = q.getQuestionAttributes(constraint, "SUBJECT");
+    if(subjects.empty()) status_code = 403;
+
+    vector<string> messages;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, teachers.size());
+    #else
+    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, subjects.size());
+    #endif
+
+    messages.reserve(subjects.size()+1);
+    messages.push_back(message);
+
+    for(auto it=subjects.begin(); it!=subjects.end(); it++) {
+        #ifdef __cpp_lib_format
+        message = std::format("{\"subject\": {}}", *it);
+        #else
+        message = fmt::format("{{\"subject\": {}}}", *it);
+        #endif
+        messages.push_back(message);
+    }
+    return messages;
+}
+
+
+vector<string> Server::getChapters(Connector& connect_fd, question_bank& q){
+    int status_code;
+    int numq = q.count();
+    if(numq < 0) status_code = 403;
+    else status_code = 200;
+
+    optional<pair<string, string>> constraint;
+    vector<string> chapters = q.getQuestionAttributes(constraint, "CHAPTER");
+    if(chapters.empty()) status_code = 403;
+
+    vector<string> messages;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, chapters.size());
+    #else
+    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, chapters.size());
+    #endif
+
+    messages.reserve(chapters.size()+1);
+    messages.push_back(message);
+
+    for(auto it=chapters.begin(); it!=chapters.end(); it++) {
+        #ifdef __cpp_lib_format
+        message = std::format("{\"chapter\": {}}", *it);
+        #else
+        message = fmt::format("{{\"chapter\": {}}}", *it);
+        #endif
+        messages.push_back(message);
+    }
+    return messages;
+}
+
+
+vector<string> Server::getQuestions(Connector& connect_fd, question_bank& q){
+    int status_code;
+    int status_code;
+    int numq = q.count();
+    if(numq < 0) status_code = 403;
+    else status_code = 200;
+
+    optional<pair<string, string>> constraint;
+    vector<string> subjects = q.getQuestionAttributes(constraint, "QUESTION");
+    if(subjects.empty()) status_code = 403;
+
+    vector<string> messages;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, teachers.size());
+    #else
+    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, subjects.size());
+    #endif
+
+    messages.reserve(subjects.size()+1);
+    messages.push_back(message);
+
+    for(auto it=subjects.begin(); it!=subjects.end(); it++) {
+        #ifdef __cpp_lib_format
+        message = std::format("{\"question name\": {}}", *it);
+        #else
+        message = fmt::format("{{\"question name\": {}}}", *it);
+        #endif
+        messages.push_back(message);
+    }
+    return messages;
+}
+
+vector<string> Server::readQuestions(Connector& connect_fd, auto subjectname, auto chaptername, auto questionname, question_bank& q){
+    int status_code;
+    // with database logic
+    vector<pair<string, string>> constraint;
+    constraint.push_back(std::make_pair("subject", subjectname))
+    constraint.push_back(std::make_pair("chapter", chaptertname))
+    constraint.push_back(std::make_pair("question name", questionname));
+    string s = q.getQuestionAttributes(constraint, "TEXT");
+    if(s.empty()) status_code = 403;
+    status_code = 200;
+    vector<string> messages;
+
+    for(auto it=s.begin(); it!=s.end(); it++) {
+        #ifdef __cpp_lib_format
+        message = std::format("{{\"code\": {}, \"question text\": {}}", status_code, *it);
+        #else
+        message = fmt::format("{{\"code\": {}, \"question text\": {}}", status_code, *it);
+        #endif
+        messages.push_back(message);
+    }
+    return messages;
+}
+
 
 vector<string> Server::getTeachers(Connector& connect_fd, db_user& user){
     int status_code;
