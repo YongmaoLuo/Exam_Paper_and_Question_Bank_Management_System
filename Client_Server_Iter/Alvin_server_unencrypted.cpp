@@ -538,7 +538,7 @@ vector<string> Server::readQuestions(Connector& connect_fd, auto subjectname, au
     constraint.push_back(std::make_pair("subject", subjectname))
     constraint.push_back(std::make_pair("chapter", chaptertname))
     constraint.push_back(std::make_pair("question name", questionname));
-    string s = q.getQuestionAttributes(constraint, "TEXT");
+    string s = q.getQuestionAttributes(constraint, "text");
     if(s.empty()) status_code = 403;
     status_code = 200;
     vector<string> messages;
