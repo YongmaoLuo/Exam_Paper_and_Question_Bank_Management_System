@@ -12,6 +12,7 @@
 #include <netinet/in.h> //sockaddr, socklen_t
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <cassert>
 #include <iostream>
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -81,6 +82,7 @@ private:
     map<int, string> bindIdentity;
     map<int, string> bindUsername;
     set<string> usernameSet;
+    map<string, int> logined_users;
 
     void (*newConnectionCallback) (uint16_t fd);
     void (*receiveCallback) (uint16_t fd, char *buffer);
@@ -98,6 +100,7 @@ private:
     vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity, db_user&);
     vector<string> authenticateUser(Connector& conn, string username, auto password, db_user&);
     vector<string> logout(Connector&, db_user&);
+    int logout(string, db_user&); // function overload
     vector<string> deleteUser(Connector&, string username, db_user&);
     vector<string> deleteUserSelf(Connector&, auto password, db_user&);
     vector<string> getUser(Connector& connect_fd, db_user&);
