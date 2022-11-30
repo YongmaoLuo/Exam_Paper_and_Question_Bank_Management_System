@@ -236,17 +236,19 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     if(!identity.empty()){
         target_attribute = "activity";
         int activity = stoi(user.getUserAttribute(constraint, username, target_attribute));
-        if(!activity){
-            status_code = 200;
-            activity = 1;
-            string primary_val = username;
-            vector<pair<string, variant<string, int, double>>> changelist;
-            changelist.emplace_back("activity", activity);
-            user.update(primary_val, changelist);
-        } else {
-            status_code = 403;
-            cout<<"User already login!"<<endl;
+        if(activity){
+            cout<<"User already login! Logout from previous device and re-login!"<<endl;
+            int logout_status = logout(username, user);
+            assert(logout_status == 0);
         }
+        status_code = 200;
+        activity = 1;
+        string primary_val = username;
+        vector<pair<string, variant<string, int, double>>> changelist;
+        changelist.emplace_back("activity", activity);
+        user.update(primary_val, changelist);
+
+        logined_users[username] = connect_fd.source_fd;
     }
     else{
         status_code = 404;
@@ -299,6 +301,7 @@ vector<string> Server::logout(Connector& connect_fd, db_user& user){
     else {
         bindUsername.erase(connect_fd.source_fd);
         bindIdentity.erase(connect_fd.source_fd);
+        logined_users.erase(username);
         status_code = 200;
     }
     vector<string> messages;
@@ -309,6 +312,25 @@ vector<string> Server::logout(Connector& connect_fd, db_user& user){
     #endif
     messages.push_back(message);
     return messages;
+}
+
+int Server::logout(string username, db_user& user){
+    int source_fd = logined_users[username];
+    vector<pair<string, variant<string, int, double>>> constraint;
+    constraint.emplace_back("activity", 0);
+    int res = user.update(username, constraint);
+    if(res < 0){
+        cout<<"logout failed."<<endl;
+    } else {
+        auto it = logined_users.find(username);
+        if(it != logined_users.end()){
+            logined_users.erase(it);
+        }
+    }
+    cout<<"Logout from other device successfully!"<<endl;
+    bindIdentity.erase(source_fd);
+    bindUsername.erase(source_fd);
+    return res;
 }
 
 vector<string> Server::getUser(Connector& connect_fd, db_user& user){
