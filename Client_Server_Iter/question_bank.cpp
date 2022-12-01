@@ -240,11 +240,6 @@ void question_bank::clean(){
    }
 }
 
-void question_bank::close(){
-   sqlite3_finalize(stmt);
-   sqlite3_close(db);
-}
-
 // int main(int argc, char* argv[]) {
 //    question_bank question = question_bank();
 //    bool clear = true;

@@ -257,35 +257,30 @@ void db_user::clean(){
    }
 }
 
-void db_user::close(){
-   sqlite3_finalize(stmt);
-   sqlite3_close(db);
-}
-
 // int main(int argc, char* argv[]) {
-//    db_user user = db_user();
+//    std::shared_ptr<db_user> user = std::make_shared<db_user>();
 //    bool clear = true;
-//    user.create(clear);
+//    user->create(clear);
 
 //    UserInfo<string> user_example = {username: string("admin"), 
 //                             password: string("123456"),
 //                             identity: "admin",
 //                             status: "valid"
 //                             };
-//    user.insert(user_example);
+//    user->insert(user_example);
 //    string primekey_val = "admin";
 
 //    vector<pair<string, variant<string, int, double>>> changelist; // (key, value pair)
 //    changelist.emplace_back("STATUS", "expired");
 //    changelist.emplace_back("STATUS", "valid");
-//    int status = user.update(primekey_val, changelist);
+//    int status = user->update(primekey_val, changelist);
 //    cout<<"update status "<<status<<endl;
 
 //    optional<pair<string, string>> constraint2;
-//    vector<string> usernames = user.getUserAttributes(constraint2, "USERNAME");
+//    vector<string> usernames = user->getUserAttributes(constraint2, "USERNAME");
 //    for(int i=0; i<std::ssize(usernames); i++) cout<<usernames[i]<<"\t";
 //    cout<<endl;
-//    int user_num = user.count();
+//    int user_num = user->count();
 //    cout<<user_num<<endl;
 
 //    string db_key = "IDENTITY";
@@ -293,23 +288,24 @@ void db_user::close(){
 //    optional<pair<string, variant<string, int, double>>> constraint;
 //    constraint = std::make_pair(db_key, identity_val);
 //    string target_attributes = "ACTIVITY";
-//    auto activity = user.getUserAttribute(constraint, primekey_val, target_attributes);
+//    string activity = user->getUserAttribute(constraint, primekey_val, target_attributes);
 
-//    int a = std::get<int>(activity);
-//    cout<<"find status "<<std::get<int>(activity)<<endl;
+//    int a = stoi(activity);
+//    cout<<"find status "<<a<<endl;
 
 //    // target_attributes = "PASSWORD";
 //    vector<pair<string, string>> constraint3;
 //    constraint3.emplace_back(std::make_pair("ACTIVITY", "0"));
 //    constraint3.emplace_back(std::make_pair("IDENTITY", "admin"));
-//    vector<int> activity_int = user.getUserAttributes<int>(constraint3, target_attributes);
+//    vector<int> activity_int = user->getUserAttributes<int>(constraint3, target_attributes);
 //    cout<<*activity_int.begin()<<endl;
 
 //    string key = "password";
 //    auto val = static_cast<string>("123456");
 //    pair<string, variant<string, int, double>> deleted_info = std::make_pair("password", "123456");
 
-//    status = user.delet(primekey_val, deleted_info);
-//    cout<<"delete status "<<status<<endl;
+//    // status = user->delet(primekey_val, deleted_info);
+//    // cout<<"delete status "<<status<<endl;
+//    user->close();
 //    return 0;
 // }
