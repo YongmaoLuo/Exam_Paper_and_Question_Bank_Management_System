@@ -17,7 +17,7 @@ int Client::read_iterative(char* ptr, int size){
 int Client::write_iterative(char* ptr, int size){
     int left_bytes, written_bytes;
     left_bytes = size;
-    while (left_bytes > 0) {
+    while(left_bytes > 0){
         written_bytes = write(socket_fd, ptr, left_bytes);
         if(written_bytes < 0) return (written_bytes);
         if(written_bytes == 0) break;
