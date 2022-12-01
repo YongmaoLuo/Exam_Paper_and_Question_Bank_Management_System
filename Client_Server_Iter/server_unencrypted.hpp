@@ -12,7 +12,6 @@
 #include <netinet/in.h> //sockaddr, socklen_t
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <cassert>
 #include <iostream>
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -45,7 +44,8 @@ public:
     
     void shutdown();
     void init();
-    void loop(db_user&);
+    // void loop(db_user&);
+    void loop();
 
     //callback setters
     void onConnect(void (*ncc)(uint16_t fd));
@@ -78,6 +78,8 @@ private:
     char remote_ip[INET6_ADDRSTRLEN];
     //int numbytes;
 
+    std::shared_ptr<db_user> user = std::make_shared<db_user>();
+
     string message;
     map<int, string> bindIdentity;
     map<int, string> bindUsername;
@@ -95,16 +97,27 @@ private:
     void bindSocket();
     void startListen();
     void handleNewConnection();
-    vector<string> recvInputFromExisting(Connector&, db_user&);
+    // vector<string> recvInputFromExisting(Connector&, db_user&);
+    // void sendMsgToExisting(Connector&, vector<string>&);
+    // vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity, db_user&);
+    // vector<string> authenticateUser(Connector& conn, string username, auto password, db_user&);
+    // vector<string> logout(Connector&, db_user&);
+    // int logout(string, db_user&); // function overload
+    // vector<string> deleteUser(Connector&, string username, db_user&);
+    // vector<string> deleteUserSelf(Connector&, auto password, db_user&);
+    // vector<string> getUser(Connector& connect_fd, db_user&);
+    // vector<string> getTeachers(Connector&, db_user&);
+
+    vector<string> recvInputFromExisting(Connector&);
     void sendMsgToExisting(Connector&, vector<string>&);
-    vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity, db_user&);
-    vector<string> authenticateUser(Connector& conn, string username, auto password, db_user&);
-    vector<string> logout(Connector&, db_user&);
-    int logout(string, db_user&); // function overload
-    vector<string> deleteUser(Connector&, string username, db_user&);
-    vector<string> deleteUserSelf(Connector&, auto password, db_user&);
-    vector<string> getUser(Connector& connect_fd, db_user&);
-    vector<string> getTeachers(Connector&, db_user&);
+    vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity);
+    vector<string> authenticateUser(Connector& conn, string username, auto password);
+    vector<string> logout(Connector&);
+    int logout(string); // function overload
+    vector<string> deleteUser(Connector&, string username);
+    vector<string> deleteUserSelf(Connector&, auto password);
+    vector<string> getUser(Connector& connect_fd);
+    vector<string> getTeachers(Connector&);
 
     //void *getInetAddr(struct sockaddr *saddr);
 };
