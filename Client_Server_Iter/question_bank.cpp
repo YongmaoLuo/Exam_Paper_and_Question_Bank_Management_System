@@ -46,6 +46,7 @@ void question_bank::create(bool clear/*= false*/, const char* database_name/*= "
    sql = "CREATE TABLE IF NOT EXISTS QUESTIONS( \
             PATH varchar(20) NOT NULL,  \
             CONTENT TEXT NOT NULL, \
+            CHAPTER varchar(20), \
             CATEGORY varchar(20) default undefined, \
             RUBRIC INTEGER CHECK(RUBRIC >= 0),\
             PRIMARY KEY (PATH, CONTENT)\
