@@ -1,5 +1,5 @@
 #include "server_unencrypted.hpp"
-#include "db.cpp"
+#include "user_info.cpp"
 using namespace std;
 
 Server::Server()
@@ -270,8 +270,9 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
 vector<string> Server::registerUser(Connector& connect_fd, string username, auto password, string identity){
     int status_code;
     // with database logic
-    UserInfo<string> new_user = {username, static_cast<std::string>(password), identity};
+    UserInfo<string> *new_user = new UserInfo<string>(username, static_cast<std::string>(password), identity, "valid");
     int result = user->insert(new_user);
+    delete new_user;
     if(result == -1) status_code = 403;
     else status_code = 200;
     vector<string> messages;

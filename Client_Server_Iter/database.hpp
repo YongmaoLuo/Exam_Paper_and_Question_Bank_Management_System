@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <concepts>
 #include <cctype>
+#include <cassert>
 
 using namespace std;
 

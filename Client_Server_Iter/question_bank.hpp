@@ -21,8 +21,10 @@ template <hashable T>
 struct QuestionInfo{
             string path;
             string content;
+            string chapter;
             T category;
             int rubric;
+            QuestionInfo<T>(string path_, string content_, string chapter_, T category_, int rubric_): path(path_), content(content_), chapter(chapter_), category(category_), rubric(rubric_) {};
         };
 
 class question_bank: public database{
@@ -39,10 +41,11 @@ class question_bank: public database{
         virtual ~question_bank(); //drop the table?
 
         void create(bool = false, const char* = "questions.db");
-        int insert(QuestionInfo<string>&);
+        int insert(QuestionInfo<string>*);
         int update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
         string getQuestion(optional<pair<string, variant<string, int, double>>> constraint, string primary_val);
         int count();
+        int countDistinct(string target_attribute, pair<string, variant<string, int, double>> count_info);
         vector<string> getQuestionPaths();
         int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info);
         void clean();

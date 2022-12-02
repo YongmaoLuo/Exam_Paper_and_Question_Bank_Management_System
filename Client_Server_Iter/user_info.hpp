@@ -29,6 +29,8 @@ struct UserInfo{
             T identity;
             T status;
             int activity = 0; // no boolean inside sqlite
+            UserInfo<T>(string username_, string password_, T identity_, T status_): username(username_), password(password_), identity(identity_), status(status_), activity(0) {};
+            UserInfo<T>(string username_, string password_, T identity_, T status_, int activity_): username(username_), password(password_), identity(identity_), status(status_), activity(activity_) {};
             UserInfo<T> operator=(UserInfo<T> newuser){
                 username = newuser.username;
                 password = newuser.password;
@@ -54,7 +56,7 @@ class db_user: public database{
         virtual ~db_user(); //drop the table?
 
         void create(bool = false, const char* = "userinfo.db");
-        int insert(UserInfo<string>& user);
+        int insert(UserInfo<string>* user);
         int update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
         
         string getUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute);
@@ -148,6 +150,7 @@ class db_user: public database{
         }
 
         int count();
+        int countDistinct(string target_attribute, pair<string, variant<string, int, double>> count_info);
         int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info);
         void clean();
 };

@@ -62,14 +62,15 @@ void question_bank::create(bool clear/*= false*/, const char* database_name/*= "
    }
 }
 
-int question_bank::insert(QuestionInfo<string>& question){
-   string path = question.path;
-   string content = question.content;
-   string category = question.category;
-   int rubric = question.rubric;
+int question_bank::insert(QuestionInfo<string>* question){
+   string path = question->path;
+   string content = question->content;
+   string chapter = question->chapter;
+   string category = question->category;
+   int rubric = question->rubric;
    if(category.empty()) category = "undefined";
-   sql = fmt::format("INSERT INTO QUESTIONS (PATH, CONTENT, CATEGORY, RUBRIC) "  \
-            "VALUES ('{}', '{}', '{}', '{}'); SELECT * FROM QUESTIONS", path, content, category, rubric);
+   sql = fmt::format("INSERT INTO QUESTIONS (PATH, CONTENT, CHAPTER, CATEGORY, RUBRIC) "  \
+            "VALUES ('{}', '{}', '{}', '{}', '{}'); SELECT * FROM QUESTIONS", path, content, chapter, category, rubric);
    rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
          fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -159,29 +160,40 @@ int question_bank::count(){
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
    sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
    int num_cols;
-   vector<char* > output;
+   vector<int> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){
-      vector<char*> row;
+      vector<int> row;
       num_cols = sqlite3_column_count(stmt);
       for(int i = 0; i < num_cols; i++){
-         switch(sqlite3_column_type(stmt, i)){
-            case(SQLITE3_TEXT):
-               row.push_back((char*) sqlite3_column_text(stmt, i));
-               break;
-            case(SQLITE_INTEGER):
-               row.push_back((char*) to_string(sqlite3_column_int(stmt, i)).data());
-               break;
-            case(SQLITE_FLOAT):
-               row.push_back((char*) to_string(sqlite3_column_double(stmt, i)).data());
-               break;
-            default:
-               break;
-         }
+         assert(sqlite3_column_type(stmt, i) == SQLITE_INTEGER);
+         row.push_back(sqlite3_column_int(stmt, i));
       }
       output.insert(output.end(), row.begin(), row.end());
    }
    if(output.empty()) return -1;
-   return atoi(output[0]);
+   return output[0];
+}
+
+
+int question_bank::countDistinct(string target_attribute, pair<string, variant<string, int, double>> count_info) {
+   string countKey = count_info.first;
+   auto countValue =  count_info.second;
+   sql = fmt::format("SELECT COUNT(DISTINCT {}) from QUESTIONS WHERE {}='{}' LIMIT 1;", target_attribute, countKey, custom_to_string(countValue));
+   sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
+   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   int num_cols;
+   vector<int> output;
+   while(sqlite3_step(stmt) != SQLITE_DONE){
+      vector<int> row;
+      num_cols = sqlite3_column_count(stmt);
+      for(int i = 0; i < num_cols; i++){
+         assert(sqlite3_column_type(stmt, i) == SQLITE_INTEGER);
+         row.push_back(sqlite3_column_int(stmt, i));
+      }
+      output.insert(output.end(), row.begin(), row.end());
+   }
+   if(output.empty()) return -1;
+   return output[0];
 }
 
 vector<string> question_bank::getQuestionPaths(){
@@ -245,12 +257,9 @@ void question_bank::clean(){
 //    bool clear = true;
 //    question.create(clear);
 
-//    QuestionInfo<string> question_example = {path: "http://123.com", 
-//                             content: "123456",
-//                             category: "multiple choice",
-//                             rubric: 10 
-//                             };
+//    QuestionInfo<string> question_example = new QuestionInfo<string>("http://123.com", "123456", "", "multiple choice", 10);
 //    question.insert(question_example);
+//    delete question_example;
 //    string primekey_val = "http://123.com";
 
 //    vector<pair<string, variant<string, int, double>>> changelist; // (key, value pair)
