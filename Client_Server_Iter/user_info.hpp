@@ -1,17 +1,6 @@
 #ifndef DB_HPP
 #define DB_HPP
-#include <stdio.h>
-#include <stdlib.h>
-#include <sqlite3.h> 
-#include <string.h>
-#include <vector>
-#include <set>
-#include <variant>
-#include <optional>
-#include <iostream>
-#include <cstddef>
-#include <concepts>
-#include <cctype>
+#include "database.hpp"
 using namespace std;
 
 #define FMT_HEADER_ONLY
@@ -50,7 +39,7 @@ struct UserInfo{
             }
         };
 
-class db_user{
+class db_user: public database{
     private:
         sqlite3 *db;
         sqlite3_stmt *stmt;
@@ -161,6 +150,5 @@ class db_user{
         int count();
         int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info);
         void clean();
-        void close();
 };
 #endif

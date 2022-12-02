@@ -1,14 +1,6 @@
 #ifndef QUESTION_BANK_HPP
 #define QUESTION_BANK_HPP
-#include <stdio.h>
-#include <stdlib.h>
-#include <sqlite3.h> 
-#include <string.h>
-#include <vector>
-#include <set>
-#include <variant>
-#include <optional>
-#include <iostream>
+#include "database.hpp"
 using namespace std;
 
 #define FMT_HEADER_ONLY
@@ -33,7 +25,7 @@ struct QuestionInfo{
             int rubric;
         };
 
-class question_bank{
+class question_bank: public database{
     private:
         sqlite3 *db;
         sqlite3_stmt *stmt;
@@ -54,6 +46,5 @@ class question_bank{
         vector<string> getQuestionPaths();
         int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info);
         void clean();
-        void close();
 };
 #endif

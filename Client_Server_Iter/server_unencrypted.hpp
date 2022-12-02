@@ -95,20 +95,25 @@ private:
     void bindSocket();
     void startListen();
     void handleNewConnection();
-    vector<string> recvInputFromExisting(Connector&, db_user&);
+    vector<string> recvInputFromExisting(Connector&);
     void sendMsgToExisting(Connector&, vector<string>&);
-    vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity, db_user&);
-    vector<string> authenticateUser(Connector& conn, string username, auto password, db_user&);
-    vector<string> logout(Connector&, db_user&);
-    int logout(string, db_user&); // function overload
-    vector<string> deleteUser(Connector&, string username, db_user&);
-    vector<string> deleteUserSelf(Connector&, auto password, db_user&);
-    vector<string> getUser(Connector& connect_fd, db_user&);
-    vector<string> getTeachers(Connector&, db_user&);
-    vector<string> getSubjects(Connector&, question_bank&);
-    vector<string> getChapters(Connector&, question_bank&);
-    vector<string> getQuestions(Connector&, db_user&, question_bank&);
-    vector<string> readQuestions(Connector&, auto subjectname, auto chaptername, auto questionname, question_bank&);
+    vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity);
+    vector<string> authenticateUser(Connector& conn, string username, auto password);
+    vector<string> logout(Connector&);
+    int logout(string); // function overload
+    vector<string> deleteUser(Connector&, string username);
+    vector<string> deleteUserSelf(Connector&, auto password);
+    vector<string> getUser(Connector& connect_fd);
+    
+    vector<string> getSubjects(Connector&);
+    vector<string> getChapters(Connector&, auto subject);
+    vector<string> getQuestions(Connector&, auto subject, auto chapter);
+    vector<string> readQuestion(Connector&, auto subject, auto chapter, auto question);
+    vector<string> writeQuestion(Connector& connect_fd, auto subject, auto chapter, auto question, string text);
+    vector<string> deleteQuestion(Connector& connect_fd, auto subject, auto chapter, auto question);
+    
+    vector<string> getTeachers(Connector&);
+    
     //void *getInetAddr(struct sockaddr *saddr);
 };
 
