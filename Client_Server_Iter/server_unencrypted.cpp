@@ -279,7 +279,7 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}, \"identity\": \"{}\"}", status_code, identity);
     #else
-    message = fmt::format("{{\"code\": {}, \"identity\": \"{}\"}}", status_code, identity);
+    message = fmt::format("{\"code\": {}, \"identity\": \"{}\"}", status_code, identity);
     #endif
     cout<<"checkin message: "<<message<<endl;
     messages.push_back(message);
@@ -300,7 +300,7 @@ vector<string> Server::registerUser(Connector& connect_fd, string username, auto
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}}", status_code);
     #else
-    message = fmt::format("{{\"code\": {}}}", status_code);
+    message = fmt::format("{\"code\": {}}", status_code);
     #endif
     messages.push_back(message);
     usernameSet.insert(username);
@@ -328,7 +328,7 @@ vector<string> Server::logout(Connector& connect_fd){
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}}", status_code);
     #else
-    message = fmt::format("{{\"code\": {}}}", status_code);
+    message = fmt::format("{\"code\": {}}", status_code);
     #endif
     messages.push_back(message);
     return messages;
@@ -365,7 +365,7 @@ vector<string> Server::getUser(Connector& connect_fd){
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}, \"counts\": {}}", status_code, numUsers);
     #else
-    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, numUsers);
+    message = fmt::format("{\"code\": {}, \"counts\": {}}", status_code, numUsers);
     #endif
 
     messages.reserve(numUsers+1);
@@ -375,7 +375,7 @@ vector<string> Server::getUser(Connector& connect_fd){
     usernames = user->getUserAttributes(constraint, "USERNAME");
 
     for(int i=0; i<usernames.size(); i++){
-        message = fmt::format("{{\"username\": \"{}\"}}", usernames[i]);
+        message = fmt::format("{\"username\": \"{}\"}", usernames[i]);
         messages.push_back(message);
     }
     return messages;
@@ -404,7 +404,7 @@ vector<string> Server::deleteUser(Connector& connect_fd, string username){
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}}", status_code);
     #else
-    message = fmt::format("{{\"code\": {}}}", status_code);
+    message = fmt::format("{\"code\": {}}", status_code);
     #endif
     messages.push_back(message);
     return messages;
@@ -447,7 +447,7 @@ vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password){
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}}", status_code);
     #else
-    message = fmt::format("{{\"code\": {}}}", status_code);
+    message = fmt::format("{\"code\": {}}", status_code);
     #endif
     messages.push_back(message);
     return messages;
@@ -468,7 +468,7 @@ vector<string> Server::getSubjects(Connector& connect_fd){
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}, \"counts\": {}}", status_code, teachers.size());
     #else
-    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, subjects.size());
+    message = fmt::format("{\"code\": {}, \"counts\": {}}", status_code, subjects.size());
     #endif
 
     messages.reserve(subjects.size()+1);
@@ -478,7 +478,7 @@ vector<string> Server::getSubjects(Connector& connect_fd){
         #ifdef __cpp_lib_format
         message = std::format("{\"subject\": {}}", *it);
         #else
-        message = fmt::format("{{\"subject\": {}}}", *it);
+        message = fmt::format("{\"subject\": {}}", *it);
         #endif
         messages.push_back(message);
     }
@@ -502,7 +502,7 @@ vector<string> Server::getChapters(Connector& connect_fd, auto subject){
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}, \"counts\": {}}", status_code, chapters.size());
     #else
-    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, chapters.size());
+    message = fmt::format("{\"code\": {}, \"counts\": {}}", status_code, chapters.size());
     #endif
 
     messages.reserve(chapters.size()+1);
@@ -512,7 +512,7 @@ vector<string> Server::getChapters(Connector& connect_fd, auto subject){
         #ifdef __cpp_lib_format
         message = std::format("{\"chapter\": {}}", *it);
         #else
-        message = fmt::format("{{\"chapter\": {}}}", *it);
+        message = fmt::format("{\"chapter\": {}}", *it);
         #endif
         messages.push_back(message);
     }
@@ -537,7 +537,7 @@ vector<string> Server::getQuestions(Connector& connect_fd, auto subject, auto ch
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}, \"counts\": {}}", status_code, teachers.size());
     #else
-    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, subjects.size());
+    message = fmt::format("{\"code\": {}, \"counts\": {}}", status_code, subjects.size());
     #endif
 
     messages.reserve(subjects.size()+1);
@@ -547,7 +547,7 @@ vector<string> Server::getQuestions(Connector& connect_fd, auto subject, auto ch
         #ifdef __cpp_lib_format
         message = std::format("{\"question name\": {}}", *it);
         #else
-        message = fmt::format("{{\"question name\": {}}}", *it);
+        message = fmt::format("{\"question name\": {}}", *it);
         #endif
         messages.push_back(message);
     }
@@ -568,9 +568,9 @@ vector<string> Server::readQuestion(Connector& connect_fd, auto subject, auto ch
 
     for(auto it=s.begin(); it!=s.end(); it++) {
         #ifdef __cpp_lib_format
-        message = std::format("{{\"code\": {}, \"question text\": {}}", status_code, *it);
+        message = std::format("{\"code\": {}, \"question text\": {}}", status_code, *it);
         #else
-        message = fmt::format("{{\"code\": {}, \"question text\": {}}", status_code, *it);
+        message = fmt::format("{\"code\": {}, \"question text\": {}}", status_code, *it);
         #endif
         messages.push_back(message);
     }
@@ -593,7 +593,7 @@ vector<string> Server::writeQuestion(Connector& connect_fd, auto subject, auto c
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}}", status_code);
     #else
-    message = fmt::format("{{\"code\": {}}}", status_code);
+    message = fmt::format("{\"code\": {}}", status_code);
     #endif
     messages.push_back(message);
     return messages;
@@ -616,7 +616,7 @@ vector<string> Server::deleteQuestion(Connector& connect_fd, auto subject, auto 
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}}", status_code);
     #else
-    message = fmt::format("{{\"code\": {}}}", status_code);
+    message = fmt::format("{\"code\": {}}", status_code);
     #endif
     messages.push_back(message);
     return messages;
@@ -624,6 +624,7 @@ vector<string> Server::deleteQuestion(Connector& connect_fd, auto subject, auto 
 
 vector<string> Server::getTeachers(Connector& connect_fd){
     int status_code;
+
     vector<pair<string, string>> constraint;
     constraint.push_back(std::make_pair("ACTIVITY", "1"));
     constraint.push_back(std::make_pair("IDENTITY", "teacher"));
@@ -634,7 +635,7 @@ vector<string> Server::getTeachers(Connector& connect_fd){
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}, \"counts\": {}}", status_code, teachers.size());
     #else
-    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, teachers.size());
+    message = fmt::format("{\"code\": {}, \"counts\": {}}", status_code, teachers.size());
     #endif
 
     messages.reserve(teachers.size()+1);
@@ -644,12 +645,124 @@ vector<string> Server::getTeachers(Connector& connect_fd){
         #ifdef __cpp_lib_format
         message = std::format("{\"username\": {}}", *it);
         #else
-        message = fmt::format("{{\"username\": {}}}", *it);
+        message = fmt::format("{\"username\": {}}", *it);
         #endif
         messages.push_back(message);
     }
     return messages;
 }
+
+vector<string> Server::getBulletin(Connector& connect_fd) {
+    int status_code;
+    int numb = b->count();
+    if(numb < 0) status_code = 403;
+    else status_code = 200;
+
+    optional<pair<string, string>> constraint;
+    // constraint.push_back(std::make_pair("SUBJECT", "subject"));
+    vector<string> names = b->getBulletAttributes(constraint, "NAME");
+    if (names.empty()) status_code = 403;
+
+    vector<string> messages;
+
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, names.size());
+    #else
+    message = fmt::format("{\"code\": {}, \"counts\": {}}", status_code, names.size());
+    #endif
+
+    messages.reserve(names.size()+1);
+    messages.push_back(message);
+
+    for(auto it=names.begin(); it!=names.end(); it++) {
+        #ifdef __cpp_lib_format
+        message = std::format("{\"bulletin name\": {}}", *it);
+        #else
+        message = fmt::format("{\"bulletin name\": {}}", *it);
+        #endif
+        messages.push_back(message);
+    }
+    return messages;
+}
+
+vector<string> Server::readBulletin(Connector& connect_fd, string name) {
+    int status_code;
+    int numb = b->count();
+    if (numb < 0) status_code = 403;
+    else status_code = 200;
+    vector<pair<string, string>> constraint;
+
+    // for (auto& subject:subjects) constraint.push_back(std::make_pair("SUBJECT", subject));
+    constraint.push_back(std::make_pair("NAME", name));
+    vector<string> texts = b->getBulletinAttributes(constraint, "TEXT");
+    if (texts.empty()) status_code = 403;
+
+    vector<string> messages;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code, chapters.size());
+    #else
+    message = fmt::format("{\"code\": {}}", status_code, texts.size());
+    #endif
+
+    messages.reserve(texts.size()+1);
+    messages.push_back(message);
+
+    for(auto it=texts.begin(); it!=texts.end(); it++) {
+        #ifdef __cpp_lib_format
+        message = std::format("{\"bulletin text\": {}}", *it);
+        #else
+        message = fmt::format("{{\"bulletin text\": {}}}", *it);
+        #endif
+        messages.push_back(message);
+    }
+    return messages;
+}
+
+vector<string> Server::writeBulletin(Connector& connect_fd, string name, string text, string teacher) {
+    int status_code = 200;
+    vector<pair<string, string>> constraint;
+    constraint.push_back(std::make_pair("NAME", name));
+    int res = b->update(text, constraint);
+    if(res < 0) {
+        cout<<"write bulletin failed."<<endl;
+        status_code = 403;
+    }
+    
+    vector<string> messages;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{{\"code\": {}}}", status_code);
+    #endif
+    messages.push_back(message);
+    return messages;
+}
+
+vector<string> Server::deleteBulletin(Connector& connect_fd, string name) {
+    int status_code = 200;
+    vector<pair<string, string>> constraint;
+    constraint.push_back(std::make_pair("NAME", name));
+    int res = b->delet(name, constraint);
+    if(res < 0) {
+        cout<<"delete bulletin failed."<<endl;
+        status_code = 403;
+    }
+
+    vector<string> messages;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{\"code\": {}}", status_code);
+    #endif
+    messages.push_back(message);
+    return messages;
+}
+
+
+// vector<string> getBulletin(Connector&);
+// vector<string> readBulletin(Connector&, string name);
+// vector<string> writeBulletin(Connector&, string name, string text, string teacher);
+// vector<string> deleteBulletin(Connector&, string name);
 
 void Server::loop(db_user& user)
 {
@@ -688,6 +801,7 @@ void Server::loop(db_user& user)
         } //loop on to see if there is more
     }
 }
+
 
 void Server::init()
 {

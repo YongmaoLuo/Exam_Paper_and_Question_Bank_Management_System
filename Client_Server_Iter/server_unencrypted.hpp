@@ -28,7 +28,7 @@ using namespace std;
 #define FMT_HEADER_ONLY
 #include <fmt/format.h>
 
-// #include "db.hpp"
+# include "db.hpp"
 
 class question_bank;
 class Server
@@ -113,6 +113,14 @@ private:
     vector<string> deleteQuestion(Connector& connect_fd, auto subject, auto chapter, auto question);
     
     vector<string> getTeachers(Connector&);
+
+    vector<string> getBulletin(Connector&);
+    vector<string> readBulletin(Connector&, string name);
+    vector<string> writeBulletin(Connector&, string name, string text, string teacher);
+    vector<string> deleteBulletin(Connector&, string name);
+
+    
+
     
     //void *getInetAddr(struct sockaddr *saddr);
 };
