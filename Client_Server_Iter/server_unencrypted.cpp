@@ -186,15 +186,10 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
     auto question_content = std::string();
 
     if(message.contains("username")) username = message["username"].get<std::string>();
-    else{
-        perror("No account.\n");
-        // exit(1);
-    }
+    else cout<<"No account.\n";
+
     if(message.contains("password")) password = message["password"].get<std::string>();
-    else{
-        perror("No password.\n");
-        // exit(1);
-    }
+    else cout<<"No password.\n";
     if(message.contains("subject name")) subject_name = message["subject name"].get<std::string>();
     if(message.contains("chapter name")) chapter_name = message["chapter name"].get<std::string>();
     if(message.contains("question name")) question_id = message["question name"].get<std::string>();
@@ -226,22 +221,22 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
     else if(command == "get teachers" && bindIdentity.find(connect_fd.source_fd) != bindIdentity.end() && bindIdentity[connect_fd.source_fd] == "rule maker") {
         messages = getTeachers();
     }
-    else if(command == "get subjects" && logined_users.find(username) != logined_users.end()) {
+    else if(command == "get subjects" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
         messages = getSubjects();
     }
-    else if(command == "get chapters" && logined_users.find(username) != logined_users.end()) {
+    else if(command == "get chapters" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
         messages = getChapters(subject_name);
     }
-    else if(command == "get questions" && logined_users.find(username) != logined_users.end()) {
+    else if(command == "get questions" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
         messages = getQuestions(subject_name, chapter_name);
     }
-    else if(command == "read question" && logined_users.find(username) != logined_users.end()) {
+    else if(command == "read question" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
         messages = getQuestions(subject_name, chapter_name, question_id);
     }
-    else if(command == "write question" && logined_users.find(username) != logined_users.end()) {
+    else if(command == "write question" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
         messages = writeQuestion(subject_name, chapter_name, question_id, question_content);
     }
-    else if(command == "delete question" && logined_users.find(username) != logined_users.end()) {
+    else if(command == "delete question" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
         messages = deleteQuestion(subject_name, chapter_name, question_id);
     }
     else{
@@ -274,7 +269,6 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
         changelist.emplace_back("activity", activity);
         user->update(primary_val, changelist);
 
-        logined_users[username] = connect_fd.source_fd;
     }
     else{
         status_code = 404;
@@ -291,6 +285,7 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     
     bindIdentity[connect_fd.source_fd] = identity;
     bindUsername[connect_fd.source_fd] = username;
+    logined_users[username] = connect_fd.source_fd;
     return messages;
 }
 
@@ -643,6 +638,7 @@ vector<string> Server::writeQuestion(string subject, string chapter, string ques
     count_infos.push_back(std::make_pair("path", question_id));
     int exsistence = question->countDistinct("content", count_infos);
     int rc;
+    content = escapeJsonString(content);
     if(exsistence < 0) status_code = 404;
     else if(exsistence == 0) {
         cout<<"Write a new question into the question bank!"<<endl;

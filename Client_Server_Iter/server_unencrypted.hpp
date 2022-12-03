@@ -27,6 +27,23 @@ using namespace std;
 #define FMT_HEADER_ONLY
 #include <fmt/format.h>
 
+
+inline std::string escapeJsonString(std::string input){
+    for(int i=0;;i++){
+        if(i>=input.length())
+            break;
+        if(input[i]=='\n'){
+            input.erase(i,1);
+            input.insert(i,"\\n");
+            i++;
+        }else if(input[i]=='\\'){
+            input.insert(i,"\\");
+            i++;
+    }
+    }
+    return input;
+}
+
 // #include "user_info.hpp"
 
 class db_user;
