@@ -1,14 +1,5 @@
 #include "user_info.hpp"
 
-static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
-   int i;
-   for(i = 0; i<argc; i++) {
-      printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
-   }
-   printf("\n");
-   return 0;
-}
-
 db_user::db_user(){
    db = 0;
    stmt = 0;
@@ -267,58 +258,58 @@ void db_user::clean(){
    }
 }
 
-int main(int argc, char* argv[]) {
-   std::shared_ptr<db_user> user = std::make_shared<db_user>();
-   bool clear = true;
-   user->create(clear);
+// int main(int argc, char* argv[]) {
+//    std::shared_ptr<db_user> user = std::make_shared<db_user>();
+//    bool clear = true;
+//    user->create(clear);
 
-   UserInfo<string> *user_example = new UserInfo<string>("admin", "123456", "admin", "valid");
-   // UserInfo<string> user_example = {username: string("admin"), 
-   //                          password: string("123456"),
-   //                          identity: "admin",
-   //                          status: "valid"
-   //                          };
-   user->insert(user_example);
-   delete user_example;
+//    UserInfo<string> *user_example = new UserInfo<string>("admin", "123456", "admin", "valid");
+//    // UserInfo<string> user_example = {username: string("admin"), 
+//    //                          password: string("123456"),
+//    //                          identity: "admin",
+//    //                          status: "valid"
+//    //                          };
+//    user->insert(user_example);
+//    delete user_example;
 
-   string primekey_val = "admin";
+//    string primekey_val = "admin";
 
-   vector<pair<string, variant<string, int, double>>> changelist; // (key, value pair)
-   changelist.emplace_back("STATUS", "expired");
-   changelist.emplace_back("STATUS", "valid");
-   int status = user->update(primekey_val, changelist);
-   cout<<"update status "<<status<<endl;
+//    vector<pair<string, variant<string, int, double>>> changelist; // (key, value pair)
+//    changelist.emplace_back("STATUS", "expired");
+//    changelist.emplace_back("STATUS", "valid");
+//    int status = user->update(primekey_val, changelist);
+//    cout<<"update status "<<status<<endl;
 
-   optional<pair<string, string>> constraint2;
-   vector<string> usernames = user->getUserAttributes(constraint2, "USERNAME");
-   for(int i=0; i<std::ssize(usernames); i++) cout<<usernames[i]<<"\t";
-   cout<<endl;
-   int user_num = user->count();
-   cout<<user_num<<endl;
+//    optional<pair<string, string>> constraint2;
+//    vector<string> usernames = user->getUserAttributes(constraint2, "USERNAME");
+//    for(int i=0; i<std::ssize(usernames); i++) cout<<usernames[i]<<"\t";
+//    cout<<endl;
+//    int user_num = user->count();
+//    cout<<user_num<<endl;
 
-   string db_key = "IDENTITY";
-   auto identity_val = "admin";
-   optional<pair<string, variant<string, int, double>>> constraint;
-   constraint = std::make_pair(db_key, identity_val);
-   string target_attributes = "ACTIVITY";
-   string activity = user->getUserAttribute(constraint, primekey_val, target_attributes);
+//    string db_key = "IDENTITY";
+//    auto identity_val = "admin";
+//    optional<pair<string, variant<string, int, double>>> constraint;
+//    constraint = std::make_pair(db_key, identity_val);
+//    string target_attributes = "ACTIVITY";
+//    string activity = user->getUserAttribute(constraint, primekey_val, target_attributes);
 
-   int a = stoi(activity);
-   cout<<"find status "<<a<<endl;
+//    int a = stoi(activity);
+//    cout<<"find status "<<a<<endl;
 
-   // target_attributes = "PASSWORD";
-   vector<pair<string, string>> constraint3;
-   constraint3.emplace_back(std::make_pair("ACTIVITY", "0"));
-   constraint3.emplace_back(std::make_pair("IDENTITY", "admin"));
-   vector<int> activity_int = user->getUserAttributes<int>(constraint3, target_attributes);
-   cout<<*activity_int.begin()<<endl;
+//    // target_attributes = "PASSWORD";
+//    vector<pair<string, string>> constraint3;
+//    constraint3.emplace_back(std::make_pair("ACTIVITY", "0"));
+//    constraint3.emplace_back(std::make_pair("IDENTITY", "admin"));
+//    vector<int> activity_int = user->getUserAttributes<int>(constraint3, target_attributes);
+//    cout<<*activity_int.begin()<<endl;
 
-   string key = "password";
-   auto val = static_cast<string>("123456");
-   pair<string, variant<string, int, double>> deleted_info = std::make_pair("password", "123456");
+//    string key = "password";
+//    auto val = static_cast<string>("123456");
+//    pair<string, variant<string, int, double>> deleted_info = std::make_pair("password", "123456");
 
-   // status = user->delet(primekey_val, deleted_info);
-   // cout<<"delete status "<<status<<endl;
-   user->close();
-   return 0;
-}
+//    // status = user->delet(primekey_val, deleted_info);
+//    // cout<<"delete status "<<status<<endl;
+//    user->close();
+//    return 0;
+// }

@@ -6,22 +6,6 @@ using namespace std;
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
-inline string custom_to_string(variant<string, int, double> const& value) {
-    if(int const* pval = std::get_if<int>(&value))
-    return std::to_string(*pval);
-    
-    if(double const* pval = std::get_if<double>(&value))
-    return std::to_string(*pval);
-    
-    return std::get<string>(value);
-}
-
-template<typename T>
-concept hashable = requires(T a)
-{
-    { std::hash<T>{}(a) } -> std::convertible_to<std::size_t>;
-};
-
 template<hashable T>
 struct UserInfo{
             string username;

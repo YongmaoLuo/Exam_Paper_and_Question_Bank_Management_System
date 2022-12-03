@@ -30,6 +30,7 @@ using namespace std;
 // #include "user_info.hpp"
 
 class db_user;
+class question_bank;
 class Server
 {
 public:
@@ -79,6 +80,7 @@ private:
     //int numbytes;
 
     std::shared_ptr<db_user> user = std::make_shared<db_user>();
+    std::shared_ptr<question_bank> question = std::make_shared<question_bank>();
 
     string message;
     map<int, string> bindIdentity;
@@ -119,6 +121,12 @@ private:
     vector<string> getUser(Connector& connect_fd);
     vector<string> getTeachers(Connector&);
 
+    vector<string> getSubjects(Connector&);
+    vector<string> getChapters(Connector&, string subject);
+    vector<string> getQuestions(Connector&, string, string);
+    vector<string> getQuestions(Connector&, string, string, string);
+    vector<string> writeQuestions(Connector&, string, string, string, string);
+    vector<string> deleteQuestions(Connector&, string, string, string);
     //void *getInetAddr(struct sockaddr *saddr);
 };
 

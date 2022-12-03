@@ -1,5 +1,6 @@
 #include "server_unencrypted.hpp"
 #include "user_info.cpp"
+#include "question_bank.cpp"
 using namespace std;
 
 Server::Server()
@@ -459,6 +460,76 @@ vector<string> Server::getTeachers(Connector& connect_fd){
         #endif
         messages.push_back(message);
     }
+    return messages;
+}
+
+vector<string> Server::getSubjects(Connector& connect_fd){
+    int status_code;
+    vector<string> messages;
+    string target_attribute = "subject";
+    optional<pair<string, variant<string, int, double>>> count_info;
+    int subject_num = question->countDistinct(target_attribute, count_info);
+    if(subject_num < 0){
+        status_code = 403;
+        #ifdef __cpp_lib_format
+        message = std::format("{\"code\": {}, \"counts\": {}}", status_code, subject_num);
+        #else
+        message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, subject_num);
+        #endif
+        messages.push_back(message);
+        return messages;
+    }
+    else status_code = 200;
+    optional<pair<string, string>> constraint;
+    vector<string> subjects = question->getQuestionAttributes(constraint, target_attribute);
+    if(subjects.empty()) status_code = 404;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, subjects.size());
+    #else
+    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, subjects.size());
+    #endif
+
+    messages.reserve(subjects.size()+1);
+    messages.push_back(message);
+
+    for(int i=0; i<subject_num; i++){
+        #ifdef __cpp_lib_format
+        message = std::format("{\"subject\": {}}", subjects[i]);
+        #else
+        message = fmt::format("{{\"subject\": {}}}", subjects[i]);
+        #endif
+        messages.push_back(message);
+    }
+    return messages;
+}
+
+vector<string> Server::getChapters(Connector& connect_fd, string subject){
+    vector<string> messages;
+    // pending
+    return messages;
+}
+
+vector<string> Server::getQuestions(Connector& connect_fd, string subject, string chapter){
+    vector<string> messages;
+    // pending
+    return messages;
+}
+
+vector<string> Server::getQuestions(Connector& connect_fd, string subject, string chapter, string question_id){
+    vector<string> messages;
+    // pending
+    return messages;
+}
+
+vector<string> Server::writeQuestions(Connector& connect_fd, string subject, string chapter, string question_id, string content){
+    vector<string> messages;
+    // pending
+    return messages;
+}
+
+vector<string> Server::deleteQuestions(Connector& connect_fd, string subject, string chapter, string question_id){
+    vector<string> messages;
+    // pending
     return messages;
 }
 
