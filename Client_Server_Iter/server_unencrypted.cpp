@@ -573,7 +573,9 @@ void Server::loop()
 
 void Server::init()
 {
+    // create/open databases
     user->create();
+    question->create();
     initializeSocket();
     bindSocket();
     startListen();
