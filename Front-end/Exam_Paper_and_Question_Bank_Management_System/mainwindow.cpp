@@ -27,10 +27,12 @@ void MainWindow::get_subjects() {
     json sendPacket=R"({"command":"get subjects"})"_json;
     if(client->sendToServer(sendPacket)==-1){
         QMessageBox::warning(this,"warning","send get bulletins command failed");
+        return;
     }
     json recvPacket;
     if(client->receive(recvPacket)==-1){
         QMessageBox::warning(this,"warning","receive bulletin list failed");
+        return;
     }
     int iter=0;
     QList<QString> subjectList;
@@ -53,14 +55,20 @@ void MainWindow::get_subjects() {
 }
 
 void MainWindow::get_chapters(QString subject){
+    if(subject.length()==0){
+        QMessageBox::warning(this,"warning","please choose a subject to read");
+        return;
+    }
     ui->chapterListWidget->clear();
     json sendPacket=R"({"command":"get chapters"})"_json;
     if(client->sendToServer(sendPacket)==-1){
-        QMessageBox::warning(this,"warning","send get bulletins command failed");
+        QMessageBox::warning(this,"warning","send get chapters command failed");
+        return;
     }
     json recvPacket;
     if(client->receive(recvPacket)==-1){
-        QMessageBox::warning(this,"warning","receive bulletin list failed");
+        QMessageBox::warning(this,"warning","receive chapter list failed");
+        return;
     }
     int iter=0;
     QList<QString> chapterList;
@@ -83,14 +91,24 @@ void MainWindow::get_chapters(QString subject){
 }
 
 void MainWindow::get_questions(QString subject,QString chapter){
+    if(subject.length()==0){
+        QMessageBox::warning(this,"warning","please choose a subject to read");
+        return;
+    }
+    if(chapter.length()==0){
+        QMessageBox::warning(this,"warning","please choose a chapter to read");
+        return;
+    }
     ui->questionListWidget->clear();
     json sendPacket=R"({"command":"get questions"})"_json;
     if(client->sendToServer(sendPacket)==-1){
         QMessageBox::warning(this,"warning","send get bulletins command failed");
+        return;
     }
     json recvPacket;
     if(client->receive(recvPacket)==-1){
         QMessageBox::warning(this,"warning","receive bulletin list failed");
+        return;
     }
     int iter=0;
     QList<QString> questionList;
@@ -113,14 +131,20 @@ void MainWindow::get_questions(QString subject,QString chapter){
 }
 
 void MainWindow::add_subject(QString subject){
+    if(subject.length()==0){
+        QMessageBox::warning(this,"warning","no subject to be added!");
+        return;
+    }
     json sendPacket=json::parse(fmt::format("{{\"command\":\"add subject\",\"subject name\":\"{}\"}}",
                                             subject.toStdString()));
     if(client->sendToServer(sendPacket)==-1){
         QMessageBox::warning(this,"warning","send add subject command failed");
+        return;
     }
     json recvPacket;
     if(client->receive(recvPacket)==-1){
         QMessageBox::warning(this,"warning","receive server response failed");
+        return;
     }
     if(recvPacket["code"]!=200){
         QMessageBox::warning(this,"warning","add subject unsuccessful from the server");
@@ -132,14 +156,25 @@ void MainWindow::add_subject(QString subject){
 }
 
 void MainWindow::add_chapter(QString subject,QString chapter){
+    if(subject.length()==0){
+        QMessageBox::warning(this,"warning","no subject to be added!");
+        ui->chapterCreateButton->setEnabled(false);
+        return;
+    }
+    if(chapter.length()==0){
+        QMessageBox::warning(this,"warning","no chapter to be added!");
+        return;
+    }
     json sendPacket=json::parse(fmt::format("{{\"command\":\"add chapter\",\"subject name\":\"{}\",\"chapter name\":\"{}\"}}",
                                             subject.toStdString(),chapter.toStdString()));
     if(client->sendToServer(sendPacket)==-1){
         QMessageBox::warning(this,"warning","send add chapter command failed");
+        return;
     }
     json recvPacket;
     if(client->receive(recvPacket)==-1){
         QMessageBox::warning(this,"warning","receive server response failed");
+        return;
     }
     if(recvPacket["code"]!=200){
         QMessageBox::warning(this,"warning","add chapter unsuccessful from the server");
@@ -150,14 +185,30 @@ void MainWindow::add_chapter(QString subject,QString chapter){
 }
 
 void MainWindow::add_question(QString subject,QString chapter,QString questionName){
+    if(subject.length()==0){
+        QMessageBox::warning(this,"warning","no subject to be added!");
+        ui->questionCreateButton->setEnabled(false);
+        return;
+    }
+    if(chapter.length()==0){
+        QMessageBox::warning(this,"warning","no chapter to be added!");
+        ui->questionCreateButton->setEnabled(false);
+        return;
+    }
+    if(questionName.length()==0){
+        QMessageBox::warning(this,"warning","no question name to be added!");
+        return;
+    }
     json sendPacket=json::parse(fmt::format("{{\"command\":\"add question\",\"subject name\":\"{}\",\"chapter name\":\"{}\",\"question name\":\"{}\"}}",
                                             subject.toStdString(),chapter.toStdString(),questionName.toStdString()));
     if(client->sendToServer(sendPacket)==-1){
         QMessageBox::warning(this,"warning","send add questions command failed");
+        return;
     }
     json recvPacket;
     if(client->receive(recvPacket)==-1){
         QMessageBox::warning(this,"warning","receive server response failed");
+        return;
     }
     if(recvPacket["code"]!=200){
         QMessageBox::warning(this,"warning","add question unsuccessful from the server");
@@ -167,14 +218,20 @@ void MainWindow::add_question(QString subject,QString chapter,QString questionNa
 }
 
 void MainWindow::delete_subject(QString subject){
+    if(subject.length()==0){
+        QMessageBox::warning(this,"warning","no subject to be deleted!");
+        return;
+    }
     json sendPacket=json::parse(fmt::format("{{\"command\":\"delete subject\",\"subject name\":\"{}\"}}",
                                             subject.toStdString()));
     if(client->sendToServer(sendPacket)==-1){
         QMessageBox::warning(this,"warning","send delete subject command failed");
+        return;
     }
     json recvPacket;
     if(client->receive(recvPacket)==-1){
         QMessageBox::warning(this,"warning","receive server response failed");
+        return;
     }
     if(recvPacket["code"]!=200){
         QMessageBox::warning(this,"warning","delete subject unsuccessful from the server");
@@ -188,14 +245,26 @@ void MainWindow::delete_subject(QString subject){
 }
 
 void MainWindow::delete_chapter(QString subject,QString chapter){
+    if(subject.length()==0){
+        QMessageBox::warning(this,"warning","no subject to be deleted!");
+        ui->chapterDeleteButton->setEnabled(false);
+        return;
+    }
+    if(chapter.length()==0){
+        QMessageBox::warning(this,"warning","no chapter to be deleted!");
+        ui->chapterDeleteButton->setEnabled(false);
+        return;
+    }
     json sendPacket=json::parse(fmt::format("{{\"command\":\"delete chapter\",\"subject name\":\"{}\",\"chapter name\":\"{}\"}}",
                                             subject.toStdString(),chapter.toStdString()));
     if(client->sendToServer(sendPacket)==-1){
         QMessageBox::warning(this,"warning","send get users command failed");
+        return;
     }
     json recvPacket;
     if(client->receive(recvPacket)==-1){
         QMessageBox::warning(this,"warning","receive user list failed");
+        return;
     }
     if(recvPacket["code"]!=200){
         QMessageBox::warning(this,"warning","delete chapter unsuccessful from the server");
@@ -207,14 +276,31 @@ void MainWindow::delete_chapter(QString subject,QString chapter){
 }
 
 void MainWindow::delete_question(QString subject,QString chapter,QString questionName){
+    if(subject.length()==0){
+        QMessageBox::warning(this,"warning","no subject to be deleted!");
+        ui->questionDeleteButton->setEnabled(false);
+        return;
+    }
+    if(chapter.length()==0){
+        QMessageBox::warning(this,"warning","no chapter to be deleted!");
+        ui->questionDeleteButton->setEnabled(false);
+        return;
+    }
+    if(questionName.length()==0){
+        QMessageBox::warning(this,"warning","no question name to be deleted!");
+        ui->questionDeleteButton->setEnabled(false);
+        return;
+    }
     json sendPacket=json::parse(fmt::format("{{\"command\":\"delete question\",\"subject name\":\"{}\",\"chapter name\":\"{}\",\"question name\":\"{}\"}}",
                                             subject.toStdString(),chapter.toStdString(),questionName.toStdString()));
     if(client->sendToServer(sendPacket)==-1){
         QMessageBox::warning(this,"warning","send get users command failed");
+        return;
     }
     json recvPacket;
     if(client->receive(recvPacket)==-1){
         QMessageBox::warning(this,"warning","receive user list failed");
+        return;
     }
     if(recvPacket["code"]!=200){
         QMessageBox::warning(this,"warning","delete question unsuccessful from the server");
@@ -223,6 +309,18 @@ void MainWindow::delete_question(QString subject,QString chapter,QString questio
 }
 
 void MainWindow::read_question(QString subject,QString chapter,QString questionName){
+    if(subject.length()==0){
+        QMessageBox::warning(this,"warning","please select a subject to read");
+        return;
+    }
+    if(chapter.length()==0){
+        QMessageBox::warning(this,"warning","please select a chapter to read");
+        return;
+    }
+    if(questionName.length()==0){
+        QMessageBox::warning(this,"warning","please select a question name to read");
+        return;
+    }
     json sendPacket=json::parse(fmt::format("{{\"command\":\"read question\",\"subject name\":\"{}\",\"chapter name\":\"{}\",\"question name\":\"{}\"}}",
                                             subject.toStdString(),chapter.toStdString(),questionName.toStdString()));
     if(client->sendToServer(sendPacket)==-1){
@@ -238,14 +336,26 @@ void MainWindow::read_question(QString subject,QString chapter,QString questionN
         QMessageBox::warning(this,"warning","read question unsuccessful from the server");
         return;
     }
-    this->tempQuestionName=questionName;
-    this->tempQuestionText=QString::fromUtf8(std::string(recvPacket["question text"]).c_str());
+    ui->textEdit->setText(QString::fromUtf8(std::string(recvPacket["question text"]).c_str()));
 }
 
 void MainWindow::write_question(QString subject,QString chapter,QString questionName,QString questionText){
+    if(subject.length()==0){
+        QMessageBox::warning(this,"warning","please select a subject to write");
+        return;
+    }
+    if(chapter.length()==0){
+        QMessageBox::warning(this,"warning","please select a chapter to write");
+        return;
+    }
+    if(questionName.length()==0){
+        QMessageBox::warning(this,"warning","please select a question name to write");
+        return;
+    }
+    auto afterEscape = escapeJsonString(questionText.toStdString());
     json sendPacket=json::parse(fmt::format("{{\"command\":\"write question\",\"subject name\":\"{}\",\"chapter name\":\"{}\","
                                             "\"question name\":\"{}\",\"question text\":\"{}\"}}",
-                                            subject.toStdString(),chapter.toStdString(),questionName.toStdString(),questionText.toStdString()));
+                                            subject.toStdString(),chapter.toStdString(),questionName.toStdString(),afterEscape));
     if(client->sendToServer(sendPacket)==-1){
         QMessageBox::warning(this,"warning","send write question command failed");
         return;
@@ -336,8 +446,7 @@ void MainWindow::on_questionCreateButton_clicked()
 
 void MainWindow::on_subjectListWidget_itemDoubleClicked(QListWidgetItem *item)
 {
-    this->tempSubject=item->text().trimmed();
-    get_chapters(this->tempSubject);
+    get_chapters(item->text().trimmed());
 
     ui->chapterCreateButton->setEnabled(true);
     ui->chapterDeleteButton->setEnabled(false);
@@ -347,8 +456,7 @@ void MainWindow::on_subjectListWidget_itemDoubleClicked(QListWidgetItem *item)
 
 void MainWindow::on_chapterListWidget_itemDoubleClicked(QListWidgetItem *item)
 {
-    this->tempChapter=item->text().trimmed();
-    get_questions(this->tempSubject,this->tempChapter);
+    get_questions(ui->subjectListWidget->currentItem()->text(),item->text().trimmed());
     ui->questionCreateButton->setEnabled(true);
     ui->questionDeleteButton->setEnabled(false);
     ui->addPaperButton->setEnabled(false);
@@ -357,10 +465,7 @@ void MainWindow::on_chapterListWidget_itemDoubleClicked(QListWidgetItem *item)
 void MainWindow::on_questionListWidget_itemDoubleClicked(QListWidgetItem *item)
 {
     ui->storeButton->setEnabled(true);
-    this->tempQuestionName=item->text().trimmed();
-    read_question(this->tempSubject,this->tempChapter,this->tempQuestionName);
-    ui->textEdit->setText(this->tempQuestionText);
-
+    read_question(ui->subjectListWidget->currentItem()->text(),ui->chapterListWidget->currentItem()->text(),item->text().trimmed());
 }
 
 void MainWindow::on_exitButton_clicked()

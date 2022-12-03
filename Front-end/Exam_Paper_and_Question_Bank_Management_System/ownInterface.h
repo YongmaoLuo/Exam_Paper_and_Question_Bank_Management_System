@@ -14,6 +14,25 @@
 #include "fmt/format.h"
 using json=nlohmann::json;
 
+inline std::string escapeJsonString(std::string input){
+    for(int i=0;;i++){
+        if(i>=input.length())
+            break;
+        if(input[i]=='\n'){
+            input.erase(i,1);
+            input.insert(i,"\\n");
+            i++;
+        }else if(input[i]=='\\'){
+            input.insert(i,"\\");
+            i++;
+        }else if(input[i]=='\"'){
+            input.insert(i,"\\");
+            i++;
+        }
+    }
+    return input;
+}
+
 class Login{// login panel
 protected:
     virtual void submit_login(QString userName,QString password)=0;// submit login request

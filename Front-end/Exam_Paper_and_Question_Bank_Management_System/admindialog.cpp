@@ -49,6 +49,11 @@ void AdminDialog::read_users(){
 }
 
 void AdminDialog::delete_user(QString userName){
+    if(userName.length()==0){
+        QMessageBox::warning(this,"warning","please choose a user to delete");
+        ui->deleteButton->setEnabled(false);
+        return;
+    }
     json sendPacket=json::parse(fmt::format("{{\"command\":\"delete user\",\"username\":\"{}\"}}",userName.toStdString()));
     if(client->sendToServer(sendPacket)==-1){
         QMessageBox::warning(this,"warning","fail to send to the server");

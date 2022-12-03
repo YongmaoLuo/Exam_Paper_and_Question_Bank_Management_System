@@ -6,22 +6,6 @@
 #include <QMessageBox>
 #include <QInputDialog>
 
-std::string escapeJsonString(std::string input){
-    for(int i=0;;i++){
-        if(i>=input.length())
-            break;
-        if(input[i]=='\n'){
-            input.erase(i,1);
-            input.insert(i,"\\n");
-            i++;
-        }else if(input[i]=='\\'){
-            input.insert(i,"\\");
-            i++;
-    }
-    }
-    return input;
-}
-
 RuleMakerDialog::RuleMakerDialog(QWidget *parent, std::unique_ptr<TCPClientSocket> client) :
     QDialog(parent),ui(new Ui::RuleMakerDialog)
 {
@@ -30,8 +14,6 @@ RuleMakerDialog::RuleMakerDialog(QWidget *parent, std::unique_ptr<TCPClientSocke
     ui->deleteButton->setEnabled(false);
     ui->submitButton->setEnabled(false);
     ui->createButton->setEnabled(false);
-    this->tempBulletinName="";
-    this->tempBulletinText="";
 }
 
 RuleMakerDialog::~RuleMakerDialog(){
@@ -52,18 +34,10 @@ void RuleMakerDialog::open_rulemaker_panel(){
 
 void RuleMakerDialog::on_bulletinListWidget_itemDoubleClicked(QListWidgetItem *item)
 {
-    //this->tempBulletinText=ui->bulletinTextEdit->toPlainText().trimmed();
     std::cout<<"double click bulletin list"<<std::endl;
-    if(this->tempBulletinName!=""&&item->text().compare(this->tempBulletinName)!=0){
-        replace_current_bulletin_file(item->text());
-    }
-    if(this->tempBulletinName=="")
-        this->tempBulletinName=item->text();
-    std::cout<<"replace temp bulletin name successfully"<<std::endl;
-    read_bulletin(this->tempBulletinName);
-    ui->bulletinTextEdit->setText(this->tempBulletinText);
+    read_bulletin(item->text());
     ui->submitButton->setEnabled(true);
-    ui->bulletinListWidget->setCurrentItem(item);
+    //ui->bulletinListWidget->setCurrentItem(item);
 }
 
 void RuleMakerDialog::on_deleteButton_clicked()
@@ -84,7 +58,7 @@ void RuleMakerDialog::on_createButton_clicked()
 }
 
 void RuleMakerDialog::on_submitButton_clicked(){
-    write_bulletin(this->tempBulletinName,ui->bulletinTextEdit->toPlainText().trimmed());
+    write_bulletin(ui->bulletinListWidget->currentItem()->text(),ui->bulletinTextEdit->toPlainText().trimmed());
     ui->submitButton->setEnabled(false);
     ui->bulletinTextEdit->setText("");
 }
@@ -104,13 +78,20 @@ void RuleMakerDialog::on_exitButton_clicked(){
 }
 
 void RuleMakerDialog::delete_bulletin(QString bulletinName){
+    if(bulletinName.length()==0){
+        QMessageBox::warning(this,"warning","please select a bulletin to delete");
+        ui->deleteButton->setEnabled(false);
+        return;
+    }
     json sendPacket=json::parse(fmt::format("{{\"command\":\"delete bulletin\",\"bulletin name\":\"{}\"}}",bulletinName.toStdString()));
     if(client->sendToServer(sendPacket)==-1){
         QMessageBox::warning(this,"warning","send get users command failed");
+        return;
     }
     json recvPacket;
     if(client->receive(recvPacket)==-1){
         QMessageBox::warning(this,"warning","receive user list failed");
+        return;
     }
     if(recvPacket["code"]!=200){
         QMessageBox::warning(this,"warning","delete unsuccessful from the server");
@@ -119,6 +100,10 @@ void RuleMakerDialog::delete_bulletin(QString bulletinName){
 }
 
 void RuleMakerDialog::read_bulletin(QString bulletinName){
+    if(bulletinName.length()==0){
+        QMessageBox::warning(this,"warning","bulletinName is empty!!");
+        return;
+    }
     std::cout<<"begin reading bulletin..."<<std::endl;
     json sendPacket=json::parse(fmt::format("{{\"command\":\"read bulletin\",\"bulletin name\":\"{}\"}}",bulletinName.toStdString()));
     if(client->sendToServer(sendPacket)==-1){
@@ -138,11 +123,14 @@ void RuleMakerDialog::read_bulletin(QString bulletinName){
         get_teachers();
         return;
     }
-    this->tempBulletinName=bulletinName;
-    this->tempBulletinText=QString::fromUtf8(std::string(recvPacket["bulletin text"]).c_str());
+    ui->bulletinTextEdit->setText(QString::fromUtf8(std::string(recvPacket["bulletin text"]).c_str()));
 }
 
 void RuleMakerDialog::write_bulletin(QString bulletinName,QString bulletinText){
+    if(bulletinName.length()==0){
+        QMessageBox::warning(this,"warning","please select a bulletin to update");
+        return;
+    }
     std::cout<<"begin writing bulletin..."<<std::endl;
     std::string afterEscape=escapeJsonString(bulletinText.toStdString());
     std::cout<<"escape successfully"<<std::endl;
@@ -170,6 +158,7 @@ void RuleMakerDialog::write_bulletin(QString bulletinName,QString bulletinText){
 
 void RuleMakerDialog::get_bulletins(){
     ui->bulletinListWidget->clear();
+    ui->bulletinTextEdit->clear();
     // read bulletins from the back-end and store the names in list
     json sendPacket=R"({"command":"get bulletins"})"_json;
     if(client->sendToServer(sendPacket)==-1){
@@ -231,18 +220,11 @@ void RuleMakerDialog::get_teachers(){
 }
 
 void RuleMakerDialog::create_bulletin(QString teacherName,QString timeStamp){
-    this->tempBulletinName=teacherName+"+"+timeStamp;
-    this->tempBulletinText=NULL;
-    ui->bulletinListWidget->addItem(this->tempBulletinName);
-    ui->bulletinListWidget->setCurrentItem(ui->bulletinListWidget->findItems(this->tempBulletinName,Qt::MatchExactly)[0]);
-    ui->bulletinTextEdit->setFocus();
-}
-
-void RuleMakerDialog::replace_current_bulletin_file(QString bulletinName){
-    if(ui->bulletinTextEdit->toPlainText().trimmed().compare("")!=0){
-        this->tempBulletinText=ui->bulletinTextEdit->toPlainText().trimmed();
-        this->write_bulletin(this->tempBulletinName,this->tempBulletinText);
+    if(teacherName.length()==0){
+        QMessageBox::warning(this,"warning","please select a teacher before create bulletin");
+        ui->createButton->setEnabled(false);
+        return;
     }
-    ui->submitButton->setEnabled(false);
-    this->tempBulletinName=bulletinName;
+    write_bulletin(teacherName+"+"+timeStamp,"");
+    get_bulletins();
 }

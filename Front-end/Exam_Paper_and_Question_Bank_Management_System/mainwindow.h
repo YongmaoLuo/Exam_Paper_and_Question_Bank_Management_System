@@ -57,7 +57,6 @@ private:
     std::unique_ptr<TCPClientSocket> client;
     RuleMakerDialog *rulemakerPanel=nullptr;
     PaperProductionDialog *paperPanel=nullptr;
-    QString tempSubject,tempChapter,tempQuestionName,tempQuestionText;
     bool canMakePaper=false;
     void get_subjects() override;
     void get_chapters(QString subject) override;

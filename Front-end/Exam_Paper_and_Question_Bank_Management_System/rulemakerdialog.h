@@ -37,14 +37,12 @@ public slots:
 private:
     Ui::RuleMakerDialog *ui;
     std::unique_ptr<TCPClientSocket> client;
-    QString tempBulletinName,tempBulletinText,tempTeacherName;
     void delete_bulletin(QString bulletinName) override;// delete selected bulletin
     void read_bulletin(QString bulletinName) override;// load the bulletin into text editor
     void write_bulletin(QString bulletinName,QString bulletinText) override;// submit modification of the bulletin
     void get_bulletins() override;// read all the bulletin
     void create_bulletin(QString teacherName, QString timeStamp) override;
     void get_teachers() override;
-    void replace_current_bulletin_file(QString bulletinName);
 };
 
 #endif // RULEMAKERDIALOG_H
