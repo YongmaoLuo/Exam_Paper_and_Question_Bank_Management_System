@@ -70,6 +70,7 @@ private:
     void delete_question(QString subject,QString chapter,QString timeStamp) override;
     void read_question(QString subject,QString chapter,QString timeStamp) override;
     void write_question(QString subject,QString chapter,QString timeStamp,QString questionText) override;
+
 public:
     void open_question_management_panel() override;
 };

@@ -18,8 +18,6 @@ MainWindow::MainWindow(QWidget *parent, std::unique_ptr<TCPClientSocket> client)
     ui->questionDeleteButton->setEnabled(false);
     ui->addPaperButton->setEnabled(false);
     ui->storeButton->setEnabled(false);
-    get_subjects();
-
 }
 
 MainWindow::~MainWindow() { delete ui; }
@@ -222,7 +220,6 @@ void MainWindow::delete_question(QString subject,QString chapter,QString questio
         QMessageBox::warning(this,"warning","delete question unsuccessful from the server");
         return;
     }
-    get_questions(subject,chapter);
 }
 
 void MainWindow::read_question(QString subject,QString chapter,QString questionName){
@@ -230,10 +227,12 @@ void MainWindow::read_question(QString subject,QString chapter,QString questionN
                                             subject.toStdString(),chapter.toStdString(),questionName.toStdString()));
     if(client->sendToServer(sendPacket)==-1){
         QMessageBox::warning(this,"warning","send get users command failed");
+        return;
     }
     json recvPacket;
     if(client->receive(recvPacket)==-1){
         QMessageBox::warning(this,"warning","receive server response failed");
+        return;
     }
     if(recvPacket["code"]!=200){
         QMessageBox::warning(this,"warning","read question unsuccessful from the server");
@@ -241,24 +240,27 @@ void MainWindow::read_question(QString subject,QString chapter,QString questionN
     }
     this->tempQuestionName=questionName;
     this->tempQuestionText=QString::fromUtf8(std::string(recvPacket["question text"]).c_str());
-    ui->textEdit->setText(this->tempQuestionText);
 }
+
 void MainWindow::write_question(QString subject,QString chapter,QString questionName,QString questionText){
-    json sendPacket=json::parse(fmt::format("{{\"command\":\"submit question\",\"subject name\":\"{}\",\"chapter name\":\"{}\","
+    json sendPacket=json::parse(fmt::format("{{\"command\":\"write question\",\"subject name\":\"{}\",\"chapter name\":\"{}\","
                                             "\"question name\":\"{}\",\"question text\":\"{}\"}}",
                                             subject.toStdString(),chapter.toStdString(),questionName.toStdString(),questionText.toStdString()));
     if(client->sendToServer(sendPacket)==-1){
         QMessageBox::warning(this,"warning","send write question command failed");
+        return;
     }
     json recvPacket;
     if(client->receive(recvPacket)==-1){
         QMessageBox::warning(this,"warning","receive server response failed");
+        return;
     }
     if(recvPacket["code"]!=200){
         QMessageBox::warning(this,"warning","write question unsuccessful from the server");
         return;
     }
 }
+
 void MainWindow::close_question_management_panel(){
     this->deleteLater();
     parentWidget()->show();
@@ -266,6 +268,7 @@ void MainWindow::close_question_management_panel(){
 
 void MainWindow::open_question_management_panel(){
     this->setWindowTitle("question management window");
+    get_subjects();
     this->show();
 }
 
@@ -320,6 +323,7 @@ void MainWindow::on_questionDeleteButton_clicked()
     QString chapter=ui->chapterListWidget->currentItem()->text().trimmed();
     QString timeStamp=ui->questionListWidget->currentItem()->text().trimmed();
     delete_question(subject,chapter,timeStamp);
+    get_questions(subject,chapter);
 }
 
 void MainWindow::on_questionCreateButton_clicked()
@@ -355,6 +359,8 @@ void MainWindow::on_questionListWidget_itemDoubleClicked(QListWidgetItem *item)
     ui->storeButton->setEnabled(true);
     this->tempQuestionName=item->text().trimmed();
     read_question(this->tempSubject,this->tempChapter,this->tempQuestionName);
+    ui->textEdit->setText(this->tempQuestionText);
+
 }
 
 void MainWindow::on_exitButton_clicked()

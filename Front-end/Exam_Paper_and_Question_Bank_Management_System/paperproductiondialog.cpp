@@ -22,29 +22,39 @@ void PaperProductionDialog::delete_question(QString questionName){
 
 void PaperProductionDialog::output_paper(QDir paperDir,QStringList questionsList){
     if(questionsList.isEmpty()){
-        QMessageBox::information(this,"提示","试卷列表为空！请添加题目后输出。");
+        QMessageBox::information(this,"remind","the question list is empty, please add questions to it");
         return;
     }
+    json sendPacket=json::parse(fmt::format("{{\"command\":\"produce paper\",\"count\":\"{}\"}}",questionsList.count()));
+//    if(client->sendToServer(sendPacket)==-1){
+//        QMessageBox::warning(this,"warning","send write question command failed");
+//        return;
+//    }
+//    json recvPacket;
+//    if(client->receive(recvPacket)==-1){
+//        QMessageBox::warning(this,"warning","receive server response failed");
+//        return;
+//    }
     QString outputPaper;
     for(int i=0;i<questionsList.count();i++){
         QStringList threeElements=questionsList.at(i).split(".");
         QString subject=threeElements.at(0);
         QString chapter=threeElements.at(1);
         QString timeStamp=threeElements.at(2);
-        QFile questionFile("./Question/"+subject.trimmed()+"/"+chapter.trimmed()+"/"+timeStamp.trimmed());
-        questionFile.open(QIODevice::ReadOnly);
-        QTextStream questionRead(&questionFile);
-        QString questionText=questionRead.readAll();
-        questionFile.close();
-        questionText=QString::number(i+1)+"."+questionText+"\n";
-        outputPaper.append(questionText);
+        //QFile questionFile("./Question/"+subject.trimmed()+"/"+chapter.trimmed()+"/"+timeStamp.trimmed());
+        //questionFile.open(QIODevice::ReadOnly);
+        //QTextStream questionRead(&questionFile);
+        //QString questionText=questionRead.readAll();
+        //questionFile.close();
+        //questionText=QString::number(i+1)+"."+questionText+"\n";
+        //outputPaper.append(questionText);
     }
     QFile output(paperDir.path().trimmed()+"/paper.txt");
     output.open(QIODevice::WriteOnly);
     QTextStream write(&output);
     write<<outputPaper;
     output.close();
-    QMessageBox::information(this,"提示","输出试卷成功，请前往相应目录查看试卷");
+    QMessageBox::information(this,"reminder","output paper successfully, please go to the desktop to find the paper file");
 }
 
 void PaperProductionDialog::read_questions(QStringList questionsList){
@@ -60,7 +70,7 @@ void PaperProductionDialog::add_question(QString subject,QString chapter,QString
 }
 
 void PaperProductionDialog::open_paper_production_panel(){
-    this->setWindowTitle("试卷制作界面");
+    this->setWindowTitle("paper generation window");
     this->show();
 }
 
