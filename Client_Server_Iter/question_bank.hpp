@@ -13,6 +13,7 @@ struct QuestionInfo{
             string chapter;
             T category;
             int rubric;
+            QuestionInfo<T>(string path_, string content_, string chapter_, T category_): path(path_), content(content_), chapter(chapter_), category(category_), rubric(0) {};
             QuestionInfo<T>(string path_, string content_, string chapter_, T category_, int rubric_): path(path_), content(content_), chapter(chapter_), category(category_), rubric(rubric_) {};
         };
 
@@ -45,9 +46,9 @@ class question_bank: public database{
                 string constraint_val_str;
                 if constexpr(std::is_same_v<T_input, int> || std::is_same_v<T_input, double> || std::is_same_v<T_input, float>) constraint_val_str = to_string(constraint_val);
                 else constraint_val_str = constraint_val;
-                sql = fmt::format("SELECT {} FROM QUESTIONS " \
+                sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS " \
                      "WHERE {} = '{}'; ", target_attribute, constraint_key, constraint_val_str);
-            } else sql = fmt::format("SELECT {} FROM QUESTIONS ;", target_attribute);
+            } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS ;", target_attribute);
             
             sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
             sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
@@ -79,7 +80,7 @@ class question_bank: public database{
         template<hashable T = string, hashable T_input = string>
         vector<T> getQuestionAttributes(vector<pair<string, T_input>> constraints, string target_attribute){
             if(!constraints.empty()){
-                sql = fmt::format("SELECT {} FROM QUESTIONS WHERE ", target_attribute);
+                sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS WHERE ", target_attribute);
                 int cnt = 0;
                 for(auto constraint=constraints.begin(); constraint != constraints.end(); constraint++){
                     string constraint_key = constraint->first;
@@ -94,7 +95,7 @@ class question_bank: public database{
                 }
                 
                 sql += ";";
-            } else sql = fmt::format("SELECT {} FROM QUESTIONS ;", target_attribute);
+            } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS ;", target_attribute);
             
             sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
             sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
@@ -126,8 +127,9 @@ class question_bank: public database{
         string getQuestion(optional<pair<string, variant<string, int, double>>> constraint, string primary_val);
         int count();
         int countDistinct(string target_attribute, optional<pair<string, variant<string, int, double>>> count_info);
+        int countDistinct(string target_attribute, vector<pair<string, string>> count_info);
         vector<string> getQuestionPaths();
-        int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info);
+        int delet(vector<pair<string, string>>);
         void clean();
 };
 #endif

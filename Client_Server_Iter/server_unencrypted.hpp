@@ -119,14 +119,14 @@ private:
     vector<string> deleteUser(Connector&, string username);
     vector<string> deleteUserSelf(Connector&, auto password);
     vector<string> getUser(Connector& connect_fd);
-    vector<string> getTeachers(Connector&);
+    vector<string> getTeachers();
 
-    vector<string> getSubjects(Connector&);
-    vector<string> getChapters(Connector&, string subject);
-    vector<string> getQuestions(Connector&, string, string);
-    vector<string> getQuestions(Connector&, string, string, string);
-    vector<string> writeQuestions(Connector&, string, string, string, string);
-    vector<string> deleteQuestions(Connector&, string, string, string);
+    vector<string> getSubjects();
+    vector<string> getChapters(string subject);
+    vector<string> getQuestions(string, string);
+    vector<string> getQuestions(string, string, string);
+    vector<string> writeQuestion(string, string, string, auto);
+    vector<string> deleteQuestion(string, string, string);
     //void *getInetAddr(struct sockaddr *saddr);
 };
 
