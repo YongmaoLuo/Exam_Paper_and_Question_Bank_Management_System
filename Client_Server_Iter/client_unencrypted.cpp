@@ -185,12 +185,12 @@ void Client::loop(){
     string status = "\"valid\"";
     struct UserInfo user = {username, password, identity, status};
 
-    string login_msg = fmt::format("{{\"command\": \"register user\",\"username\": {},\"password\": {}, \"identity\": {}}}", 
+    string msg = fmt::format("{{\"command\": \"register user\",\"username\": {},\"password\": {}, \"identity\": {}}}", 
     user.username, user.password, user.identity);
-    cout<<"register msg: "<<login_msg<<endl;
-    // login_msg[strlen(login_msg)] = '\0';
+    cout<<"register msg: "<<msg<<endl;
+    // msg[strlen(msg)] = '\0';
 
-    num_bytes = sendMessage(connect_fd, login_msg.c_str());
+    num_bytes = sendMessage(connect_fd, msg.c_str());
     if (num_bytes < 0) 
          error("ERROR writing to socket");
     cout<<"Sent a register command!"<<endl;
@@ -207,15 +207,15 @@ void Client::loop(){
     cout<<"Response code: "<<response_code<<"\t"<<"Identity: "<<response_identity<<endl;
 
 
-    login_msg = fmt::format("{{\"command\": \"login\",\"username\": {},\"password\": {}, \"identity\": {}}}", 
+    msg = fmt::format("{{\"command\": \"login\",\"username\": {},\"password\": {}, \"identity\": {}}}", 
     user.username, user.password, user.identity);
-    cout<<"login msg: "<<login_msg<<endl;
-    // login_msg[strlen(login_msg)] = '\0';
+    cout<<"login msg: "<<msg<<endl;
+    // msg[strlen(msg)] = '\0';
 
-    num_bytes = sendMessage(connect_fd, login_msg.c_str());
+    num_bytes = sendMessage(connect_fd, msg.c_str());
     if (num_bytes < 0) 
          error("ERROR writing to socket");
-    cout<<"Sent a register command!"<<endl;
+    cout<<"Sent a login command!"<<endl;
     
     bzero(buffer, 256);
     num_bytes = recvMessage(connect_fd, buffer);
@@ -227,18 +227,45 @@ void Client::loop(){
     response_code = response["code"];
     response_identity = response["identity"];
     cout<<"Response code: "<<response_code<<"\t"<<"Identity: "<<response_identity<<endl;
+    ///////////////////////////////////////
 
 
+    // msg = fmt::format("{{\"command\": \"delete user\",\"username\": {},\"password\": {}, \"identity\": {}}}", 
+    // user.username, user.password, user.identity);
+    // cout<<"delete msg: "<<msg<<endl;
+    // // msg[strlen(msg)] = '\0';
 
-    login_msg = fmt::format("{{\"command\": \"delete user\",\"username\": {},\"password\": {}, \"identity\": {}}}", 
-    user.username, user.password, user.identity);
-    cout<<"delete msg: "<<login_msg<<endl;
-    // login_msg[strlen(login_msg)] = '\0';
+    // num_bytes = sendMessage(connect_fd, msg.c_str());
+    // if (num_bytes < 0) 
+    //      error("ERROR writing to socket");
+    // cout<<"Sent a delete command!"<<endl;
+    
+    // bzero(buffer, 256);
+    // num_bytes = recvMessage(connect_fd, buffer);
+    // // num_bytes = recvMessageSSL(ssl, buffer);
+    // buffer[num_bytes] = '\0';
+    // cout<<"buffer: "<<buffer<<endl;
 
-    num_bytes = sendMessage(connect_fd, login_msg.c_str());
+    // response = json::parse(buffer);
+    // response_code = response["code"];
+    // response_identity = response["identity"];
+    // cout<<"Response code: "<<response_code<<"\t"<<"Identity: "<<response_identity<<endl;
+    ///////////////////////////////////////////
+
+    string subject_name = "\"math\"";
+    string chapter_name = "\"calculas\"";
+    string question_name = "\"2022-12-03\"";
+    string question_text = "\"Is one an integer?\n\"";
+    question_text = escapeJsonString(question_text);
+    msg = fmt::format("{{\"command\": \"write question\",\"question text\": {},\"subject name\": {}, \"chapter name\": {}, \"question name\": {} }}", 
+    question_text, subject_name, chapter_name, question_name);
+    cout<<"write question msg: "<<msg<<endl;
+    // msg[strlen(msg)] = '\0';
+
+    num_bytes = sendMessage(connect_fd, msg.c_str());
     if (num_bytes < 0) 
          error("ERROR writing to socket");
-    cout<<"Sent a register command!"<<endl;
+    cout<<"Sent a write question command!"<<endl;
     
     bzero(buffer, 256);
     num_bytes = recvMessage(connect_fd, buffer);
@@ -248,8 +275,29 @@ void Client::loop(){
 
     response = json::parse(buffer);
     response_code = response["code"];
-    response_identity = response["identity"];
-    cout<<"Response code: "<<response_code<<"\t"<<"Identity: "<<response_identity<<endl;
+    cout<<"Response code: "<<response_code<<endl;
+    ///////////////////////////
+
+    msg = fmt::format("{{\"command\": \"read question\",\"subject name\": {}, \"chapter name\": {}, \"question name\": {} }}", 
+    subject_name, chapter_name, question_name);
+    cout<<"read question msg: "<<msg<<endl;
+    // msg[strlen(msg)] = '\0';
+
+    num_bytes = sendMessage(connect_fd, msg.c_str());
+    if (num_bytes < 0) 
+         error("ERROR writing to socket");
+    cout<<"Sent a read question command!"<<endl;
+    
+    bzero(buffer, 256);
+    num_bytes = recvMessage(connect_fd, buffer);
+    // num_bytes = recvMessageSSL(ssl, buffer);
+    buffer[num_bytes] = '\0';
+    cout<<"buffer: "<<buffer<<endl;
+
+    response = json::parse(buffer);
+    response_code = response["code"];
+    string question_content = response["question text"];
+    cout<<"Response code: "<<response_code<<"\t"<<"Question text: "<<question_content<<endl;
     
 }
 int main(int argc, char *argv[])

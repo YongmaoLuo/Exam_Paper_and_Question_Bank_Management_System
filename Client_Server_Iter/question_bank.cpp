@@ -86,8 +86,11 @@ int question_bank::update(vector<pair<string, string>> primary_pairs, vector<pai
          continue;
       }
       keys.insert(key);
+
+      transform(key.begin(), key.end(), key.begin(), ::toupper);
       
-      std::vector<string> primary_keys{"PATH", "CHAPTER", "SUBJECT", "path", "chapter", "subject"};
+      // std::array<string, 3> primary_keys({"PATH", "CHAPTER", "SUBJECT"});
+      auto primary_keys = std::to_array<string>({"PATH", "CHAPTER", "SUBJECT"});
       if(std::find(primary_keys.begin(), primary_keys.end(), key) != primary_keys.end()) return -1;
       
       sql = fmt::format("UPDATE QUESTIONS set {} = '{}' where ", key, custom_to_string(value));
@@ -164,7 +167,10 @@ string question_bank::getQuestionAttribute(optional<pair<string, variant<string,
    }
    else {
       sql = fmt::format("SELECT {} FROM QUESTIONS WHERE ", target_attribute);
-      for(int i=0; i<primary_pairs.size(); i++)  sql += fmt::format("{} = '{}' ", primary_pairs[i].first, primary_pairs[i].second);
+      for(int i=0; i<primary_pairs.size(); i++) {
+         if(i<primary_pairs.size()-1) sql += fmt::format("{} = '{}' AND ", primary_pairs[i].first, primary_pairs[i].second);
+         else sql += fmt::format("{} = '{}' ", primary_pairs[i].first, primary_pairs[i].second);
+      }
    }
    sql += "LIMIT 1; ";
    cout<<sql<<endl;
