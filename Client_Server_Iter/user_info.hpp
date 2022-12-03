@@ -1,44 +1,53 @@
-#ifndef QUESTION_BANK_HPP
-#define QUESTION_BANK_HPP
+#ifndef DB_HPP
+#define DB_HPP
 #include "database.hpp"
 using namespace std;
 
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
-template <hashable T>
-struct QuestionInfo{
-            string path;
-            string content;
-            string chapter;
-            T category;
-            int rubric;
-            QuestionInfo<T>(string path_, string content_, string chapter_, T category_): path(path_), content(content_), chapter(chapter_), category(category_), rubric(0) {};
-            QuestionInfo<T>(string path_, string content_, string chapter_, T category_, int rubric_): path(path_), content(content_), chapter(chapter_), category(category_), rubric(rubric_) {};
+template<hashable T>
+struct UserInfo{
+            string username;
+            string password;
+            T identity;
+            T status;
+            int activity = 0; // no boolean inside sqlite
+            UserInfo<T>(string username_, string password_, T identity_, T status_): username(username_), password(password_), identity(identity_), status(status_), activity(0) {};
+            UserInfo<T>(string username_, string password_, T identity_, T status_, int activity_): username(username_), password(password_), identity(identity_), status(status_), activity(activity_) {};
+            UserInfo<T> operator=(UserInfo<T> newuser){
+                username = newuser.username;
+                password = newuser.password;
+                identity = newuser.identity;
+                status = newuser.status;
+                activity = newuser.activity;
+                return *this;
+            }
         };
 
-class question_bank: public database{
+class db_user: public database{
     private:
         sqlite3 *db;
         sqlite3_stmt *stmt;
         char *zErrMsg;
         int rc;
         string sql;
+        string checkType(string target_attribute);
         
     public:
-        question_bank();
-        question_bank(const question_bank& database);
-        virtual ~question_bank(); //drop the table?
+        db_user();
+        db_user(const db_user& database);
+        virtual ~db_user(); //drop the table?
 
-        void create(bool = false, const char* = "questions.db");
-        int insert(QuestionInfo<string>*);
-        int update(vector<pair<string, string>>, vector<pair<string, variant<string, int, double>>> changelist);
-
-        string getQuestionAttribute(optional<pair<string, variant<string, int, double>>> constraint, vector<pair<string, string>> primary_pairs, string target_attribute);
-
-        // vector<string> getQuestionAttributes(string target_attributes, string constraint_key, string constraint_val);
+        void create(bool = false, const char* = "userinfo.db");
+        int insert(UserInfo<string>* user);
+        int update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
+        
+        string getUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute);
+        
+        // vector<string> getUserAttributes(string target_attributes, string constraint_key, string constraint_val);
         template<hashable T = string, hashable T_input = string>
-        vector<T> getQuestionAttributes(optional<pair<string, T_input>> constraint, string target_attribute){
+        vector<T> getUserAttributes(optional<pair<string, T_input>> constraint, string target_attribute){
             if(constraint){
                 string constraint_key = constraint->first;
                 // auto constraint_val = constraint->second;
@@ -46,9 +55,9 @@ class question_bank: public database{
                 string constraint_val_str;
                 if constexpr(std::is_same_v<T_input, int> || std::is_same_v<T_input, double> || std::is_same_v<T_input, float>) constraint_val_str = to_string(constraint_val);
                 else constraint_val_str = constraint_val;
-                sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS " \
+                sql = fmt::format("SELECT {} FROM USER " \
                      "WHERE {} = '{}'; ", target_attribute, constraint_key, constraint_val_str);
-            } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS ;", target_attribute);
+            } else sql = fmt::format("SELECT {} FROM USER ;", target_attribute);
             
             sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
             sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
@@ -78,9 +87,9 @@ class question_bank: public database{
         }
 
         template<hashable T = string, hashable T_input = string>
-        vector<T> getQuestionAttributes(vector<pair<string, T_input>> constraints, string target_attribute){
+        vector<T> getUserAttributes(vector<pair<string, T_input>> constraints, string target_attribute){
             if(!constraints.empty()){
-                sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS WHERE ", target_attribute);
+                sql = fmt::format("SELECT {} FROM USER WHERE ", target_attribute);
                 int cnt = 0;
                 for(auto constraint=constraints.begin(); constraint != constraints.end(); constraint++){
                     string constraint_key = constraint->first;
@@ -95,7 +104,7 @@ class question_bank: public database{
                 }
                 
                 sql += ";";
-            } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS ;", target_attribute);
+            } else sql = fmt::format("SELECT {} FROM USER ;", target_attribute);
             
             sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
             sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
@@ -124,12 +133,9 @@ class question_bank: public database{
             return output;
         }
 
-        string getQuestion(optional<pair<string, variant<string, int, double>>> constraint, string primary_val);
         int count();
-        int countDistinct(string target_attribute, optional<pair<string, variant<string, int, double>>> count_info);
-        int countDistinct(string target_attribute, vector<pair<string, string>> count_info);
-        vector<string> getQuestionPaths();
-        int delet(vector<pair<string, string>>);
+        int countDistinct(string target_attribute, pair<string, variant<string, int, double>> count_info);
+        int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info);
         void clean();
 };
 #endif

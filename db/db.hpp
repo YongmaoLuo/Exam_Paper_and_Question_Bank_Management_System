@@ -44,7 +44,7 @@ class db_user{
         void create();
         int insert(vector<UserInfo> users);
         int update(auto primary_val, vector<pair<string, string>> changelist);
-        bool find(optional<vpair<string, string>> constraint, auto primary_val);
+        bool find(optional<pair<string, string>> constraint, auto primary_val);
         void delet(auto primary_val);
         void drop();
 };

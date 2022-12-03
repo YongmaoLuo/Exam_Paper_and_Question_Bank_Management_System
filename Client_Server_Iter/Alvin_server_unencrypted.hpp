@@ -12,6 +12,7 @@
 #include <netinet/in.h> //sockaddr, socklen_t
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <cassert>
 #include <iostream>
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -27,9 +28,8 @@ using namespace std;
 #define FMT_HEADER_ONLY
 #include <fmt/format.h>
 
-// #include "user_info.hpp"
+// #include "db.hpp"
 
-class db_user;
 class question_bank;
 class Server
 {
@@ -45,8 +45,7 @@ public:
     
     void shutdown();
     void init();
-    // void loop(db_user&);
-    void loop();
+    void loop(db_user&);
 
     //callback setters
     void onConnect(void (*ncc)(uint16_t fd));
@@ -79,9 +78,6 @@ private:
     char remote_ip[INET6_ADDRSTRLEN];
     //int numbytes;
 
-    std::shared_ptr<db_user> user = std::make_shared<db_user>();
-    std::shared_ptr<question_bank> question = std::make_shared<question_bank>();
-
     string message;
     map<int, string> bindIdentity;
     map<int, string> bindUsername;
@@ -99,34 +95,20 @@ private:
     void bindSocket();
     void startListen();
     void handleNewConnection();
-    // vector<string> recvInputFromExisting(Connector&, db_user&);
-    // void sendMsgToExisting(Connector&, vector<string>&);
-    // vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity, db_user&);
-    // vector<string> authenticateUser(Connector& conn, string username, auto password, db_user&);
-    // vector<string> logout(Connector&, db_user&);
-    // int logout(string, db_user&); // function overload
-    // vector<string> deleteUser(Connector&, string username, db_user&);
-    // vector<string> deleteUserSelf(Connector&, auto password, db_user&);
-    // vector<string> getUser(Connector& connect_fd, db_user&);
-    // vector<string> getTeachers(Connector&, db_user&);
-
-    vector<string> recvInputFromExisting(Connector&);
+    vector<string> recvInputFromExisting(Connector&, db_user&);
     void sendMsgToExisting(Connector&, vector<string>&);
-    vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity);
-    vector<string> authenticateUser(Connector& conn, string username, auto password);
-    vector<string> logout(Connector&);
-    int logout(string); // function overload
-    vector<string> deleteUser(Connector&, string username);
-    vector<string> deleteUserSelf(Connector&, auto password);
-    vector<string> getUser(Connector& connect_fd);
-    vector<string> getTeachers();
-
-    vector<string> getSubjects();
-    vector<string> getChapters(string subject);
-    vector<string> getQuestions(string, string);
-    vector<string> getQuestions(string, string, string);
-    vector<string> writeQuestion(string, string, string, auto);
-    vector<string> deleteQuestion(string, string, string);
+    vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity, db_user&);
+    vector<string> authenticateUser(Connector& conn, string username, auto password, db_user&);
+    vector<string> logout(Connector&, db_user&);
+    int logout(string, db_user&); // function overload
+    vector<string> deleteUser(Connector&, string username, db_user&);
+    vector<string> deleteUserSelf(Connector&, auto password, db_user&);
+    vector<string> getUser(Connector& connect_fd, db_user&);
+    vector<string> getTeachers(Connector&, db_user&);
+    vector<string> getSubjects(Connector&, question_bank&);
+    vector<string> getChapters(Connector&, question_bank&);
+    vector<string> getQuestions(Connector&, db_user&, question_bank&);
+    vector<string> readQuestions(Connector&, auto subjectname, auto chaptername, auto questionname, question_bank&);
     //void *getInetAddr(struct sockaddr *saddr);
 };
 
