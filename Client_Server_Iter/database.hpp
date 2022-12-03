@@ -12,8 +12,34 @@
 #include <cstddef>
 #include <concepts>
 #include <cctype>
+#include <cassert>
 
 using namespace std;
+
+inline string custom_to_string(variant<string, int, double> const& value) {
+    if(int const* pval = std::get_if<int>(&value))
+    return std::to_string(*pval);
+    
+    if(double const* pval = std::get_if<double>(&value))
+    return std::to_string(*pval);
+    
+    return std::get<string>(value);
+}
+
+template<typename T>
+concept hashable = requires(T a)
+{
+    { std::hash<T>{}(a) } -> std::convertible_to<std::size_t>;
+};
+
+static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
+   int i;
+   for(i = 0; i<argc; i++) {
+      printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+   }
+   printf("\n");
+   return 0;
+}
 
 class database{
     private:
@@ -21,7 +47,6 @@ class database{
         sqlite3_stmt *stmt;
     public:
         virtual void create(bool, const char*) = 0;
-        virtual int update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist) = 0;
         virtual int count() = 0;
         virtual int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info) = 0;
         virtual void clean() = 0;

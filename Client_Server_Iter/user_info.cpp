@@ -1,13 +1,4 @@
-#include "db.hpp"
-
-static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
-   int i;
-   for(i = 0; i<argc; i++) {
-      printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
-   }
-   printf("\n");
-   return 0;
-}
+#include "user_info.hpp"
 
 db_user::db_user(){
    db = 0;
@@ -62,12 +53,12 @@ void db_user::create(bool clear/*= false*/, const char* database_name/*= "userin
    }
 }
 
-int db_user::insert(UserInfo<string>& user){
-   string identity = user.identity;
-   string username = user.username;
-   string password = user.password;
-   string status = user.status;
-   int activity = user.activity;
+int db_user::insert(UserInfo<string>* user){
+   string identity = user->identity;
+   string username = user->username;
+   string password = user->password;
+   string status = user->status;
+   int activity = user->activity;
    if(status.empty()) status = "valid";
    sql = fmt::format("INSERT INTO USER (USERNAME, PASSWORD, IDENTITY, STATUS, ACTIVITY) "  \
             "VALUES ('{}', '{}', '{}', '{}', '{}'); SELECT * FROM USER", username, password, identity, status, activity);
@@ -201,33 +192,43 @@ string db_user::getUserAttribute(optional<pair<string, variant<string, int, doub
 
 
 int db_user::count(){
-   sql = "SELECT COUNT (*) from USER;"; 
+   sql = "SELECT COUNT (*) from USER LIMIT 1;"; 
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
    sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
    int num_cols;
-   vector<char* > output;
+   vector<int> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){
-      vector<char*> row;
+      vector<int> row;
       num_cols = sqlite3_column_count(stmt);
       for(int i = 0; i < num_cols; i++){
-         switch(sqlite3_column_type(stmt, i)){
-            case(SQLITE3_TEXT):
-               row.push_back((char*) sqlite3_column_text(stmt, i));
-               break;
-            case(SQLITE_INTEGER):
-               row.push_back((char*) to_string(sqlite3_column_int(stmt, i)).data());
-               break;
-            case(SQLITE_FLOAT):
-               row.push_back((char*) to_string(sqlite3_column_double(stmt, i)).data());
-               break;
-            default:
-               break;
-         }
+         assert(sqlite3_column_type(stmt, i) == SQLITE_INTEGER);
+         row.push_back(sqlite3_column_int(stmt, i));
       }
       output.insert(output.end(), row.begin(), row.end());
    }
    if(output.empty()) return -1;
-   return atoi(output[0]);
+   return output[0];
+}
+
+int db_user::countDistinct(string target_attribute, pair<string, variant<string, int, double>> count_info) {
+   string countKey = count_info.first;
+   auto countValue =  count_info.second;
+   sql = fmt::format("SELECT COUNT(DISTINCT {}) from USER WHERE {}='{}' LIMIT 1;", target_attribute, countKey, custom_to_string(countValue));
+   sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
+   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   int num_cols;
+   vector<int> output;
+   while(sqlite3_step(stmt) != SQLITE_DONE){
+      vector<int> row;
+      num_cols = sqlite3_column_count(stmt);
+      for(int i = 0; i < num_cols; i++){
+         assert(sqlite3_column_type(stmt, i) == SQLITE_INTEGER);
+         row.push_back(sqlite3_column_int(stmt, i));
+      }
+      output.insert(output.end(), row.begin(), row.end());
+   }
+   if(output.empty()) return -1;
+   return output[0];
 }
 
 int db_user::delet(string primary_val, pair<string, variant<string, int, double>> authenticated_info){
@@ -262,12 +263,15 @@ void db_user::clean(){
 //    bool clear = true;
 //    user->create(clear);
 
-//    UserInfo<string> user_example = {username: string("admin"), 
-//                             password: string("123456"),
-//                             identity: "admin",
-//                             status: "valid"
-//                             };
+//    UserInfo<string> *user_example = new UserInfo<string>("admin", "123456", "admin", "valid");
+//    // UserInfo<string> user_example = {username: string("admin"), 
+//    //                          password: string("123456"),
+//    //                          identity: "admin",
+//    //                          status: "valid"
+//    //                          };
 //    user->insert(user_example);
+//    delete user_example;
+
 //    string primekey_val = "admin";
 
 //    vector<pair<string, variant<string, int, double>>> changelist; // (key, value pair)
