@@ -85,7 +85,7 @@ class PaperProduction{// paper generation
 protected:
     QStringList questionsList;// store question list
     virtual void delete_question(QString questionName)=0;// delete question from the list
-    virtual void output_paper(QDir paperDir,QStringList questionsList)=0;// output paper
+    virtual void output_paper(QString pathName,QStringList questionsList)=0;// output paper
     virtual void read_questions(QStringList questionsList)=0;// read all questions and display
 public:
     virtual void add_question(QString subject,QString chapter,QString timeStamp)=0;// add question into the paper

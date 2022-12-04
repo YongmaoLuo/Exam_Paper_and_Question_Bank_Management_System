@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QCloseEvent>
 #include <QListWidgetItem>
+#include <QStandardPaths>
 #include "ownInterface.h"
 
 namespace Ui {
@@ -18,7 +19,7 @@ signals:
     void paper_production_panel_be_closed();
 
 public:
-    explicit PaperProductionDialog(QWidget *parent = nullptr);
+    explicit PaperProductionDialog(QWidget *parent = nullptr,std::shared_ptr<TCPClientSocket> client = nullptr);
     ~PaperProductionDialog();
     void add_question(QString subject,QString chapter,QString timeStamp) override;
     void open_paper_production_panel() override;
@@ -38,9 +39,10 @@ public slots:
 
 private:
     Ui::PaperProductionDialog *ui;
-    void delete_question(QString questionName) override;// 在试卷中删除某题目
-    void output_paper(QDir paperDir,QStringList questionsList) override;// 输出试卷
-    void read_questions(QStringList questionsList) override;
+    std::shared_ptr<TCPClientSocket> client;
+    void delete_question(QString questionName) override;// delete question in paper
+    void output_paper(QString pathName,QStringList questionsList) override;// output the paper into a file in desktop directory
+    void read_questions(QStringList questionsList) override; // load questions in the list into the GUI
 
 };
 
