@@ -239,6 +239,12 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
     else if(command == "delete question" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
         messages = deleteQuestion(subject_name, chapter_name, question_id);
     }
+    else if(command == "write subject" && bindIdentity.find(connect_fd.source_fd) != bindIdentity.end() && bindIdentity[connect_fd.source_fd] == "teacher") {
+        messages = addSubject(subject_name);
+    }
+    else if(command == "write chapter" && bindIdentity.find(connect_fd.source_fd) != bindIdentity.end() && bindIdentity[connect_fd.source_fd] == "teacher") {
+        messages = addChapter(subject_name, chapter_name);
+    }
     else{
         cout<<"Invalid command or not enough permission."<<endl;
     } 
@@ -566,6 +572,72 @@ vector<string> Server::getChapters(string subject){
     return messages;
 }
 
+vector<string> Server::addSubject(string subject) {
+    int status_code;
+    vector<string> messages;
+    optional<pair<string, variant<string, int, double>>> count_info;
+    count_info = std::make_pair("subject", subject);
+    int existence = question->countDistinct("subject", count_info);
+    int rc;
+    if(existence < 0) status_code = 404;
+    else if(existence == 0) {
+        cout<<"Add a new subject to the question bank."<<endl;
+        QuestionInfo<string>* new_question = new QuestionInfo<string>("placeholder", "placeholder", "placeholder", subject);
+        rc = question->insert(new_question);
+        delete new_question;
+        if(rc < 0) status_code = 403;
+        else status_code = 200;
+    } else {
+        cout<<"Subject already exists!"<<endl;
+        status_code = 403;
+    }
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{{\"code\": {}}}", status_code);
+    #endif
+    messages.push_back(message);
+    return messages;
+}
+
+vector<string> Server::addChapter(string subject, string chapter) {
+    int status_code;
+    vector<string> messages;
+    string target_attribute = "chapter";
+
+    optional<pair<string, variant<string, int, double>>> count_info;
+    count_info = std::make_pair("subject", subject);
+    int existence = question->countDistinct(target_attribute, count_info);
+    if(existence > 0) {
+        vector<pair<string, string>> count_infos{std::make_pair("subject", subject), std::make_pair("chapter", chapter)};
+        existence = question->countDistinct(target_attribute, count_infos);
+        int rc;
+        if(existence < 0) status_code = 404;
+        else if(existence == 0) {
+            cout<<"Add a new chapter to the question bank."<<endl;
+            QuestionInfo<string>* new_question = new QuestionInfo<string>("placeholder", "placeholder", chapter, subject);
+            rc = question->insert(new_question);
+            delete new_question;
+            if(rc < 0) status_code = 403;
+            else status_code = 200;
+        } else {
+            cout<<"Chapter already exists!"<<endl;
+            status_code = 403;
+        }
+    } else {
+        cout<<"Subject has not been created yet!"<<endl;
+        status_code = 403;
+    }
+
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{{\"code\": {}}}", status_code);
+    #endif
+    messages.push_back(message);
+    return messages;
+}
+
 vector<string> Server::getQuestions(string subject, string chapter){
     int status_code;
     vector<string> messages;
@@ -636,17 +708,25 @@ vector<string> Server::writeQuestion(string subject, string chapter, string ques
     count_infos.push_back(std::make_pair("subject", subject));
     count_infos.push_back(std::make_pair("chapter", chapter));
     count_infos.push_back(std::make_pair("path", question_id));
-    int exsistence = question->countDistinct("content", count_infos);
+    int existence = question->countDistinct("content", count_infos);
     int rc;
     content = escapeJsonString(content);
-    if(exsistence < 0) status_code = 404;
-    else if(exsistence == 0) {
-        cout<<"Write a new question into the question bank!"<<endl;
-        QuestionInfo<string>* new_question = new QuestionInfo<string>(question_id, content, chapter, subject);
-        rc = question->insert(new_question);
-        delete new_question;
-        if(rc < 0) status_code = 403;
-        else status_code = 200;
+    if(existence < 0) status_code = 404;
+    else if(existence == 0) {
+        // Check if the subject and chapter can accept a new question
+        count_infos.pop_back();
+        existence = question->countDistinct("content", count_infos);
+        if(existence > 0) {
+            cout<<"Write a new question into the question bank!"<<endl;
+            QuestionInfo<string>* new_question = new QuestionInfo<string>(question_id, content, chapter, subject);
+            rc = question->insert(new_question);
+            delete new_question;
+            if(rc < 0) status_code = 403;
+            else status_code = 200;
+        } else {
+            cout<<"Either subject or chapter has not been created yet!"<<endl;
+            status_code = 403;
+        }
     }
     else {
         cout<<"Update an existing question!"<<endl;
