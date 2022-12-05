@@ -40,7 +40,7 @@ class db_user: public database{
         virtual ~db_user(); //drop the table?
 
         void create(bool = false, const char* = "userinfo.db");
-        int insert(UserInfo<string>* user);
+        int insert(std::shared_ptr<UserInfo<string>> user);
         int update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
         
         string getUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute);

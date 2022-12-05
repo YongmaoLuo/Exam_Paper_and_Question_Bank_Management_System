@@ -1,6 +1,7 @@
 #include "server_unencrypted.hpp"
 #include "user_info.cpp"
 #include "question_bank.cpp"
+#include <omp.h>
 using namespace std;
 
 Server::Server()
@@ -298,9 +299,9 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
 vector<string> Server::registerUser(Connector& connect_fd, string username, auto password, string identity){
     int status_code;
     // with database logic
-    UserInfo<string> *new_user = new UserInfo<string>(username, static_cast<std::string>(password), identity, "valid");
+    std::shared_ptr<UserInfo<string>> new_user = std::make_shared<UserInfo<string>>(username, static_cast<std::string>(password), identity, "valid");
     int result = user->insert(new_user);
-    delete new_user;
+    // delete new_user;
     if(result == -1) status_code = 403;
     else status_code = 200;
     vector<string> messages;
@@ -479,13 +480,11 @@ vector<string> Server::getTeachers(){
     messages.reserve(teachers.size()+1);
     messages.push_back(message);
 
-    for(auto it=teachers.begin(); it!=teachers.end(); it++) {
-        #ifdef __cpp_lib_format
-        message = std::format("{\"username\": \"{}\"}", *it);
-        #else
-        message = fmt::format("{{\"username\": \"{}\"}}", *it);
-        #endif
-        messages.push_back(message);
+    //experimental
+    #pragma omp parallel for num_threads(4)
+    for(int i=0; i<teachers.size(); i++) {
+        #pragma omp critical
+        messages.push_back(fmt::format("{{\"username\": \"{}\"}}", teachers[i]));
     }
     return messages;
 }
@@ -582,9 +581,9 @@ vector<string> Server::addSubject(string subject) {
     if(existence < 0) status_code = 404;
     else if(existence == 0) {
         cout<<"Add a new subject to the question bank."<<endl;
-        QuestionInfo<string>* new_question = new QuestionInfo<string>("placeholder", "placeholder", "placeholder", subject);
+        std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>("placeholder", "placeholder", "placeholder", subject);
         rc = question->insert(new_question);
-        delete new_question;
+        // delete new_question;
         if(rc < 0) status_code = 403;
         else status_code = 200;
     } else {
@@ -615,9 +614,9 @@ vector<string> Server::addChapter(string subject, string chapter) {
         if(existence < 0) status_code = 404;
         else if(existence == 0) {
             cout<<"Add a new chapter to the question bank."<<endl;
-            QuestionInfo<string>* new_question = new QuestionInfo<string>("placeholder", "placeholder", chapter, subject);
+            std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>("placeholder", "placeholder", chapter, subject);
             rc = question->insert(new_question);
-            delete new_question;
+            // delete new_question;
             if(rc < 0) status_code = 403;
             else status_code = 200;
         } else {
@@ -718,9 +717,9 @@ vector<string> Server::writeQuestion(string subject, string chapter, string ques
         existence = question->countDistinct("content", count_infos);
         if(existence > 0) {
             cout<<"Write a new question into the question bank!"<<endl;
-            QuestionInfo<string>* new_question = new QuestionInfo<string>(question_id, content, chapter, subject);
+            std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>(question_id, content, chapter, subject);
             rc = question->insert(new_question);
-            delete new_question;
+            // delete new_question;
             if(rc < 0) status_code = 403;
             else status_code = 200;
         } else {

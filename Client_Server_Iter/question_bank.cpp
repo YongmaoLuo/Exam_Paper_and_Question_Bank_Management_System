@@ -331,9 +331,8 @@ void question_bank::clean(){
 //    bool clear = true;
 //    question.create(clear);
 
-//    QuestionInfo<string> question_example = new QuestionInfo<string>("http://123.com", "123456", "", "multiple choice", 10);
+//    std::shared_ptr<QuestionInfo<string>> question_example = std::make_shared<QuestionInfo<string>>("http://123.com", "123456", "", "multiple choice", 10);
 //    question.insert(question_example);
-//    delete question_example;
 //    string primekey_val = "http://123.com";
 
 //    vector<pair<string, variant<string, int, double>>> changelist; // (key, value pair)
