@@ -31,7 +31,7 @@ class question_bank: public database{
         virtual ~question_bank(); //drop the table?
 
         void create(bool = false, const char* = "questions.db");
-        int insert(QuestionInfo<string>*);
+        int insert(std::shared_ptr<QuestionInfo<string>>);
         int update(vector<pair<string, string>>, vector<pair<string, variant<string, int, double>>> changelist);
 
         string getQuestionAttribute(optional<pair<string, variant<string, int, double>>> constraint, vector<pair<string, string>> primary_pairs, string target_attribute);

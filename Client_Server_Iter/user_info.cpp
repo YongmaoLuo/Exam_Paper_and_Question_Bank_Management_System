@@ -53,7 +53,7 @@ void db_user::create(bool clear/*= false*/, const char* database_name/*= "userin
    }
 }
 
-int db_user::insert(UserInfo<string>* user){
+int db_user::insert(std::shared_ptr<UserInfo<string>> user){
    string identity = user->identity;
    string username = user->username;
    string password = user->password;
@@ -263,14 +263,13 @@ void db_user::clean(){
 //    bool clear = true;
 //    user->create(clear);
 
-//    UserInfo<string> *user_example = new UserInfo<string>("admin", "123456", "admin", "valid");
+//    std::shared_ptr<UserInfo<string>> user_example = std::make_shared<UserInfo<string>>("admin", "123456", "admin", "valid");
 //    // UserInfo<string> user_example = {username: string("admin"), 
 //    //                          password: string("123456"),
 //    //                          identity: "admin",
 //    //                          status: "valid"
 //    //                          };
 //    user->insert(user_example);
-//    delete user_example;
 
 //    string primekey_val = "admin";
 
