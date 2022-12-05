@@ -25,7 +25,7 @@ class database{
         virtual int count() = 0;
         virtual int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info) = 0;
         virtual void clean() = 0;
-        virtual void close(){
+        virtual void close() {
             sqlite3_finalize(stmt);
             sqlite3_close(db);
         }
