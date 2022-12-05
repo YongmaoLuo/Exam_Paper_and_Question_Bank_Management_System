@@ -180,12 +180,19 @@ int main(int argc , char *argv[]) {
                     json recvPacket=json::parse(buffer);
                     std::cout<<"recvPacket:"<<recvPacket<<std::endl;
                     
-                    // test instance 1: register new admin alvin
+                    // test instance 0: register new admin alvin
                     json sendPacket=json::parse(fmt::format("{{\"command\": \"register user\", \"username\" : \"alvin\", \
                                            \"password\": \"1u839812\", \"identity\": \"admin\"}}"));
                     std::string ret=sendPacket.dump();
                     send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
                     // receive code 200
+
+                    // test instance 1: register user duplicated user fail
+                    json sendPacket=json::parse(fmt::format("{{\"command\": \"register user\", \"username\" : \"alvin\", \
+                                           \"password\": \"89ue982u\", \"identity\": \"teacher\"}}"));
+                    std::string ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                    // receive code 403
                     
                     
                     // test instance 2: admin alvin login wrong password fail
