@@ -8,11 +8,13 @@ using namespace std;
 
 template <hashable T>
 struct QuestionInfo{
+        private:
             string path;
             string content;
             string chapter;
             T category;
             int rubric;
+        public:
             QuestionInfo<T>(string path_, string content_, string chapter_, T category_): path(path_), content(content_), chapter(chapter_), category(category_), rubric(0) {};
             QuestionInfo<T>(string path_, string content_, string chapter_, T category_, int rubric_): path(path_), content(content_), chapter(chapter_), category(category_), rubric(rubric_) {};
             std::tuple<string, string, string, T, int> getElements() const {return std::make_tuple(path, content, chapter, category, rubric);};
@@ -20,8 +22,8 @@ struct QuestionInfo{
 
 class question_bank: public database{
     private:
-        sqlite3 *db;
-        sqlite3_stmt *stmt;
+        // sqlite3 *db;
+        // sqlite3_stmt *stmt;
         char *zErrMsg;
         int rc;
         string sql;
