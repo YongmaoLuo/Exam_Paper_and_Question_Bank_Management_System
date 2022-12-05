@@ -179,9 +179,9 @@ void Client::loop(){
     //      error("ERROR reading from socket");
     bzero(buffer,256);
 
-    string username = "\"testteacher\"";
+    string username = "\"testrulemaker\"";
     string password = "\"123456\"";
-    string identity = "\"teacher\"";
+    string identity = "\"rule maker\"";
     string status = "\"valid\"";
     struct UserInfo user = {username, password, identity, status};
 
@@ -339,6 +339,39 @@ void Client::loop(){
     response_code = response["code"];
     string question_content = response["question text"];
     cout<<"Response code: "<<response_code<<"\t"<<"Question text: "<<question_content<<endl;
+    //////////////////////////
+    msg = fmt::format("{{\"command\": \"get teachers\" }}");
+    cout<<"get teachers msg: "<<msg<<endl;
+    // msg[strlen(msg)] = '\0';
+
+    num_bytes = sendMessage(connect_fd, msg.c_str());
+    if (num_bytes < 0) 
+         error("ERROR writing to socket");
+    cout<<"Sent a get teacher command!"<<endl;
+    
+    bzero(buffer, 256);
+    num_bytes = recvMessage(connect_fd, buffer);
+    // num_bytes = recvMessageSSL(ssl, buffer);
+    buffer[num_bytes] = '\0';
+    cout<<"buffer: "<<buffer<<endl;
+
+    response = json::parse(buffer);
+    response_code = response["code"];
+    int counts = response["counts"];
+
+    for(int i=0; i<counts; i++){
+        bzero(buffer, 256);
+        num_bytes = recvMessage(connect_fd, buffer);
+        // num_bytes = recvMessageSSL(ssl, buffer);
+        buffer[num_bytes] = '\0';
+        cout<<"buffer: "<<buffer<<endl;
+
+        response = json::parse(buffer);
+        string teacher = response["username"];
+        usleep(1000);
+    }
+
+
     //////////////////////////
     msg = fmt::format("{{\"command\": \"delete question\",\"subject name\": {}, \"chapter name\": {}, \"question name\": {} }}", 
     subject_name, chapter_name, question_name);

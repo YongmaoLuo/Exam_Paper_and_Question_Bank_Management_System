@@ -23,6 +23,7 @@ struct UserInfo{
                 activity = newuser.activity;
                 return *this;
             }
+            std::tuple<string, string, T, T, int> getElements() const {return std::make_tuple(username, password, identity, status, activity);};
         };
 
 class db_user: public database{
