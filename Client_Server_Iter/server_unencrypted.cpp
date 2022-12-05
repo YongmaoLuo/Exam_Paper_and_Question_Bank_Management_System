@@ -248,6 +248,12 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
     }
     else{
         cout<<"Invalid command or not enough permission."<<endl;
+        #ifdef __cpp_lib_format
+        message = std::format("{\"code\": {}}", 403);
+        #else
+        message = fmt::format("{{\"code\": {}}}", 403);
+        #endif
+        messages.push_back(message);
     } 
     //memset(&input_buffer, 0, INPUT_BUFFER_SIZE); //zero buffer //bzero
     // bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer

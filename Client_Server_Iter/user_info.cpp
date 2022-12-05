@@ -54,11 +54,13 @@ void db_user::create(bool clear/*= false*/, const char* database_name/*= "userin
 }
 
 int db_user::insert(std::shared_ptr<UserInfo<string>> user){
-   string identity = user->identity;
-   string username = user->username;
-   string password = user->password;
-   string status = user->status;
-   int activity = user->activity;
+   // string identity = user->identity;
+   // string username = user->username;
+   // string password = user->password;
+   // string status = user->status;
+   // int activity = user->activity;
+
+   auto [username, password, identity, status, activity] = user->getElements();
    if(status.empty()) status = "valid";
    sql = fmt::format("INSERT INTO USER (USERNAME, PASSWORD, IDENTITY, STATUS, ACTIVITY) "  \
             "VALUES ('{}', '{}', '{}', '{}', '{}'); SELECT * FROM USER", username, password, identity, status, activity);

@@ -55,11 +55,12 @@ void question_bank::create(bool clear/*= false*/, const char* database_name/*= "
 }
 
 int question_bank::insert(QuestionInfo<string>* question){
-   string path = question->path;
-   string content = question->content;
-   string chapter = question->chapter;
-   string category = question->category;
-   int rubric = question->rubric;
+   // string path = question->path;
+   // string content = question->content;
+   // string chapter = question->chapter;
+   // string category = question->category;
+   // int rubric = question->rubric;
+   auto [path, content, chapter, category, rubric] = question->getElements();
    if(category.empty()) category = "undefined";
    sql = fmt::format("INSERT INTO QUESTIONS (PATH, CONTENT, CHAPTER, SUBJECT, RUBRIC) "  \
             "VALUES ('{}', '{}', '{}', '{}', '{}'); SELECT * FROM QUESTIONS", path, content, chapter, category, rubric);
