@@ -42,7 +42,7 @@ static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
 }
 
 class database{
-    private:
+    protected:
         sqlite3 *db;
         sqlite3_stmt *stmt;
     public:

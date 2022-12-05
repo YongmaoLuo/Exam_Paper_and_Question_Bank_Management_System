@@ -8,11 +8,13 @@ using namespace std;
 
 template<hashable T>
 struct UserInfo{
+        private:
             string username;
             string password;
             T identity;
             T status;
             int activity = 0; // no boolean inside sqlite
+        public:
             UserInfo<T>(string username_, string password_, T identity_, T status_): username(username_), password(password_), identity(identity_), status(status_), activity(0) {};
             UserInfo<T>(string username_, string password_, T identity_, T status_, int activity_): username(username_), password(password_), identity(identity_), status(status_), activity(activity_) {};
             UserInfo<T> operator=(UserInfo<T> newuser){
@@ -28,8 +30,8 @@ struct UserInfo{
 
 class db_user: public database{
     private:
-        sqlite3 *db;
-        sqlite3_stmt *stmt;
+        // sqlite3 *db;
+        // sqlite3_stmt *stmt;
         char *zErrMsg;
         int rc;
         string sql;
