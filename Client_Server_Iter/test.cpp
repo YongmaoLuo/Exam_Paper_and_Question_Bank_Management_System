@@ -172,14 +172,14 @@ int main(int argc , char *argv[]) {
                      
                 //Echo back the message that came in 
                 else 
-                {  
-                    
+                {                   
                     //set the string terminating NULL byte on the end 
                     //of the data read 
                     buffer[valread] = '\0';
                     json recvPacket=json::parse(buffer);
                     std::cout<<"recvPacket:"<<recvPacket<<std::endl;
                     
+                    // user database
                     // test instance 0: register new admin alvin
                     json sendPacket=json::parse(fmt::format("{{\"command\": \"register user\", \"username\" : \"alvin\", \
                                            \"password\": \"1u839812\", \"identity\": \"admin\"}}"));
@@ -189,7 +189,7 @@ int main(int argc , char *argv[]) {
 
                     // test instance 1: register user duplicated user fail
                     json sendPacket=json::parse(fmt::format("{{\"command\": \"register user\", \"username\" : \"alvin\", \
-                                           \"password\": \"89ue982u\", \"identity\": \"teacher\"}}"));
+                                                            \"password\": \"89ue982u\", \"identity\": \"teacher\"}}"));
                     std::string ret=sendPacket.dump();
                     send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
                     // receive code 403
@@ -294,6 +294,240 @@ int main(int argc , char *argv[]) {
                     // test instance 15: get users fail
                     json sendPacket=json::parse(fmt::format("{{\"command\": \"get users\"}}"));
                     std::string ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 403
+
+
+
+
+                    // question bank database
+                    // test instance 1: add math question chapter 1 q1 success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"write questions\", \"subject name\": \"math\",
+                                                          \"chapter name\": \"1\", \"question name\": \"1\", 
+                                                          \"question text\": \"1\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200
+
+                    // test instance 2: add math question chapter 1 q2 success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"write questions\", \"subject name\": \"math\",
+                                                          \"chapter name\": \"1\", \"question name\": \"2\", 
+                                                          \"question text\": \"2\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200
+
+
+                    // test instance 3: add english question chapter 1 q1 success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"write questions\", \"subject name\": \"english\",
+                                                          \"chapter name\": \"1\", \"question name\": \"1\", 
+                                                          \"question text\": \"1\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200
+
+                    // test instance 4: add english question chapter 2 q1 success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"write questions\", \"subject name\": \"english\",
+                                                          \"chapter name\": \"2\", \"question name\": \"1\", 
+                                                          \"question text\": \"1\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200
+
+                    // test instance 5: add physics question chapter 1 q1 success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"write questions\", \"subject name\": \"english\",
+                                                          \"chapter name\": \"1\", \"question name\": \"1\", 
+                                                          \"question text\": \"1\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200
+
+                    // test instance 6: replace math question chapter 1 q1 with 0 success 
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"write questions\", \"subject name\": \"math\", \
+                                                          \"chapter name\": \"1\", \"question name\": \"1\", \
+                                                          \"question text\": \"0\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200
+                    
+
+                    // test instance 7: read math question chapter 1 q1 success 
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"read question\", \"subject name\": \"math\", \
+                                                          \"chapter name\": \"1\", \"question name\": \"1\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200, question text 0
+
+                    // test instance 8: read english question chapter 1 q2 fail
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"read question\", \"subject name\": \"english\", \
+                                                          \"chapter name\": \"1\", \"question name\": \"2\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 403
+
+                    // test instance 9: get subjects success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"get subjects\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200, counts=3, vector<string>subjects = {"math", "english", "physics"}
+                    
+                    // test instance 10: get math chapters success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"get chapters\", \"subject name\": \"math\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200, counts=1, vector<string>chapters = {"1"}
+
+                    // test instance 11: get english chapters success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"get chapters\", \"subject name\": \"english\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200, counts=2, vector<string>subjects = {"1", "2"}
+
+                    // test instance 12: get biology chapters fail
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"get chapters\", \"subject name\": \"biology\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 403
+
+                    // test instance 13: get math chapters success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"get chapters\", \"subject name\": \"math\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200, counts=1, vector<string>chapters = {"1"}
+                    
+                    // test instance 14: get english chapters success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"get chapters\", \"subject name\": \"english\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200, counts=w, vector<string>chapters = {"1","2"}
+
+                    // test instance 15: get math chapters 1 questions success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"get questions\", \"subject name\": \"math\", \
+                                                          \"chapter name\": \"1\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200, counts=2, vector<string>questions = {"1","2"}
+
+                    // test instance 16: get english chapters 2 questions success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"get questions\", \"subject name\": \"english\", \
+                                                          \"chapter name\": \"2\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200, counts=1, vector<string>questions = {"1"}
+
+                    // test instance 17: get math chapters 2 questions fail
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"get questions\", \"subject name\": \"math\", \
+                                                          \"chapter name\": \"2\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 403
+
+                    // test instance 18: get math chapters 1 q1 success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"get questions\", \"subject name\": \"math\", \
+                                                          \"chapter name\": \"1\", \"question name\": \"1\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200, counts=1, string question text = "0"
+
+                    // test instance 19: read english chapters 2 q1 success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"read question\", \"subject name\": \"english\", \
+                                                          \"chapter name\": \"2\", \"question name\": \"1\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200, counts=1, string question text = "1"
+
+                    // test instance 20: read physics chapters 1 q2 fail
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"read question\", \"subject name\": \"physics\", \
+                                                          \"chapter name\": \"1\", \"question name\": \"2\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 403
+
+                    // test instance 21: delete physics chapters 1 q1 success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"delete question\", \"subject name\": \"physics\", \
+                                                          \"chapter name\": \"1\", \"question name\": \"1\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200
+
+                    // test instance 22: delete math chapters 2 q1 fail
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"delete question\", \"subject name\": \"math\", \
+                                                          \"chapter name\": \"2\", \"question name\": \"1\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 403
+
+                    // test instance 23: get subjects success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"get subjects\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200, counts=2, vector<string>subjects = {"math", "english"}
+
+                    // test instance 24: delete math chapters 1 q1 success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"delete question\", \"subject name\": \"math\", \
+                                                          \"chapter name\": \"1\", \"question name\": \"1\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200
+
+                    // test instance 25: get math chapters 1 questions success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"get questions\", \"subject name\": \"math\", \
+                                                          \"chapter name\": \"1\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200, counts=1, vector<string>questions = {"2"}
+
+                    // test instance 24: delete english chapters 2 q1 success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"delete question\", \"subject name\": \"english\", \
+                                                          \"chapter name\": \"2\", \"question name\": \"1\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200
+
+                    // test instance 25: get english chapters success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"get chapters\", \"subject name\": \"english\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200, counts=1, vector<string>chapters = {"1"}
+
+                    // test instance 26: delete english chapters 1 q1 success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"delete question\", \"subject name\": \"english\", \
+                                                          \"chapter name\": \"1\", \"question name\": \"1\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200
+
+                    // test instance 27: get subjects success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"get subjects\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200, counts=1, vector<string>subjects = {"math"}
+
+                    // test instance 28: get english chapters fail
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"get chapters\", \"subject name\": \"english\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 403
+
+                    // test instance 29: delete english chapters 1 q1 fail
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"delete question\", \"subject name\": \"english\", \
+                                                          \"chapter name\": \"1\", \"question name\": \"1\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 403
+
+                    // test instance 30: delete math chapters 1 q2 success
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"delete question\", \"subject name\": \"math\", \
+                                                          \"chapter name\": \"1\", \"question name\": \"2\"}}"));
+                    ret=sendPacket.dump();
+                    send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
+                    // receive code 200
+
+                    // db empty!
+
+                    // test instance 31: get subjects fail
+                    sendPacket=json::parse(fmt::format("{{\"command\": \"get subjects\"}}"));
+                    ret=sendPacket.dump();
                     send(sd , ret.c_str(), strlen(ret.c_str()) , 0);
                     // receive code 403
                 }  
