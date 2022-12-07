@@ -1,6 +1,7 @@
 #ifndef DB_HPP
 #define DB_HPP
 #include "database.hpp"
+#pragma comment(lib, "sqlite3.lib")
 using namespace std;
 
 #define FMT_HEADER_ONLY

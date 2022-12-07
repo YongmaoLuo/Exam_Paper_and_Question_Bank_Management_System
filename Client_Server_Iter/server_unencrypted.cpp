@@ -471,7 +471,7 @@ vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password){
 vector<string> Server::getTeachers(){
     int status_code;
     vector<pair<string, string>> constraint;
-    constraint.push_back(std::make_pair("ACTIVITY", "1"));
+    // constraint.push_back(std::make_pair("ACTIVITY", "1"));
     constraint.push_back(std::make_pair("IDENTITY", "teacher"));
     vector<string> teachers = user->getUserAttributes(constraint, "USERNAME");
     if(teachers.empty()) status_code = 403;
@@ -514,7 +514,6 @@ vector<string> Server::getSubjects(){
     else status_code = 200;
     optional<pair<string, string>> constraint;
     vector<string> subjects = question->getQuestionAttributes(constraint, target_attribute);
-    if(subjects.empty()) status_code = 404;
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}, \"counts\": {}}", status_code, subjects.size());
     #else
@@ -541,7 +540,7 @@ vector<string> Server::getChapters(string subject){
     string target_attribute = "chapter";
     optional<pair<string, variant<string, int, double>>> count_info;
     count_info = std::make_pair("subject", subject);
-    int chapter_num = question->countDistinct(target_attribute, count_info);
+    int chapter_num = question->countDistinct(target_attribute, count_info); // this may include the dummy
     if(chapter_num < 0){
         status_code = 403;
         #ifdef __cpp_lib_format
@@ -556,23 +555,24 @@ vector<string> Server::getChapters(string subject){
     optional<pair<string, string>> constraint;
     constraint = std::make_pair("subject", subject);
     vector<string> chapters = question->getQuestionAttributes(constraint, target_attribute);
-    if(chapters.empty()) status_code = 404;
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, chapters.size());
+    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, max(0, static_cast<int>(chapters.size())-1));
     #else
-    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, chapters.size());
+    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, max(0, static_cast<int>(chapters.size())-1));
     #endif
 
     messages.reserve(chapters.size()+1);
     messages.push_back(message);
 
     for(int i=0; i<chapter_num; i++){
-        #ifdef __cpp_lib_format
-        message = std::format("{\"chapter name\": \"{}\"}", chapters[i]);
-        #else
-        message = fmt::format("{{\"chapter name\": \"{}\"}}", chapters[i]);
-        #endif
-        messages.push_back(message);
+        if(chapters[i] != "placeholder") {
+            #ifdef __cpp_lib_format
+            message = std::format("{\"chapter name\": \"{}\"}", chapters[i]);
+            #else
+            message = fmt::format("{{\"chapter name\": \"{}\"}}", chapters[i]);
+            #endif
+            messages.push_back(message);
+        }
     }
     return messages;
 }
@@ -664,23 +664,25 @@ vector<string> Server::getQuestions(string subject, string chapter){
     constraints.push_back(std::make_pair("subject", subject));
     constraints.push_back(std::make_pair("chapter", chapter));
     vector<string> question_ids = question->getQuestionAttributes(constraints, target_attribute);
-    if(question_ids.empty()) status_code = 404;
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, question_ids.size());
+    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, max(0, static_cast<int>(question_ids.size())-1));
     #else
-    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, question_ids.size());
+    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, max(0, static_cast<int>(question_ids.size())-1));
     #endif
 
     messages.reserve(question_ids.size()+1);
     messages.push_back(message);
 
     for(int i=0; i<question_num; i++){
-        #ifdef __cpp_lib_format
-        message = std::format("{\"question name\": \"{}\"}", question_ids[i]);
-        #else
-        message = fmt::format("{{\"question name\": \"{}\"}}", question_ids[i]);
-        #endif
-        messages.push_back(message);
+        if(question_ids[i] != "placeholder") {
+            #ifdef __cpp_lib_format
+            message = std::format("{\"question name\": \"{}\"}", question_ids[i]);
+            #else
+            message = fmt::format("{{\"question name\": \"{}\"}}", question_ids[i]);
+            #endif
+            messages.push_back(message);
+        }
+        
     }
     return messages;
 }
