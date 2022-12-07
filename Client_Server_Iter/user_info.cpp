@@ -51,6 +51,15 @@ void db_user::create(bool clear/*= false*/, const char* database_name/*= "userin
    } else {
       fprintf(stdout, "Table created successfully\n");
    }
+   // const char* encrypted_password = "password";
+   // int n;
+   // try{
+   //    n = sqlite3_key(db, encrypted_password, strlen(encrypted_password));
+   //    throw(n);
+   // } catch(int response){
+   //    if(response < 0) n = sqlite3_rekey(db, encrypted_password, strlen(encrypted_password));
+   // }
+   
 }
 
 int db_user::insert(std::shared_ptr<UserInfo<string>> user){
