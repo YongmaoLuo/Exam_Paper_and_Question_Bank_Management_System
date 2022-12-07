@@ -471,7 +471,7 @@ vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password){
 vector<string> Server::getTeachers(){
     int status_code;
     vector<pair<string, string>> constraint;
-    constraint.push_back(std::make_pair("ACTIVITY", "1"));
+    // constraint.push_back(std::make_pair("ACTIVITY", "1"));
     constraint.push_back(std::make_pair("IDENTITY", "teacher"));
     vector<string> teachers = user->getUserAttributes(constraint, "USERNAME");
     if(teachers.empty()) status_code = 403;
@@ -556,9 +556,9 @@ vector<string> Server::getChapters(string subject){
     constraint = std::make_pair("subject", subject);
     vector<string> chapters = question->getQuestionAttributes(constraint, target_attribute);
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, max(0, chapters.size()-1));
+    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, max(0, static_cast<int>(chapters.size())-1));
     #else
-    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, max(0, chapters.size()-1));
+    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, max(0, static_cast<int>(chapters.size())-1));
     #endif
 
     messages.reserve(chapters.size()+1);
@@ -665,9 +665,9 @@ vector<string> Server::getQuestions(string subject, string chapter){
     constraints.push_back(std::make_pair("chapter", chapter));
     vector<string> question_ids = question->getQuestionAttributes(constraints, target_attribute);
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, max(0, question_ids.size()-1));
+    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, max(0, static_cast<int>(question_ids.size())-1));
     #else
-    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, max(0, question_ids.size()-1));
+    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, max(0, static_cast<int>(question_ids.size())-1));
     #endif
 
     messages.reserve(question_ids.size()+1);
