@@ -8,7 +8,7 @@ using namespace std;
 #include "fmt/format.h"
 
 template<hashable T>
-struct UserInfo{
+struct UserInfo final {
         private:
             string username;
             string password;
@@ -45,7 +45,7 @@ class db_user: public database{
 
         void create(bool = false, const char* = "userinfo.db");
         int insert(std::shared_ptr<UserInfo<string>> user);
-        int update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
+        int update(const string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
         
         string getUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute);
         
@@ -139,7 +139,7 @@ class db_user: public database{
 
         int count();
         int countDistinct(string target_attribute, pair<string, variant<string, int, double>> count_info);
-        int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info);
+        int delet(const string primary_val, pair<string, variant<string, int, double>> deleted_info);
         void clean();
 };
 #endif
