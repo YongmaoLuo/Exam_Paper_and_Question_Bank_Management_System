@@ -54,7 +54,7 @@ void question_bank::create(bool clear/*= false*/, const char* database_name/*= "
    }
 }
 
-int question_bank::insert(QuestionInfo<string>* question){
+int question_bank::insert(std::shared_ptr<QuestionInfo<string>> question){
    // string path = question->path;
    // string content = question->content;
    // string chapter = question->chapter;
@@ -89,7 +89,7 @@ int question_bank::update(vector<pair<string, string>> primary_pairs, vector<pai
       keys.insert(key);
 
       transform(key.begin(), key.end(), key.begin(), ::toupper);
-      
+
       // std::array<string, 3> primary_keys({"PATH", "CHAPTER", "SUBJECT"});
       auto primary_keys = std::to_array<string>({"PATH", "CHAPTER", "SUBJECT"});
       if(std::find(primary_keys.begin(), primary_keys.end(), key) != primary_keys.end()) return -1;
@@ -196,34 +196,7 @@ string question_bank::getQuestionAttribute(optional<pair<string, variant<string,
 }
 
 int question_bank::count(){
-   sql = "SELECT COUNT (*) from QUESTIONS;"; 
-   sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
-   int num_cols;
-   vector<int> output;
-   while(sqlite3_step(stmt) != SQLITE_DONE){
-      vector<int> row;
-      num_cols = sqlite3_column_count(stmt);
-      for(int i = 0; i < num_cols; i++){
-         assert(sqlite3_column_type(stmt, i) == SQLITE_INTEGER);
-         row.push_back(sqlite3_column_int(stmt, i));
-      }
-      output.insert(output.end(), row.begin(), row.end());
-   }
-   if(output.empty()) return -1;
-   return output[0];
-}
-
-
-int question_bank::countDistinct(string target_attribute, optional<pair<string, variant<string, int, double>>> count_info) {
-   if(count_info){
-      auto count_info_detail = count_info.value();
-      string countKey = count_info_detail.first;
-      auto countValue =  count_info_detail.second;
-      sql = fmt::format("SELECT COUNT(DISTINCT {}) from QUESTIONS WHERE {}='{}' LIMIT 1;", target_attribute, countKey, custom_to_string(countValue));
-   } else {
-      sql = fmt::format("SELECT COUNT(DISTINCT {}) from QUESTIONS LIMIT 1;", target_attribute);
-   }
+   sql = "SELECT COUNT (*) from QUESTIONS LIMIT 1;"; 
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
    sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
    int num_cols;
@@ -242,16 +215,42 @@ int question_bank::countDistinct(string target_attribute, optional<pair<string, 
 }
 
 int question_bank::countDistinct(string target_attribute, vector<pair<string, string>> count_info) {
-   sql = fmt::format("SELECT COUNT(DISTINCT {}) from QUESTIONS WHERE ", target_attribute);
+   sql = fmt::format("select count(DISTINCT {}) from QUESTIONS WHERE ", target_attribute);
    string constraint_key;
    string constraint_val;
    for(int i=0; i<count_info.size(); i++){
       constraint_key = count_info[i].first;
       constraint_val = count_info[i].second;
-      if(i<count_info.size()-1)  sql += fmt::format("{} = '{}' AND ", constraint_key, constraint_val);
-      else sql += fmt::format("{} = '{}' ", constraint_key, constraint_val);
+      if(i<count_info.size())  sql += fmt::format("{} = '{}' AND ", constraint_key, constraint_val);
    }
-   sql += " LIMIT 1;";
+   sql += fmt::format("{} != 'placeholder' LIMIT 1;", target_attribute);
+   sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
+   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   int num_cols;
+   vector<int> output;
+   while(sqlite3_step(stmt) != SQLITE_DONE){
+      vector<int> row;
+      num_cols = sqlite3_column_count(stmt);
+      for(int i = 0; i < num_cols; i++){
+         assert(sqlite3_column_type(stmt, i) == SQLITE_INTEGER);
+         row.push_back(sqlite3_column_int(stmt, i));
+      }
+      output.insert(output.end(), row.begin(), row.end());
+   }
+   if(output.empty()) return -1;
+   return output[0];
+}
+
+int question_bank::countDistinct(string target_attribute, optional<pair<string, variant<string, int, double>>> count_info) {
+   if(count_info){
+      auto count_info_detail = count_info.value();
+      string countKey = count_info_detail.first;
+      auto countValue =  count_info_detail.second;
+      //SELECT COUNT((SELECT DISTINCT path FROM QUESTIONS)) from QUESTIONS WHERE subject='English' and chapter='chapter1' LIMIT 1;
+      sql = fmt::format("select count(DISTINCT {}) from QUESTIONS WHERE {}='{}' AND {} != 'placeholder' LIMIT 1;", target_attribute, countKey, custom_to_string(countValue), target_attribute);
+   } else {
+      sql = fmt::format("select count(DISTINCT {}) from QUESTIONS where {} != 'placeholder' LIMIT 1;", target_attribute, target_attribute);
+   }
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
    sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
    int num_cols;
