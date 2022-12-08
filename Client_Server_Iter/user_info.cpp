@@ -51,6 +51,15 @@ void db_user::create(bool clear/*= false*/, const char* database_name/*= "userin
    } else {
       fprintf(stdout, "Table created successfully\n");
    }
+   // const char* encrypted_password = "password";
+   // int n;
+   // try{
+   //    n = sqlite3_key(db, encrypted_password, strlen(encrypted_password));
+   //    throw(n);
+   // } catch(int response){
+   //    if(response < 0) n = sqlite3_rekey(db, encrypted_password, strlen(encrypted_password));
+   // }
+   
 }
 
 int db_user::insert(std::shared_ptr<UserInfo<string>> user){
@@ -76,7 +85,7 @@ int db_user::insert(std::shared_ptr<UserInfo<string>> user){
    return rc;
 }
 
-int db_user::update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist){
+int db_user::update(const string primary_val, vector<pair<string, variant<string, int, double>>> changelist){
    std::set<string> keys;
    string key;
    while(!changelist.empty()){
@@ -233,7 +242,7 @@ int db_user::countDistinct(string target_attribute, pair<string, variant<string,
    return output[0];
 }
 
-int db_user::delet(string primary_val, pair<string, variant<string, int, double>> authenticated_info){
+int db_user::delet(const string primary_val, pair<string, variant<string, int, double>> authenticated_info){
    string key = authenticated_info.first;
    auto value = authenticated_info.second;
    sql = fmt::format("DELETE from USER where USERNAME = '{}' AND {} = '{}'; \

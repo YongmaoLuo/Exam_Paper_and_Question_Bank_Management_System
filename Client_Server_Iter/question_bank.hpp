@@ -7,7 +7,7 @@ using namespace std;
 #include "fmt/format.h"
 
 template <hashable T>
-struct QuestionInfo{
+struct QuestionInfo final {
         private:
             string path;
             string content;
@@ -50,8 +50,8 @@ class question_bank: public database{
                 if constexpr(std::is_same_v<T_input, int> || std::is_same_v<T_input, double> || std::is_same_v<T_input, float>) constraint_val_str = to_string(constraint_val);
                 else constraint_val_str = constraint_val;
                 sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS " \
-                     "WHERE {} = '{}'; ", target_attribute, constraint_key, constraint_val_str);
-            } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS ;", target_attribute);
+                     "WHERE {} = '{}' AND {} != 'placeholder'; ", target_attribute, constraint_key, constraint_val_str, target_attribute);
+            } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS where {} != 'placeholder';", target_attribute, target_attribute);
             
             sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
             sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
@@ -97,8 +97,8 @@ class question_bank: public database{
                     cnt ++;
                 }
                 
-                sql += ";";
-            } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS ;", target_attribute);
+                sql += fmt::format(" AND {} != 'placeholder';", target_attribute);
+            } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS where {} != 'placeholder';", target_attribute);
             
             sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
             sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
