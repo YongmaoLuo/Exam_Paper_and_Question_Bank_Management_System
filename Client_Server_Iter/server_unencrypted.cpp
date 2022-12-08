@@ -2,6 +2,7 @@
 #include "user_info.cpp"
 #include "question_bank.cpp"
 #include <omp.h>
+#include <utility>
 using namespace std;
 
 Server::Server()
@@ -52,6 +53,7 @@ void Server::setup(int port)
     servaddr.sin_port = htons(port);
 
     bzero(&input_buffer, INPUT_BUFFER_SIZE); //zero the input buffer before use to avoid random data appearing in first receives
+
 }
 
 void Server::initializeSocket()
@@ -277,7 +279,7 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
         }
         status_code = 200;
         activity = 1;
-        string primary_val = username;
+        const string primary_val = std::as_const(username);
         vector<pair<string, variant<string, int, double>>> changelist;
         changelist.emplace_back("activity", activity);
         user->update(primary_val, changelist);
@@ -328,7 +330,7 @@ vector<string> Server::logout(Connector& connect_fd){
     string username = bindUsername[connect_fd.source_fd];
     vector<pair<string, variant<string, int, double>>> constraint;
     constraint.emplace_back("activity", activity_updated);
-    int res = user->update(username, constraint);
+    int res = user->update(std::as_const(username), constraint);
     if(res < 0){
         cout<<"logout failed."<<endl;
         status_code = 403;
@@ -353,7 +355,7 @@ int Server::logout(string username){
     int source_fd = logined_users[username];
     vector<pair<string, variant<string, int, double>>> constraint;
     constraint.emplace_back("activity", 0);
-    int res = user->update(username, constraint);
+    int res = user->update(std::as_const(username), constraint);
     if(res < 0){
         cout<<"logout failed."<<endl;
     } else {
@@ -411,7 +413,7 @@ vector<string> Server::deleteUser(Connector& connect_fd, string username){
     string key = "status";
     pair<string, variant<string, int, double>> deleted_detail;
     deleted_detail = std::make_pair(key, "valid");
-    int result = user->delet(username, deleted_detail);
+    int result = user->delet(std::as_const(username), deleted_detail);
     if(result == -1 && status_code == 200) status_code = 404;
     else if(result >= 0) status_code = 200;
 
@@ -454,7 +456,7 @@ vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password){
     // with database logic
     string key = "password";
     pair<string, variant<string, int, double>> deleted_detail = std::make_pair(key, password);
-    int result = user->delet(username, deleted_detail);
+    int result = user->delet(std::as_const(username), deleted_detail);
     if(result == -1 && status_code == 200) status_code = 404;
     else if(result >= 0) status_code = 200;
 
