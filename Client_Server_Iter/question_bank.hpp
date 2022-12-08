@@ -7,7 +7,7 @@ using namespace std;
 #include "fmt/format.h"
 
 template <hashable T>
-struct QuestionInfo{
+struct QuestionInfo final {
         private:
             string path;
             string content;
