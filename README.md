@@ -44,3 +44,7 @@ cd bin/
 * Chrono
 * Constexpr
 * Smart pointers
+* std::as_const()
+* Final
+* Variant
+* ...
