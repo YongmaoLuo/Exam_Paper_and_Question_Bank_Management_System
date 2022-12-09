@@ -1,5 +1,9 @@
 #include "server.hpp"
-// #include "db.cpp"
+#include "user_info.cpp"
+#include "question_bank.cpp"
+#include <omp.h>
+#include <utility>
+using namespace std;
 
 Server::Server(string digital_certificate_path, string privateKey_path)
 {
@@ -167,54 +171,44 @@ void Server::handleNewConnection()
         	}
         	#ifdef SERVER_DEBUG
         	printf("[SERVER] [CONNECTION] New connection on socket fd '%d'.\n",tempsocket_fd);
-		    #endif
-            
+		#endif
     }
-    cout<<"maxfd: "<<maxfd<<endl;
-    ssl = SSL_new(ctx);
-    SSL_set_fd(ssl, tempsocket_fd);
-    if(SSL_accept(ssl) == -1){
-        perror("accept");
-        close(tempsocket_fd);
-    }
-    ssl_map[tempsocket_fd] = ssl;
-    ShowCerts(ssl);
-
     cout<<"Successfully connected!"<<endl;
     // // newConnectionCallback(tempsocket_fd); //call the callback
     // string message = "Successfully connected!";
     // struct Connector connect_fd = Connector();
     // connect_fd.source_fd = tempsocket_fd;
-    // // sendMessage(connect_fd, message.c_str());
-    // sendMessageSSL(ssl, message.c_str());
+    // sendMessage(connect_fd, message.c_str());
 }
 
-void Server::recvInputFromExisting(int fd)
-{
-    struct Connector connect_fd = Connector();
-    connect_fd.source_fd = fd;
+void Server::sendMsgToExisting(Connector& connect_fd, vector<string>& messages){
+    for(int i=0; i<messages.size(); i++){
+        int bytes = sendMessage(connect_fd, messages[i].c_str());
+        while(bytes < 0){
+            bytes = sendMessage(connect_fd, messages[i].c_str());
+        }
+        usleep(100000);
+    }
 
-    // int nbytesrecv = recvMessage(connect_fd, input_buffer);
-    ssl = ssl_map[fd];
-    int nbytesrecv = recvMessageSSL(ssl, input_buffer);
+}
+
+vector<string> Server::recvInputFromExisting(Connector& connect_fd)
+{
+    vector<string> messages;
+    int nbytesrecv = recvMessage(connect_fd, input_buffer);
     // int nbytesrecv = recv(fd, input_buffer, INPUT_BUFFER_SIZE, 0);
     cout<<"Received bytes: "<<nbytesrecv<<endl;
     if (nbytesrecv <= 0)
     {
         //problem
-        if (0 == nbytesrecv)
-	    {
+        if (nbytesrecv < 0)
+	    {   
+            perror("[SERVER] [ERROR] recv() failed");
         	//disconnectCallback((uint16_t)fd);
-		    close(fd); //well then, bye bye.
-        	FD_CLR(fd, &masterfds);
-        	return;
-        } else 
-	    {
-        	perror("[SERVER] [ERROR] recv() failed");
         }
-        close(fd); //close connection to client
-        FD_CLR(fd, &masterfds); //clear the client fd from fd set
-        return;
+        close(connect_fd.source_fd); //close connection to client
+        FD_CLR(connect_fd.source_fd, &masterfds); //clear the client fd from fd set
+        return messages;
     }
     #ifdef SERVER_DEBUG
     printf("[SERVER] [RECV] Received '%s' from client!\n", input_buffer);
@@ -223,53 +217,594 @@ void Server::recvInputFromExisting(int fd)
     // authenticate the identity of the user
     json message = json::parse(input_buffer);
     cout<<message.dump()<<endl;
-    auto command = message["command"];
+    auto command = message["command"].get<std::string>();
     string username = "";
-    string password = "";
+    auto password = std::string();
+    string identity = "";
     // string status = "";
-    
+    string subject_name = "";
+    string chapter_name = "";
+    string question_id = "";
+    auto question_content = std::string();
+
+    if(message.contains("username")) username = message["username"].get<std::string>();
+    else cout<<"No account.\n";
+
+    if(message.contains("password")) password = message["password"].get<std::string>();
+    else cout<<"No password.\n";
+    if(message.contains("subject name")) subject_name = message["subject name"].get<std::string>();
+    if(message.contains("chapter name")) chapter_name = message["chapter name"].get<std::string>();
+    if(message.contains("question name")) question_id = message["question name"].get<std::string>();
+    if(message.contains("question text")) question_content = message["question text"].get<std::string>();
+
     if(command == "login"){
-        if(message.contains("account")) username = message["username"].get<std::string>();
-        else{
-            perror("No account.\n");
-            exit(1);
-            }
-        if(message.contains("password")) password = message["password"].get<std::string>();
-        else{
-            perror("No password.\n");
-            exit(1);
-        }
-        // if(message.contains("status")) status = message["status"].get<std::string>();
-        // else{
-        //     perror("No status.\n");
-        //     exit(1);
-        // }
-        // authenticateUser(connect_fd, account, password, status);
-        authenticateUser(ssl, username, password);
+        messages = authenticateUser(connect_fd, username, password);
     }
+    else if(command == "get users" && 
+            bindIdentity.find(connect_fd.source_fd) != bindIdentity.end() && 
+            bindIdentity[connect_fd.source_fd] == "admin"){
+        messages = getUser(connect_fd);
+    }
+    else if(command == "register user"){
+        if(message.contains("identity")) identity = message["identity"].get<std::string>();
+        else{
+            perror("No identity.\n");
+            // exit(1);
+        }
+        messages = registerUser(connect_fd, username, password, identity);
+    }
+    else if(command == "delete user" && bindIdentity.find(connect_fd.source_fd) != bindIdentity.end()){
+        if(bindIdentity[connect_fd.source_fd] == "admin") messages = deleteUser(connect_fd, username);
+        else messages = deleteUserSelf(connect_fd, password);
+    }
+    else if(command == "logout" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
+        messages = logout(connect_fd);
+    }
+    else if(command == "get teachers" && bindIdentity.find(connect_fd.source_fd) != bindIdentity.end() && bindIdentity[connect_fd.source_fd] == "rule maker") {
+        messages = getTeachers();
+    }
+    else if(command == "get subjects" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
+        messages = getSubjects();
+    }
+    else if(command == "get chapters" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
+        messages = getChapters(subject_name);
+    }
+    else if(command == "get questions" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
+        messages = getQuestions(subject_name, chapter_name);
+    }
+    else if(command == "read question" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
+        messages = getQuestions(subject_name, chapter_name, question_id);
+    }
+    else if(command == "write question" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
+        messages = writeQuestion(subject_name, chapter_name, question_id, question_content);
+    }
+    else if(command == "delete question" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
+        messages = deleteQuestion(subject_name, chapter_name, question_id);
+    }
+    else if(command == "write subject" && bindIdentity.find(connect_fd.source_fd) != bindIdentity.end() && bindIdentity[connect_fd.source_fd] == "teacher") {
+        messages = addSubject(subject_name);
+    }
+    else if(command == "write chapter" && bindIdentity.find(connect_fd.source_fd) != bindIdentity.end() && bindIdentity[connect_fd.source_fd] == "teacher") {
+        messages = addChapter(subject_name, chapter_name);
+    }
+    else{
+        cout<<"Invalid command or not enough permission."<<endl;
+        #ifdef __cpp_lib_format
+        message = std::format("{\"code\": {}}", 403);
+        #else
+        message = fmt::format("{{\"code\": {}}}", 403);
+        #endif
+        messages.push_back(message);
+    } 
     //memset(&input_buffer, 0, INPUT_BUFFER_SIZE); //zero buffer //bzero
-    bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
+    // bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
+    return messages;
 }
 
-// void Server::authenticateUser(Connector connect_fd, string account, string password, string status){
-void Server::authenticateUser(SSL *cur_ssl, string username, string password){
-    string message;
+vector<string> Server::authenticateUser(Connector& connect_fd, string username, auto password){
     int status_code;
     // with database logic
-    status_code = 200;
-    string identity = "admin";
-    #ifdef __cpp_lib_format
-    message = std::format("{\"status\": \"{}\", \"identity\": \"{}\"}", status_code, identity);
-    #else
-    message = fmt::format("{{\"status\": \"{}\", \"identity\": \"{}\"}}", status_code, identity);
-    #endif
-    
-    //int bytes = sendMessage(connect_fd, message.c_str());
-    int bytes = sendMessageSSL(cur_ssl, message.c_str());
-    while(bytes < 0){
-        //bytes = sendMessage(connect_fd, message.c_str());
-        bytes = sendMessageSSL(cur_ssl, message.c_str());
+    optional<pair<string, variant<string, int, double>>> constraint;
+    string key = "password";
+    string target_attribute = "identity";
+    constraint = std::make_pair(key, password);
+    string identity = user->getUserAttribute(constraint, username, target_attribute);
+    if(!identity.empty()){
+        target_attribute = "activity";
+        int activity = stoi(user->getUserAttribute(constraint, username, target_attribute));
+        if(activity){
+            cout<<"User already login! Logout from previous device and re-login!"<<endl;
+            int logout_status = logout(username);
+        }
+        status_code = 200;
+        activity = 1;
+        const string primary_val = std::as_const(username);
+        vector<pair<string, variant<string, int, double>>> changelist;
+        changelist.emplace_back("activity", activity);
+        user->update(primary_val, changelist);
+
     }
+    else{
+        status_code = 404;
+        cout<<"Wrong authentication!"<<endl;
+    }
+    vector<string> messages;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}, \"identity\": \"{}\"}", status_code, identity);
+    #else
+    message = fmt::format("{{\"code\": {}, \"identity\": \"{}\"}}", status_code, identity);
+    #endif
+    cout<<"checkin message: "<<message<<endl;
+    messages.push_back(message);
+    
+    bindIdentity[connect_fd.source_fd] = identity;
+    bindUsername[connect_fd.source_fd] = username;
+    logined_users[username] = connect_fd.source_fd;
+    return messages;
+}
+
+vector<string> Server::registerUser(Connector& connect_fd, string username, auto password, string identity){
+    int status_code;
+    // with database logic
+    std::shared_ptr<UserInfo<string>> new_user = std::make_shared<UserInfo<string>>(username, static_cast<std::string>(password), identity, "valid");
+    int result = user->insert(new_user);
+    // delete new_user;
+    if(result == -1) status_code = 403;
+    else status_code = 200;
+    vector<string> messages;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{{\"code\": {}}}", status_code);
+    #endif
+    messages.push_back(message);
+    usernameSet.insert(username);
+    return messages;
+}
+
+
+vector<string> Server::logout(Connector& connect_fd){
+    int status_code;
+    int activity_updated = 0;
+    string username = bindUsername[connect_fd.source_fd];
+    vector<pair<string, variant<string, int, double>>> constraint;
+    constraint.emplace_back("activity", activity_updated);
+    int res = user->update(std::as_const(username), constraint);
+    if(res < 0){
+        cout<<"logout failed."<<endl;
+        status_code = 403;
+    }
+    else {
+        bindUsername.erase(connect_fd.source_fd);
+        bindIdentity.erase(connect_fd.source_fd);
+        logined_users.erase(username);
+        status_code = 200;
+    }
+    vector<string> messages;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{{\"code\": {}}}", status_code);
+    #endif
+    messages.push_back(message);
+    return messages;
+}
+
+int Server::logout(string username){
+    int source_fd = logined_users[username];
+    vector<pair<string, variant<string, int, double>>> constraint;
+    constraint.emplace_back("activity", 0);
+    int res = user->update(std::as_const(username), constraint);
+    if(res < 0){
+        cout<<"logout failed."<<endl;
+    } else {
+        auto it = logined_users.find(username);
+        if(it != logined_users.end()){
+            logined_users.erase(it);
+        }
+    }
+    cout<<"Logout from other device successfully!"<<endl;
+    bindIdentity.erase(source_fd);
+    bindUsername.erase(source_fd);
+    return res;
+}
+
+vector<string> Server::getUser(Connector& connect_fd){
+    vector<string> usernames;
+    int status_code;
+    // with database logic
+    int numUsers = user->count();
+    if(numUsers < 0) status_code = 403;
+    else status_code = 200;
+
+    vector<string> messages;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, numUsers);
+    #else
+    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, numUsers);
+    #endif
+
+    messages.reserve(numUsers+1);
+    messages.push_back(message);
+    if(numUsers < 0) return messages;
+    optional<pair<string, string>> constraint;
+    usernames = user->getUserAttributes(constraint, "USERNAME");
+
+    for(int i=0; i<usernames.size(); i++){
+        message = fmt::format("{{\"username\": \"{}\"}}", usernames[i]);
+        messages.push_back(message);
+    }
+    return messages;
+}
+
+vector<string> Server::deleteUser(Connector& connect_fd, string username){
+    int status_code = 200;
+
+    auto un = usernameSet.find(username);
+    if(un != usernameSet.end()) {
+        status_code = 200;
+        usernameSet.erase(un);
+    } else {
+        status_code = 403;
+    }
+    
+    // with database logic
+    string key = "status";
+    pair<string, variant<string, int, double>> deleted_detail;
+    deleted_detail = std::make_pair(key, "valid");
+    int result = user->delet(std::as_const(username), deleted_detail);
+    if(result == -1 && status_code == 200) status_code = 404;
+    else if(result >= 0) status_code = 200;
+
+    vector<string> messages;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{{\"code\": {}}}", status_code);
+    #endif
+    messages.push_back(message);
+    return messages;
+}
+
+vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password){
+    string username = bindUsername[connect_fd.source_fd];
+    int status_code;
+
+    auto identity_iter = bindIdentity.find(connect_fd.source_fd);
+    if(identity_iter == bindIdentity.end()){
+        status_code = 403;
+        cout<<"Identity not found!"<<endl;
+    } else {
+        status_code = 200;
+        cout<<"Identity found!"<<endl;
+        bindIdentity.erase(identity_iter);
+        // bindUsername.erase(it);
+    }
+
+    auto username_iter = bindUsername.find(connect_fd.source_fd);
+    if(username_iter == bindUsername.end()){
+        status_code = 403;
+        cout<<"Username not found!"<<endl;
+    } else {
+        status_code = 200;
+        cout<<"Username found!"<<endl;
+        // bindIdentity.erase(it);
+        bindUsername.erase(username_iter);
+    }
+
+    // with database logic
+    string key = "password";
+    pair<string, variant<string, int, double>> deleted_detail = std::make_pair(key, password);
+    int result = user->delet(std::as_const(username), deleted_detail);
+    if(result == -1 && status_code == 200) status_code = 404;
+    else if(result >= 0) status_code = 200;
+
+    vector<string> messages;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{{\"code\": {}}}", status_code);
+    #endif
+    messages.push_back(message);
+    return messages;
+}
+
+vector<string> Server::getTeachers(){
+    int status_code;
+    vector<pair<string, string>> constraint;
+    // constraint.push_back(std::make_pair("ACTIVITY", "1"));
+    constraint.push_back(std::make_pair("IDENTITY", "teacher"));
+    vector<string> teachers = user->getUserAttributes(constraint, "USERNAME");
+    if(teachers.empty()) status_code = 403;
+    else status_code = 200; 
+    vector<string> messages;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, teachers.size());
+    #else
+    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, teachers.size());
+    #endif
+
+    messages.reserve(teachers.size()+1);
+    messages.push_back(message);
+
+    //experimental
+    #pragma omp parallel for num_threads(4)
+    for(int i=0; i<teachers.size(); i++) {
+        #pragma omp critical
+        messages.push_back(fmt::format("{{\"username\": \"{}\"}}", teachers[i]));
+    }
+    return messages;
+}
+
+vector<string> Server::getSubjects(){
+    int status_code;
+    vector<string> messages;
+    string target_attribute = "subject";
+    optional<pair<string, variant<string, int, double>>> count_info;
+    int subject_num = question->countDistinct(target_attribute, count_info);
+    if(subject_num < 0){
+        status_code = 403;
+        #ifdef __cpp_lib_format
+        message = std::format("{\"code\": {}, \"counts\": {}}", status_code, subject_num);
+        #else
+        message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, subject_num);
+        #endif
+        messages.push_back(message);
+        return messages;
+    }
+    else status_code = 200;
+    optional<pair<string, string>> constraint;
+    vector<string> subjects = question->getQuestionAttributes(constraint, target_attribute);
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, subjects.size());
+    #else
+    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, subjects.size());
+    #endif
+
+    messages.reserve(subjects.size()+1);
+    messages.push_back(message);
+
+    for(int i=0; i<subject_num; i++){
+        #ifdef __cpp_lib_format
+        message = std::format("{\"subject name\": \"{}\"}", subjects[i]);
+        #else
+        message = fmt::format("{{\"subject name\": \"{}\"}}", subjects[i]);
+        #endif
+        messages.push_back(message);
+    }
+    return messages;
+}
+
+vector<string> Server::getChapters(string subject){
+    int status_code;
+    vector<string> messages;
+    string target_attribute = "chapter";
+    optional<pair<string, variant<string, int, double>>> count_info;
+    count_info = std::make_pair("subject", subject);
+    int chapter_num = question->countDistinct(target_attribute, count_info);
+    if(chapter_num < 0){
+        status_code = 403;
+        #ifdef __cpp_lib_format
+        message = std::format("{\"code\": {}, \"counts\": {}}", status_code, chapter_num);
+        #else
+        message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, chapter_num);
+        #endif
+        messages.push_back(message);
+        return messages;
+    }
+    else status_code = 200;
+    optional<pair<string, string>> constraint;
+    constraint = std::make_pair("subject", subject);
+    vector<string> chapters = question->getQuestionAttributes(constraint, target_attribute);
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, chapter_num);
+    #else
+    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, chapter_num);
+    #endif
+
+    messages.reserve(chapter_num+1);
+    messages.push_back(message);
+
+    for(int i=0; i<chapter_num; i++){
+        #ifdef __cpp_lib_format
+        message = std::format("{\"chapter name\": \"{}\"}", chapters[i]);
+        #else
+        message = fmt::format("{{\"chapter name\": \"{}\"}}", chapters[i]);
+        #endif
+        messages.push_back(message);
+    }
+    return messages;
+}
+
+vector<string> Server::addSubject(string subject) {
+    int status_code;
+    vector<string> messages;
+    optional<pair<string, variant<string, int, double>>> count_info;
+    count_info = std::make_pair("subject", subject);
+    int existence = question->countDistinct("subject", count_info);
+    int rc;
+    if(existence < 0) status_code = 404;
+    else if(existence == 0) {
+        cout<<"Add a new subject to the question bank."<<endl;
+        std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>("placeholder", "placeholder", "placeholder", subject);
+        rc = question->insert(new_question);
+        // delete new_question;
+        if(rc < 0) status_code = 403;
+        else status_code = 200;
+    } else {
+        cout<<"Subject already exists!"<<endl;
+        status_code = 403;
+    }
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{{\"code\": {}}}", status_code);
+    #endif
+    messages.push_back(message);
+    return messages;
+}
+
+vector<string> Server::addChapter(string subject, string chapter) {
+    int status_code;
+    vector<string> messages;
+    string target_attribute = "chapter";
+
+    optional<pair<string, variant<string, int, double>>> count_info;
+    count_info = std::make_pair("subject", subject);
+    int existence = question->countDistinct(target_attribute, count_info);
+    if(existence > 0) {
+        vector<pair<string, string>> count_infos{std::make_pair("subject", subject), std::make_pair("chapter", chapter)};
+        existence = question->countDistinct(target_attribute, count_infos);
+        int rc;
+        if(existence < 0) status_code = 404;
+        else if(existence == 0) {
+            cout<<"Add a new chapter to the question bank."<<endl;
+            std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>("placeholder", "placeholder", chapter, subject);
+            rc = question->insert(new_question);
+            // delete new_question;
+            if(rc < 0) status_code = 403;
+            else status_code = 200;
+        } else {
+            cout<<"Chapter already exists!"<<endl;
+            status_code = 403;
+        }
+    } else {
+        cout<<"Subject has not been created yet!"<<endl;
+        status_code = 403;
+    }
+
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{{\"code\": {}}}", status_code);
+    #endif
+    messages.push_back(message);
+    return messages;
+}
+
+vector<string> Server::getQuestions(string subject, string chapter){
+    int status_code;
+    vector<string> messages;
+    string target_attribute = "path";
+    vector<pair<string, string>> count_infos{std::make_pair("subject", subject), std::make_pair("chapter", chapter)};
+    int question_num = question->countDistinct(target_attribute, count_infos);
+    if(question_num < 0){
+        status_code = 403;
+        #ifdef __cpp_lib_format
+        message = std::format("{\"code\": {}, \"counts\": {}}", status_code, question_num);
+        #else
+        message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, question_num);
+        #endif
+        messages.push_back(message);
+        return messages;
+    }
+    else status_code = 200;
+    // vector<pair<string, string>> constraints;
+    // constraints.push_back(std::make_pair("subject", subject));
+    // constraints.push_back(std::make_pair("chapter", chapter));
+    vector<string> question_ids = question->getQuestionAttributes(count_infos, target_attribute);
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, question_ids.size());
+    #else
+    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, question_ids.size());
+    #endif
+
+    messages.reserve(question_ids.size()+1);
+    messages.push_back(message);
+
+    for(int i=0; i<question_num; i++){
+        
+        #ifdef __cpp_lib_format
+        message = std::format("{\"question name\": \"{}\"}", question_ids[i]);
+        #else
+        message = fmt::format("{{\"question name\": \"{}\"}}", question_ids[i]);
+        #endif
+        messages.push_back(message);
+        
+    }
+    return messages;
+}
+
+vector<string> Server::getQuestions(string subject, string chapter, string question_id){
+    int status_code;
+    vector<string> messages;
+    string target_attribute = "content";
+    optional<pair<string, variant<string, int, double>>> constraint;
+    vector<pair<string, string>> primary_pairs{std::make_pair("subject", subject), std::make_pair("chapter", chapter), std::make_pair("path", question_id)};
+    string question_content = question->getQuestionAttribute(constraint, primary_pairs, target_attribute);
+
+    status_code = 200;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}, \"question text\": \"{}\"}", status_code, question_content);
+    #else
+    message = fmt::format("{{\"code\": {}, \"question text\": \"{}\"}}", status_code, question_content);
+    #endif
+
+    messages.push_back(message);
+    return messages;
+}
+
+vector<string> Server::writeQuestion(string subject, string chapter, string question_id, auto content){
+    int status_code;
+    vector<string> messages;
+    // check if the path exists
+    vector<pair<string, string>> count_infos;
+    count_infos.push_back(std::make_pair("subject", subject));
+    count_infos.push_back(std::make_pair("chapter", chapter));
+    count_infos.push_back(std::make_pair("path", question_id));
+    int existence = question->countDistinct("content", count_infos);
+    int rc;
+    content = escapeJsonString(content);
+    if(existence < 0) status_code = 404;
+    else if(existence == 0) {
+        // Check if the subject and chapter can accept a new question
+        count_infos.pop_back();
+        existence = question->countDistinct("content", count_infos);
+        if(existence > 0) {
+            cout<<"Write a new question into the question bank!"<<endl;
+            std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>(question_id, content, chapter, subject);
+            rc = question->insert(new_question);
+            // delete new_question;
+            if(rc < 0) status_code = 403;
+            else status_code = 200;
+        } else {
+            cout<<"Either subject or chapter has not been created yet!"<<endl;
+            status_code = 403;
+        }
+    }
+    else {
+        cout<<"Update an existing question!"<<endl;
+        vector<pair<string, variant<string, int, double>>> changelist;
+        changelist.push_back(std::make_pair("content", content));
+        rc = question->update(count_infos, changelist);
+        if(rc < 0) status_code = 403;
+        else status_code = 200;
+    }
+
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{{\"code\": {}}}", status_code);
+    #endif
+    messages.push_back(message);
+    return messages;
+}
+
+vector<string> Server::deleteQuestion(string subject, string chapter, string question_id){
+    int status_code;
+    vector<string> messages;
+    vector<pair<string, string>> primary_pairs{std::make_pair("subject", subject), std::make_pair("chapter", chapter), std::make_pair("path", question_id)};
+    int rc = question->delet(primary_pairs);
+    if(rc >= 0) status_code = 200;
+    else status_code = 404;
+    #ifdef __cpp_lib_format
+    message = std::format("{\"code\": {}}", status_code);
+    #else
+    message = fmt::format("{{\"code\": {}}}", status_code);
+    #endif
+
+    messages.push_back(message);
+    return messages;
 }
 
 void Server::loop()
@@ -297,7 +832,14 @@ void Server::loop()
                 handleNewConnection();
             } else {
                 //exisiting connection has new data
-                recvInputFromExisting(i);
+                Connector connect_fd = Connector();
+                connect_fd.source_fd = i;
+                vector<string> messages = recvInputFromExisting(connect_fd);
+                if(!messages.empty()){
+                    messages.shrink_to_fit();
+                    sendMsgToExisting(connect_fd, messages);
+                    bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
+                }
             }
         } //loop on to see if there is more
     }
@@ -305,6 +847,9 @@ void Server::loop()
 
 void Server::init()
 {
+    // create/open databases
+    user->create();
+    question->create();
     initializeSocket();
     bindSocket();
     startListen();
@@ -329,24 +874,12 @@ uint16_t Server::sendMessage(Connector conn, char *messageBuffer) {
     return send(conn.source_fd, messageBuffer, strlen(messageBuffer), 0);
 }
 
-uint16_t Server::sendMessageSSL(SSL *ssl, char *messageBuffer){
-    return SSL_write(ssl, messageBuffer, strlen(messageBuffer));
-}
-
 uint16_t Server::sendMessage(Connector conn, const char *messageBuffer) {
     return send(conn.source_fd, messageBuffer, strlen(messageBuffer), 0);
 }
 
-uint16_t Server::sendMessageSSL(SSL *ssl, const char *messageBuffer){
-    return SSL_write(ssl, messageBuffer, strlen(messageBuffer));
-}
-
 uint16_t Server::recvMessage(Connector conn, char *messageBuffer){
     return recv(conn.source_fd, messageBuffer, INPUT_BUFFER_SIZE, 0);
-}
-
-uint16_t Server::recvMessageSSL(SSL *ssl, char *messageBuffer){
-    return SSL_read(ssl, messageBuffer, INPUT_BUFFER_SIZE);
 }
 
 
@@ -354,11 +887,6 @@ uint16_t Server::recvMessageSSL(SSL *ssl, char *messageBuffer){
 int main(int argc, char *argv[]){
     string digital_certificate_path = argv[1];
     string privateKey_path = argv[2];
-
-    /*******************/
-    // db_user user = db_user();
-    // user.create();
-    /*****************/
 
     Server server_object = Server(digital_certificate_path, privateKey_path);
     server_object.init();
