@@ -10,6 +10,7 @@
 #include "tcpclientsocket.h"
 #include <nlohmann/json.hpp>
 #include <unistd.h>
+#include <chrono>
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 using json=nlohmann::json;

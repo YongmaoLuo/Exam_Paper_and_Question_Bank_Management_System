@@ -28,7 +28,12 @@ void LoginDialog::on_loginButton_clicked()
 {
     QString user = ui->userName->text();
     QString pass=ui->password->text();
+    std::chrono::duration<double,std::milli> dur;
+    auto start=std::chrono::steady_clock::now();
     submit_login(user,pass);
+    auto end=std::chrono::steady_clock::now();
+    dur=end - start;
+    std::cout<<"login duration: "<<dur.count()<<" ms"<<std::endl;
 }
 
 void LoginDialog::submit_login(QString userName, QString password){

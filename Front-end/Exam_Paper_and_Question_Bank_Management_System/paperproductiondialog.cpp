@@ -57,11 +57,12 @@ void PaperProductionDialog::output_paper(QString pathName,QStringList questionsL
             return;
         }
         std::cout<<"question text: "<<recvPacket["question text"]<<std::endl;
-        write<<QString::fromUtf8(std::string(recvPacket["question text"]).c_str());
+        write<<QString::fromUtf8(std::string(recvPacket["question text"]).c_str())<<'\n';
         if(write.status()==QTextStream::WriteFailed){
             QMessageBox::warning(this,"warning","cannot write to this file");
             return;
         }
+        write<<'\n';
     }
     write.flush();
     output.close();

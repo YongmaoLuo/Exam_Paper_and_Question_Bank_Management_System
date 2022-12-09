@@ -328,6 +328,10 @@ int main(int argc , char *argv[])
                         json sendPacket=json::parse(fmt::format("{{\"code\": 200}}"));
                         std::string ret=sendPacket.dump();
                         send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                    }else if(recvPacket["command"]=="logout"){
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200}}"));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
                     }
                     
                 }  

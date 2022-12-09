@@ -14,7 +14,7 @@ TCPClientSocket::TCPClientSocket()
         this->fd=-1;
     }
     memset(&this->sAddr,0,sizeof(this->sAddr));
-    this->sAddr.sin_len=sizeof(this->sAddr);
+    this->sAddr.sin_len=(__uint8_t)sizeof(this->sAddr);
     this->sAddr.sin_family = AF_INET;
 }
 

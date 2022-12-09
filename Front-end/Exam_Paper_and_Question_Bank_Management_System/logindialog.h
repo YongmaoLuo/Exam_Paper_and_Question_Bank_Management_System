@@ -6,13 +6,13 @@
 #include "rulemakerdialog.h"
 #include "mainwindow.h"
 
-namespace Ui {
+namespace Ui { // there is another ui_logindialog.h file created by user interface compiler by Qt
 class LoginDialog;
 }
 
 class LoginDialog : public QDialog,public Login
 {
-    Q_OBJECT
+    Q_OBJECT // indicate it should be handled by signal-slot mechanism
 
 public:
     explicit LoginDialog(QWidget *parent = nullptr);
