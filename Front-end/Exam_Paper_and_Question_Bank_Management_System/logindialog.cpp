@@ -120,19 +120,19 @@ void LoginDialog::open_login_panel(){
 //}
 
 void LoginDialog::receive_admin_panel_closure(){
-    //adminPanel=nullptr;
+    adminPanel=nullptr;
     emit login_close_admin();
     adminPanel.reset(nullptr);
 }
 
 void LoginDialog::receive_rulemaker_panel_closure(){
-    //ruleMakerPanel=nullptr;
+    ruleMakerPanel=nullptr;
     emit login_close_rulemaker();
     ruleMakerPanel.reset();
 }
 
 void LoginDialog::receive_teacher_panel_closure(){
-    //mainwindowPanel=nullptr;
+    mainwindowPanel=nullptr;
     emit login_close_teacher();
     mainwindowPanel.reset();
 }
