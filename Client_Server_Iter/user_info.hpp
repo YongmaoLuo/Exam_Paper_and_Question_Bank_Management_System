@@ -1,18 +1,21 @@
 #ifndef DB_HPP
 #define DB_HPP
 #include "database.hpp"
+#pragma comment(lib, "sqlite3.lib")
 using namespace std;
 
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
 template<hashable T>
-struct UserInfo{
+struct UserInfo final {
+        private:
             string username;
             string password;
             T identity;
             T status;
             int activity = 0; // no boolean inside sqlite
+        public:
             UserInfo<T>(string username_, string password_, T identity_, T status_): username(username_), password(password_), identity(identity_), status(status_), activity(0) {};
             UserInfo<T>(string username_, string password_, T identity_, T status_, int activity_): username(username_), password(password_), identity(identity_), status(status_), activity(activity_) {};
             UserInfo<T> operator=(UserInfo<T> newuser){
@@ -23,12 +26,13 @@ struct UserInfo{
                 activity = newuser.activity;
                 return *this;
             }
+            std::tuple<string, string, T, T, int> getElements() const {return std::make_tuple(username, password, identity, status, activity);};
         };
 
 class db_user: public database{
     private:
-        sqlite3 *db;
-        sqlite3_stmt *stmt;
+        // sqlite3 *db;
+        // sqlite3_stmt *stmt;
         char *zErrMsg;
         int rc;
         string sql;
@@ -40,8 +44,8 @@ class db_user: public database{
         virtual ~db_user(); //drop the table?
 
         void create(bool = false, const char* = "userinfo.db");
-        int insert(UserInfo<string>* user);
-        int update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
+        int insert(std::shared_ptr<UserInfo<string>> user);
+        int update(const string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
         
         string getUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute);
         
@@ -135,7 +139,7 @@ class db_user: public database{
 
         int count();
         int countDistinct(string target_attribute, pair<string, variant<string, int, double>> count_info);
-        int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info);
+        int delet(const string primary_val, pair<string, variant<string, int, double>> deleted_info);
         void clean();
 };
 #endif

@@ -1,6 +1,8 @@
 #include "server_unencrypted.hpp"
 #include "user_info.cpp"
 #include "question_bank.cpp"
+#include <omp.h>
+#include <utility>
 using namespace std;
 
 Server::Server()
@@ -51,6 +53,7 @@ void Server::setup(int port)
     servaddr.sin_port = htons(port);
 
     bzero(&input_buffer, INPUT_BUFFER_SIZE); //zero the input buffer before use to avoid random data appearing in first receives
+
 }
 
 void Server::initializeSocket()
@@ -145,7 +148,7 @@ void Server::sendMsgToExisting(Connector& connect_fd, vector<string>& messages){
         while(bytes < 0){
             bytes = sendMessage(connect_fd, messages[i].c_str());
         }
-        usleep(20000);
+        usleep(100000);
     }
 
 }
@@ -175,7 +178,7 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
     // authenticate the identity of the user
     json message = json::parse(input_buffer);
     cout<<message.dump()<<endl;
-    auto command = message["command"];
+    auto command = message["command"].get<std::string>();
     string username = "";
     auto password = std::string();
     string identity = "";
@@ -247,6 +250,12 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
     }
     else{
         cout<<"Invalid command or not enough permission."<<endl;
+        #ifdef __cpp_lib_format
+        message = std::format("{\"code\": {}}", 403);
+        #else
+        message = fmt::format("{{\"code\": {}}}", 403);
+        #endif
+        messages.push_back(message);
     } 
     //memset(&input_buffer, 0, INPUT_BUFFER_SIZE); //zero buffer //bzero
     // bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
@@ -270,7 +279,7 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
         }
         status_code = 200;
         activity = 1;
-        string primary_val = username;
+        const string primary_val = std::as_const(username);
         vector<pair<string, variant<string, int, double>>> changelist;
         changelist.emplace_back("activity", activity);
         user->update(primary_val, changelist);
@@ -298,9 +307,9 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
 vector<string> Server::registerUser(Connector& connect_fd, string username, auto password, string identity){
     int status_code;
     // with database logic
-    UserInfo<string> *new_user = new UserInfo<string>(username, static_cast<std::string>(password), identity, "valid");
+    std::shared_ptr<UserInfo<string>> new_user = std::make_shared<UserInfo<string>>(username, static_cast<std::string>(password), identity, "valid");
     int result = user->insert(new_user);
-    delete new_user;
+    // delete new_user;
     if(result == -1) status_code = 403;
     else status_code = 200;
     vector<string> messages;
@@ -321,7 +330,7 @@ vector<string> Server::logout(Connector& connect_fd){
     string username = bindUsername[connect_fd.source_fd];
     vector<pair<string, variant<string, int, double>>> constraint;
     constraint.emplace_back("activity", activity_updated);
-    int res = user->update(username, constraint);
+    int res = user->update(std::as_const(username), constraint);
     if(res < 0){
         cout<<"logout failed."<<endl;
         status_code = 403;
@@ -346,7 +355,7 @@ int Server::logout(string username){
     int source_fd = logined_users[username];
     vector<pair<string, variant<string, int, double>>> constraint;
     constraint.emplace_back("activity", 0);
-    int res = user->update(username, constraint);
+    int res = user->update(std::as_const(username), constraint);
     if(res < 0){
         cout<<"logout failed."<<endl;
     } else {
@@ -404,7 +413,7 @@ vector<string> Server::deleteUser(Connector& connect_fd, string username){
     string key = "status";
     pair<string, variant<string, int, double>> deleted_detail;
     deleted_detail = std::make_pair(key, "valid");
-    int result = user->delet(username, deleted_detail);
+    int result = user->delet(std::as_const(username), deleted_detail);
     if(result == -1 && status_code == 200) status_code = 404;
     else if(result >= 0) status_code = 200;
 
@@ -447,7 +456,7 @@ vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password){
     // with database logic
     string key = "password";
     pair<string, variant<string, int, double>> deleted_detail = std::make_pair(key, password);
-    int result = user->delet(username, deleted_detail);
+    int result = user->delet(std::as_const(username), deleted_detail);
     if(result == -1 && status_code == 200) status_code = 404;
     else if(result >= 0) status_code = 200;
 
@@ -464,7 +473,7 @@ vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password){
 vector<string> Server::getTeachers(){
     int status_code;
     vector<pair<string, string>> constraint;
-    constraint.push_back(std::make_pair("ACTIVITY", "1"));
+    // constraint.push_back(std::make_pair("ACTIVITY", "1"));
     constraint.push_back(std::make_pair("IDENTITY", "teacher"));
     vector<string> teachers = user->getUserAttributes(constraint, "USERNAME");
     if(teachers.empty()) status_code = 403;
@@ -479,13 +488,11 @@ vector<string> Server::getTeachers(){
     messages.reserve(teachers.size()+1);
     messages.push_back(message);
 
-    for(auto it=teachers.begin(); it!=teachers.end(); it++) {
-        #ifdef __cpp_lib_format
-        message = std::format("{\"username\": \"{}\"}", *it);
-        #else
-        message = fmt::format("{{\"username\": \"{}\"}}", *it);
-        #endif
-        messages.push_back(message);
+    //experimental
+    #pragma omp parallel for num_threads(4)
+    for(int i=0; i<teachers.size(); i++) {
+        #pragma omp critical
+        messages.push_back(fmt::format("{{\"username\": \"{}\"}}", teachers[i]));
     }
     return messages;
 }
@@ -509,7 +516,6 @@ vector<string> Server::getSubjects(){
     else status_code = 200;
     optional<pair<string, string>> constraint;
     vector<string> subjects = question->getQuestionAttributes(constraint, target_attribute);
-    if(subjects.empty()) status_code = 404;
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}, \"counts\": {}}", status_code, subjects.size());
     #else
@@ -551,14 +557,13 @@ vector<string> Server::getChapters(string subject){
     optional<pair<string, string>> constraint;
     constraint = std::make_pair("subject", subject);
     vector<string> chapters = question->getQuestionAttributes(constraint, target_attribute);
-    if(chapters.empty()) status_code = 404;
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, chapters.size());
+    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, chapter_num);
     #else
-    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, chapters.size());
+    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, chapter_num);
     #endif
 
-    messages.reserve(chapters.size()+1);
+    messages.reserve(chapter_num+1);
     messages.push_back(message);
 
     for(int i=0; i<chapter_num; i++){
@@ -582,9 +587,9 @@ vector<string> Server::addSubject(string subject) {
     if(existence < 0) status_code = 404;
     else if(existence == 0) {
         cout<<"Add a new subject to the question bank."<<endl;
-        QuestionInfo<string>* new_question = new QuestionInfo<string>("placeholder", "placeholder", "placeholder", subject);
+        std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>("placeholder", "placeholder", "placeholder", subject);
         rc = question->insert(new_question);
-        delete new_question;
+        // delete new_question;
         if(rc < 0) status_code = 403;
         else status_code = 200;
     } else {
@@ -615,9 +620,9 @@ vector<string> Server::addChapter(string subject, string chapter) {
         if(existence < 0) status_code = 404;
         else if(existence == 0) {
             cout<<"Add a new chapter to the question bank."<<endl;
-            QuestionInfo<string>* new_question = new QuestionInfo<string>("placeholder", "placeholder", chapter, subject);
+            std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>("placeholder", "placeholder", chapter, subject);
             rc = question->insert(new_question);
-            delete new_question;
+            // delete new_question;
             if(rc < 0) status_code = 403;
             else status_code = 200;
         } else {
@@ -655,11 +660,10 @@ vector<string> Server::getQuestions(string subject, string chapter){
         return messages;
     }
     else status_code = 200;
-    vector<pair<string, string>> constraints;
-    constraints.push_back(std::make_pair("subject", subject));
-    constraints.push_back(std::make_pair("chapter", chapter));
-    vector<string> question_ids = question->getQuestionAttributes(constraints, target_attribute);
-    if(question_ids.empty()) status_code = 404;
+    // vector<pair<string, string>> constraints;
+    // constraints.push_back(std::make_pair("subject", subject));
+    // constraints.push_back(std::make_pair("chapter", chapter));
+    vector<string> question_ids = question->getQuestionAttributes(count_infos, target_attribute);
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}, \"counts\": {}}", status_code, question_ids.size());
     #else
@@ -670,12 +674,14 @@ vector<string> Server::getQuestions(string subject, string chapter){
     messages.push_back(message);
 
     for(int i=0; i<question_num; i++){
+        
         #ifdef __cpp_lib_format
         message = std::format("{\"question name\": \"{}\"}", question_ids[i]);
         #else
         message = fmt::format("{{\"question name\": \"{}\"}}", question_ids[i]);
         #endif
         messages.push_back(message);
+        
     }
     return messages;
 }
@@ -688,8 +694,7 @@ vector<string> Server::getQuestions(string subject, string chapter, string quest
     vector<pair<string, string>> primary_pairs{std::make_pair("subject", subject), std::make_pair("chapter", chapter), std::make_pair("path", question_id)};
     string question_content = question->getQuestionAttribute(constraint, primary_pairs, target_attribute);
 
-    if(question_content.empty()) status_code = 404;
-    else status_code = 200;
+    status_code = 200;
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}, \"question text\": \"{}\"}", status_code, question_content);
     #else
@@ -718,9 +723,9 @@ vector<string> Server::writeQuestion(string subject, string chapter, string ques
         existence = question->countDistinct("content", count_infos);
         if(existence > 0) {
             cout<<"Write a new question into the question bank!"<<endl;
-            QuestionInfo<string>* new_question = new QuestionInfo<string>(question_id, content, chapter, subject);
+            std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>(question_id, content, chapter, subject);
             rc = question->insert(new_question);
-            delete new_question;
+            // delete new_question;
             if(rc < 0) status_code = 403;
             else status_code = 200;
         } else {

@@ -7,20 +7,23 @@ using namespace std;
 #include "fmt/format.h"
 
 template <hashable T>
-struct QuestionInfo{
+struct QuestionInfo final {
+        private:
             string path;
             string content;
             string chapter;
             T category;
             int rubric;
+        public:
             QuestionInfo<T>(string path_, string content_, string chapter_, T category_): path(path_), content(content_), chapter(chapter_), category(category_), rubric(0) {};
             QuestionInfo<T>(string path_, string content_, string chapter_, T category_, int rubric_): path(path_), content(content_), chapter(chapter_), category(category_), rubric(rubric_) {};
+            std::tuple<string, string, string, T, int> getElements() const {return std::make_tuple(path, content, chapter, category, rubric);};
         };
 
 class question_bank: public database{
     private:
-        sqlite3 *db;
-        sqlite3_stmt *stmt;
+        // sqlite3 *db;
+        // sqlite3_stmt *stmt;
         char *zErrMsg;
         int rc;
         string sql;
@@ -31,7 +34,7 @@ class question_bank: public database{
         virtual ~question_bank(); //drop the table?
 
         void create(bool = false, const char* = "questions.db");
-        int insert(QuestionInfo<string>*);
+        int insert(std::shared_ptr<QuestionInfo<string>>);
         int update(vector<pair<string, string>>, vector<pair<string, variant<string, int, double>>> changelist);
 
         string getQuestionAttribute(optional<pair<string, variant<string, int, double>>> constraint, vector<pair<string, string>> primary_pairs, string target_attribute);
@@ -47,8 +50,8 @@ class question_bank: public database{
                 if constexpr(std::is_same_v<T_input, int> || std::is_same_v<T_input, double> || std::is_same_v<T_input, float>) constraint_val_str = to_string(constraint_val);
                 else constraint_val_str = constraint_val;
                 sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS " \
-                     "WHERE {} = '{}'; ", target_attribute, constraint_key, constraint_val_str);
-            } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS ;", target_attribute);
+                     "WHERE {} = '{}' AND {} != 'placeholder'; ", target_attribute, constraint_key, constraint_val_str, target_attribute);
+            } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS where {} != 'placeholder';", target_attribute, target_attribute);
             
             sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
             sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
@@ -94,8 +97,8 @@ class question_bank: public database{
                     cnt ++;
                 }
                 
-                sql += ";";
-            } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS ;", target_attribute);
+                sql += fmt::format(" AND {} != 'placeholder';", target_attribute);
+            } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS where {} != 'placeholder';", target_attribute);
             
             sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
             sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);

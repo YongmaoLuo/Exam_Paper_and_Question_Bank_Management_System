@@ -51,9 +51,9 @@ class question_bank;
 class Server
 {
 public:
-    Server();
-    Server(int port);
-    Server(const Server& orig);
+    explicit Server();
+    explicit Server(int port);
+    explicit Server(const Server& orig);
     virtual ~Server();
     
     struct Connector {

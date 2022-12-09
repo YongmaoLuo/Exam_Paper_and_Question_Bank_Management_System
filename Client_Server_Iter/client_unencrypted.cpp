@@ -179,9 +179,9 @@ void Client::loop(){
     //      error("ERROR reading from socket");
     bzero(buffer,256);
 
-    string username = "\"testuser\"";
+    string username = "\"testrulemaker\"";
     string password = "\"123456\"";
-    string identity = "\"admin\"";
+    string identity = "\"rule maker\"";
     string status = "\"valid\"";
     struct UserInfo user = {username, password, identity, status};
 
@@ -257,6 +257,47 @@ void Client::loop(){
     string question_name = "\"2022-12-03\"";
     string question_text = "\"Is one an integer?\n\"";
     question_text = escapeJsonString(question_text);
+    //////////////////////////
+    msg = fmt::format("{{\"command\": \"write subject\",\"subject name\": {} }}", 
+    subject_name);
+    cout<<"write subject msg: "<<msg<<endl;
+    // msg[strlen(msg)] = '\0';
+
+    num_bytes = sendMessage(connect_fd, msg.c_str());
+    if (num_bytes < 0) 
+         error("ERROR writing to socket");
+    cout<<"Sent a write subject command!"<<endl;
+    
+    bzero(buffer, 256);
+    num_bytes = recvMessage(connect_fd, buffer);
+    // num_bytes = recvMessageSSL(ssl, buffer);
+    buffer[num_bytes] = '\0';
+    cout<<"buffer: "<<buffer<<endl;
+
+    response = json::parse(buffer);
+    response_code = response["code"];
+    cout<<"Response code: "<<response_code<<endl;
+    ////////////////////////////
+    msg = fmt::format("{{\"command\": \"write chapter\",\"subject name\": {}, \"chapter name\": {} }}", 
+    subject_name, chapter_name);
+    cout<<"write chapter msg: "<<msg<<endl;
+    // msg[strlen(msg)] = '\0';
+
+    num_bytes = sendMessage(connect_fd, msg.c_str());
+    if (num_bytes < 0) 
+         error("ERROR writing to socket");
+    cout<<"Sent a write chapter command!"<<endl;
+    
+    bzero(buffer, 256);
+    num_bytes = recvMessage(connect_fd, buffer);
+    // num_bytes = recvMessageSSL(ssl, buffer);
+    buffer[num_bytes] = '\0';
+    cout<<"buffer: "<<buffer<<endl;
+
+    response = json::parse(buffer);
+    response_code = response["code"];
+    cout<<"Response code: "<<response_code<<endl;
+    
     msg = fmt::format("{{\"command\": \"write question\",\"question text\": {},\"subject name\": {}, \"chapter name\": {}, \"question name\": {} }}", 
     question_text, subject_name, chapter_name, question_name);
     cout<<"write question msg: "<<msg<<endl;
@@ -298,6 +339,59 @@ void Client::loop(){
     response_code = response["code"];
     string question_content = response["question text"];
     cout<<"Response code: "<<response_code<<"\t"<<"Question text: "<<question_content<<endl;
+    //////////////////////////
+    msg = fmt::format("{{\"command\": \"get teachers\" }}");
+    cout<<"get teachers msg: "<<msg<<endl;
+    // msg[strlen(msg)] = '\0';
+
+    num_bytes = sendMessage(connect_fd, msg.c_str());
+    if (num_bytes < 0) 
+         error("ERROR writing to socket");
+    cout<<"Sent a get teacher command!"<<endl;
+    
+    bzero(buffer, 256);
+    num_bytes = recvMessage(connect_fd, buffer);
+    // num_bytes = recvMessageSSL(ssl, buffer);
+    buffer[num_bytes] = '\0';
+    cout<<"buffer: "<<buffer<<endl;
+
+    response = json::parse(buffer);
+    response_code = response["code"];
+    int counts = response["counts"];
+
+    for(int i=0; i<counts; i++){
+        bzero(buffer, 256);
+        num_bytes = recvMessage(connect_fd, buffer);
+        // num_bytes = recvMessageSSL(ssl, buffer);
+        buffer[num_bytes] = '\0';
+        cout<<"buffer: "<<buffer<<endl;
+
+        response = json::parse(buffer);
+        string teacher = response["username"];
+        usleep(1000);
+    }
+
+
+    //////////////////////////
+    msg = fmt::format("{{\"command\": \"delete question\",\"subject name\": {}, \"chapter name\": {}, \"question name\": {} }}", 
+    subject_name, chapter_name, question_name);
+    cout<<"delete question msg: "<<msg<<endl;
+    // msg[strlen(msg)] = '\0';
+
+    num_bytes = sendMessage(connect_fd, msg.c_str());
+    if (num_bytes < 0) 
+         error("ERROR writing to socket");
+    cout<<"Sent a delete question command!"<<endl;
+    
+    bzero(buffer, 256);
+    num_bytes = recvMessage(connect_fd, buffer);
+    // num_bytes = recvMessageSSL(ssl, buffer);
+    buffer[num_bytes] = '\0';
+    cout<<"buffer: "<<buffer<<endl;
+
+    response = json::parse(buffer);
+    response_code = response["code"];
+    cout<<"Response code: "<<response_code<<endl;    
     
 }
 int main(int argc, char *argv[])
