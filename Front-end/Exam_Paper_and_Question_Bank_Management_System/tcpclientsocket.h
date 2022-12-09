@@ -10,7 +10,7 @@ using json=nlohmann::json;
 
 class TCPClientSocket
 {
-    int fd;
+    int fd{-1};
     struct sockaddr_in sAddr;
     char recvBuff[BUFF_LENGTH+1];
 

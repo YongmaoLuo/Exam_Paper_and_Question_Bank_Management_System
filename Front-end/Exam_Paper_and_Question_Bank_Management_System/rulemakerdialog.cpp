@@ -74,6 +74,20 @@ void RuleMakerDialog::on_teacherListWidget_itemSelectionChanged(){
 }
 
 void RuleMakerDialog::on_exitButton_clicked(){
+    json sendPacket=json::parse(fmt::format("{{\"command\":\"logout\"}}"));
+    if(client->sendToServer(sendPacket)==-1){
+        QMessageBox::warning(this,"warning","send log out command failed");
+        return;
+    }
+    json recvPacket;
+    if(client->receive(recvPacket)==-1){
+        QMessageBox::warning(this,"warning","receive server response failed");
+        return;
+    }
+    if(recvPacket["code"]!=200){
+        QMessageBox::warning(this,"warning","log out unsuccessful from the server");
+        return;
+    }
     emit rulemaker_panel_be_closed();
 }
 

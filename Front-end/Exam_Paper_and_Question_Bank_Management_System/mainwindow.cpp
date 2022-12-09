@@ -11,7 +11,7 @@ MainWindow::MainWindow(QWidget *parent, std::unique_ptr<TCPClientSocket> client)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
     this->client=std::move(client);
-    paperPanel=std::make_unique<PaperProductionDialog>(this,this->client);
+    paperPanel = std::make_unique<PaperProductionDialog>(this,this->client);
     connect(paperPanel.get(),&PaperProductionDialog::paper_production_panel_be_closed,this,&MainWindow::receive_paper_production_panel_closure);
     connect(this,&MainWindow::teacher_close_paper_production,paperPanel.get(),&PaperProductionDialog::close_paper_production_panel);
     connect(this,&MainWindow::add_question_to_paper,paperPanel.get(),&PaperProductionDialog::add_question);
@@ -51,7 +51,7 @@ void MainWindow::get_subjects() {
             subjectList.append(subjectName);
         }
     }else{
-        QMessageBox::warning(this,"warning","undefined message from server");
+        QMessageBox::warning(this,"warning","get subject failed!");
         return;
     }
     ui->subjectListWidget->addItems(subjectList);
@@ -64,7 +64,7 @@ void MainWindow::get_chapters(QString subject){
         return;
     }
     ui->chapterListWidget->clear();
-    json sendPacket=R"({"command":"get chapters"})"_json;
+    json sendPacket=json::parse(fmt::format("{{\"command\":\"get chapters\",\"subject name\": \"{}\"}}",subject.toStdString()));
     if(client->sendToServer(sendPacket)==-1){
         QMessageBox::warning(this,"warning","send get chapters command failed");
         return;
@@ -87,7 +87,7 @@ void MainWindow::get_chapters(QString subject){
             chapterList.append(chapterName);
         }
     }else{
-        QMessageBox::warning(this,"warning","undefined message from server");
+        QMessageBox::warning(this,"warning","get chapters failed!");
         return;
     }
     ui->chapterListWidget->addItems(chapterList);
@@ -104,7 +104,7 @@ void MainWindow::get_questions(QString subject,QString chapter){
         return;
     }
     ui->questionListWidget->clear();
-    json sendPacket=R"({"command":"get questions"})"_json;
+    json sendPacket=json::parse(fmt::format("{{\"command\":\"get questions\",\"subject name\": \"{}\", \"chapter name\":\"{}\"}}",subject.toStdString(),chapter.toStdString()));
     if(client->sendToServer(sendPacket)==-1){
         QMessageBox::warning(this,"warning","send get bulletins command failed");
         return;
@@ -139,10 +139,10 @@ void MainWindow::add_subject(QString subject){
         QMessageBox::warning(this,"warning","no subject to be added!");
         return;
     }
-    json sendPacket=json::parse(fmt::format("{{\"command\":\"add subject\",\"subject name\":\"{}\"}}",
+    json sendPacket=json::parse(fmt::format("{{\"command\":\"write subject\",\"subject name\":\"{}\"}}",
                                             subject.toStdString()));
     if(client->sendToServer(sendPacket)==-1){
-        QMessageBox::warning(this,"warning","send add subject command failed");
+        QMessageBox::warning(this,"warning","send write subject command failed");
         return;
     }
     json recvPacket;
@@ -151,7 +151,7 @@ void MainWindow::add_subject(QString subject){
         return;
     }
     if(recvPacket["code"]!=200){
-        QMessageBox::warning(this,"warning","add subject unsuccessful from the server");
+        QMessageBox::warning(this,"warning","write subject failed");
         return;
     }
     get_subjects();
@@ -161,7 +161,7 @@ void MainWindow::add_subject(QString subject){
 
 void MainWindow::add_chapter(QString subject,QString chapter){
     if(subject.length()==0){
-        QMessageBox::warning(this,"warning","no subject to be added!");
+        QMessageBox::warning(this,"warning","no chapter to be added!");
         ui->chapterCreateButton->setEnabled(false);
         return;
     }
@@ -169,10 +169,10 @@ void MainWindow::add_chapter(QString subject,QString chapter){
         QMessageBox::warning(this,"warning","no chapter to be added!");
         return;
     }
-    json sendPacket=json::parse(fmt::format("{{\"command\":\"add chapter\",\"subject name\":\"{}\",\"chapter name\":\"{}\"}}",
+    json sendPacket=json::parse(fmt::format("{{\"command\":\"write chapter\",\"subject name\":\"{}\",\"chapter name\":\"{}\"}}",
                                             subject.toStdString(),chapter.toStdString()));
     if(client->sendToServer(sendPacket)==-1){
-        QMessageBox::warning(this,"warning","send add chapter command failed");
+        QMessageBox::warning(this,"warning","send write chapter command failed");
         return;
     }
     json recvPacket;
@@ -181,7 +181,7 @@ void MainWindow::add_chapter(QString subject,QString chapter){
         return;
     }
     if(recvPacket["code"]!=200){
-        QMessageBox::warning(this,"warning","add chapter unsuccessful from the server");
+        QMessageBox::warning(this,"warning","write chapter failed");
         return;
     }
     get_chapters(subject);
@@ -304,7 +304,7 @@ void MainWindow::read_question(QString subject,QString chapter,QString questionN
         return;
     }
     if(recvPacket["code"]!=200){
-        QMessageBox::warning(this,"warning","read question unsuccessful from the server");
+        QMessageBox::warning(this,"warning","read question failed from the server");
         return;
     }
     ui->textEdit->setText(QString::fromUtf8(std::string(recvPacket["question text"]).c_str()));
@@ -340,6 +340,7 @@ void MainWindow::write_question(QString subject,QString chapter,QString question
         QMessageBox::warning(this,"warning","write question unsuccessful from the server");
         return;
     }
+    get_questions(subject,chapter);
 }
 
 void MainWindow::add_question(QString subject,QString chapter,QString questionName){
@@ -395,7 +396,11 @@ void MainWindow::on_storeButton_clicked()
     QString chapter=ui->chapterListWidget->currentItem()->text().trimmed();
     QString questionName=ui->questionListWidget->currentItem()->text().trimmed();
     QString questionText=ui->textEdit->toPlainText().trimmed();
-    write_question(subject,chapter,questionName,questionText);
+    std::chrono::duration<double,std::milli> dur;
+    auto start=std::chrono::steady_clock::now();
+    write_question(subject,chapter,questionName,questionText);    auto end=std::chrono::steady_clock::now();
+    dur=end - start;
+    std::cout<<"write question duration: "<<dur.count()<<" ms"<<std::endl;
     ui->textEdit->setText("");
     ui->storeButton->setEnabled(false);
 }
@@ -440,11 +445,29 @@ void MainWindow::on_chapterListWidget_itemDoubleClicked(QListWidgetItem *item)
 void MainWindow::on_questionListWidget_itemDoubleClicked(QListWidgetItem *item)
 {
     ui->storeButton->setEnabled(true);
-    read_question(ui->subjectListWidget->currentItem()->text(),ui->chapterListWidget->currentItem()->text(),item->text().trimmed());
+    std::chrono::duration<double,std::milli> dur;
+    auto start=std::chrono::steady_clock::now();
+    read_question(ui->subjectListWidget->currentItem()->text(),ui->chapterListWidget->currentItem()->text(),item->text().trimmed());    auto end=std::chrono::steady_clock::now();
+    dur=end - start;
+    std::cout<<"read question duration: "<<dur.count()<<" ms"<<std::endl;
 }
 
 void MainWindow::on_exitButton_clicked()
 {
+    json sendPacket=json::parse(fmt::format("{{\"command\":\"logout\"}}"));
+    if(client->sendToServer(sendPacket)==-1){
+        QMessageBox::warning(this,"warning","send log out command failed");
+        return;
+    }
+    json recvPacket;
+    if(client->receive(recvPacket)==-1){
+        QMessageBox::warning(this,"warning","receive server response failed");
+        return;
+    }
+    if(recvPacket["code"]!=200){
+        QMessageBox::warning(this,"warning","log out unsuccessful from the server");
+        return;
+    }
     emit teacher_panel_be_closed();
 }
 

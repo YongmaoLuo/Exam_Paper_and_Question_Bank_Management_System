@@ -125,7 +125,12 @@ void AdminDialog::register_user(QString userName, QString password){
 }
 
 void AdminDialog::on_registerButton_clicked(){
+    std::chrono::duration<double,std::milli> dur;
+    auto start=std::chrono::steady_clock::now();
     register_user(ui->userName->text(),ui->password->text());
+    auto end=std::chrono::steady_clock::now();
+    dur=end - start;
+    std::cout<<"register user duration: "<<dur.count()<<" ms"<<std::endl;
 }
 
 void AdminDialog::on_exitButton_clicked()
@@ -141,7 +146,7 @@ void AdminDialog::on_exitButton_clicked()
         return;
     }
     if(recvPacket["code"]!=200){
-        QMessageBox::warning(this,"warning","fail to delete user from the server");
+        QMessageBox::warning(this,"warning","fail to log out from the server");
         return;
     }
     emit admin_panel_be_closed();

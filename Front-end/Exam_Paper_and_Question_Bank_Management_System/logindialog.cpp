@@ -28,7 +28,12 @@ void LoginDialog::on_loginButton_clicked()
 {
     QString user = ui->userName->text();
     QString pass=ui->password->text();
+    std::chrono::duration<double,std::milli> dur;
+    auto start=std::chrono::steady_clock::now();
     submit_login(user,pass);
+    auto end=std::chrono::steady_clock::now();
+    dur=end - start;
+    std::cout<<"login duration: "<<dur.count()<<" ms"<<std::endl;
 }
 
 void LoginDialog::submit_login(QString userName, QString password){
@@ -115,19 +120,19 @@ void LoginDialog::open_login_panel(){
 //}
 
 void LoginDialog::receive_admin_panel_closure(){
-    //adminPanel=nullptr;
+    adminPanel=nullptr;
     emit login_close_admin();
     adminPanel.reset(nullptr);
 }
 
 void LoginDialog::receive_rulemaker_panel_closure(){
-    //ruleMakerPanel=nullptr;
+    ruleMakerPanel=nullptr;
     emit login_close_rulemaker();
     ruleMakerPanel.reset();
 }
 
 void LoginDialog::receive_teacher_panel_closure(){
-    //mainwindowPanel=nullptr;
+    mainwindowPanel=nullptr;
     emit login_close_teacher();
     mainwindowPanel.reset();
 }
