@@ -18,10 +18,10 @@ include_directories(.)
 include_directories(./json/include)
 include_directories(./fmt/include)
 include_directories(./usr/local/include)
-include_directories(./sqlite)
+include_directories(./SQLite3-Encryption/src)
 
 
 add_executable(cplusplusproject2022fall
                server_unencrypted.cpp)
 
-target_link_libraries(cplusplusproject2022fall -lsqlite3 -fopenmp)
+target_link_libraries(cplusplusproject2022fall -lsqlite3 -lssl -lcrypto -fopenmp)

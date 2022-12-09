@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <unistd.h>
+#include <set>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h> //sockaddr, socklen_t
@@ -28,6 +29,21 @@ using namespace std;
 #define FMT_HEADER_ONLY
 #include <fmt/format.h>
 
+inline std::string escapeJsonString(std::string input){
+    for(int i=0;;i++){
+        if(i>=input.length())
+            break;
+        if(input[i]=='\n'){
+            input.erase(i,1);
+            input.insert(i,"\\n");
+            i++;
+        }else if(input[i]=='\\'){
+            input.insert(i,"\\");
+            i++;
+    }
+    }
+    return input;
+}
 
 void ShowCerts(SSL *ssl){
     X509 *cert;
@@ -48,6 +64,8 @@ void ShowCerts(SSL *ssl){
     else cout<<"No certificate provided."<<endl;
 }
 
+class db_user;
+class question_bank;
 class Server
 {
 public:
@@ -58,13 +76,6 @@ public:
     
     struct Connector {
         uint16_t source_fd;
-    };
-
-    struct UserInfo {
-        string account;
-        string password;
-        string identity;
-        string status;
     };
     
     void shutdown();
@@ -108,20 +119,45 @@ private:
     SSL* ssl;
     map<int, SSL*> ssl_map;
 
+    std::shared_ptr<db_user> user = std::make_shared<db_user>();
+    std::shared_ptr<question_bank> question = std::make_shared<question_bank>();
+
+    string message;
+    map<int, string> bindIdentity;
+    map<int, string> bindUsername;
+    set<string> usernameSet;
+    map<string, int> logined_users;
+
     void (*newConnectionCallback) (uint16_t fd);
     void (*receiveCallback) (uint16_t fd, char *buffer);
     void (*disconnectCallback) (uint16_t fd);
 
-
-    //function prototypes
     void setup(int, string, string);
     void initializeSocket();
     void bindSocket();
     void startListen();
     void handleNewConnection();
-    void recvInputFromExisting(int fd);
-    // void authenticateUser(Connector conn, string account, string password, string status);
-    void authenticateUser(SSL* ssl, string username, string password);
+
+
+    vector<string> recvInputFromExisting(Connector&);
+    void sendMsgToExisting(Connector&, vector<string>&);
+    vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity);
+    vector<string> authenticateUser(Connector& conn, string username, auto password);
+    vector<string> logout(Connector&);
+    int logout(string); // function overload
+    vector<string> deleteUser(Connector&, string username);
+    vector<string> deleteUserSelf(Connector&, auto password);
+    vector<string> getUser(Connector& connect_fd);
+    vector<string> getTeachers();
+
+    vector<string> getSubjects();
+    vector<string> getChapters(string subject);
+    vector<string> addSubject(string);
+    vector<string> addChapter(string subject, string);
+    vector<string> getQuestions(string, string);
+    vector<string> getQuestions(string, string, string);
+    vector<string> writeQuestion(string, string, string, auto);
+    vector<string> deleteQuestion(string, string, string);
 
     //void *getInetAddr(struct sockaddr *saddr);
 };
