@@ -40,7 +40,7 @@ void db_user::create(bool clear/*= false*/, const char* database_name/*= "userin
             IDENTITY VARCHAR(15) CHECK(IDENTITY IN ('admin', 'rule maker', 'teacher')), \
             STATUS VARCHAR(10) DEFAULT valid, \
             ACTIVITY BOOLEAN DEFAULT 0 CHECK(ACTIVITY IN (0, 1))\
-            );" ;
+            ) WITHOUT ROWID;" ;
 
    /* Execute SQL statement */
    rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
@@ -221,7 +221,7 @@ int db_user::count(){
    return output[0];
 }
 
-int db_user::countDistinct(string target_attribute, pair<string, variant<string, int, double>> count_info) {
+int db_user::countDistinct(const string target_attribute, pair<string, variant<string, int, double>> count_info) {
    string countKey = count_info.first;
    auto countValue =  count_info.second;
    sql = fmt::format("SELECT COUNT(DISTINCT {}) from USER WHERE {}='{}' LIMIT 1;", target_attribute, countKey, custom_to_string(countValue));
