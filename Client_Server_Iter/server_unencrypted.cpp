@@ -500,7 +500,7 @@ vector<string> Server::getTeachers(){
 vector<string> Server::getSubjects(){
     int status_code;
     vector<string> messages;
-    string target_attribute = "subject";
+    const string target_attribute = "subject";
     optional<pair<string, variant<string, int, double>>> count_info;
     int subject_num = question->countDistinct(target_attribute, count_info);
     if(subject_num < 0){
@@ -539,7 +539,7 @@ vector<string> Server::getSubjects(){
 vector<string> Server::getChapters(string subject){
     int status_code;
     vector<string> messages;
-    string target_attribute = "chapter";
+    const string target_attribute = "chapter";
     optional<pair<string, variant<string, int, double>>> count_info;
     count_info = std::make_pair("subject", subject);
     int chapter_num = question->countDistinct(target_attribute, count_info);
@@ -582,7 +582,9 @@ vector<string> Server::addSubject(string subject) {
     vector<string> messages;
     optional<pair<string, variant<string, int, double>>> count_info;
     count_info = std::make_pair("subject", subject);
-    int existence = question->countDistinct("subject", count_info);
+
+    const string target_attribute = "subject";
+    int existence = question->countDistinct(target_attribute, count_info);
     int rc;
     if(existence < 0) status_code = 404;
     else if(existence == 0) {
@@ -608,7 +610,7 @@ vector<string> Server::addSubject(string subject) {
 vector<string> Server::addChapter(string subject, string chapter) {
     int status_code;
     vector<string> messages;
-    string target_attribute = "chapter";
+    const string target_attribute = "chapter";
 
     optional<pair<string, variant<string, int, double>>> count_info;
     count_info = std::make_pair("subject", subject);
@@ -646,7 +648,7 @@ vector<string> Server::addChapter(string subject, string chapter) {
 vector<string> Server::getQuestions(string subject, string chapter){
     int status_code;
     vector<string> messages;
-    string target_attribute = "path";
+    const string target_attribute = "path";
     vector<pair<string, string>> count_infos{std::make_pair("subject", subject), std::make_pair("chapter", chapter)};
     int question_num = question->countDistinct(target_attribute, count_infos);
     if(question_num < 0){
@@ -713,14 +715,16 @@ vector<string> Server::writeQuestion(string subject, string chapter, string ques
     count_infos.push_back(std::make_pair("subject", subject));
     count_infos.push_back(std::make_pair("chapter", chapter));
     count_infos.push_back(std::make_pair("path", question_id));
-    int existence = question->countDistinct("content", count_infos);
+
+    const string target_attribute = "content";
+    int existence = question->countDistinct(target_attribute, count_infos);
     int rc;
     content = escapeJsonString(content);
     if(existence < 0) status_code = 404;
     else if(existence == 0) {
         // Check if the subject and chapter can accept a new question
         count_infos.pop_back();
-        existence = question->countDistinct("content", count_infos);
+        existence = question->countDistinct(target_attribute, count_infos);
         if(existence > 0) {
             cout<<"Write a new question into the question bank!"<<endl;
             std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>(question_id, content, chapter, subject);
