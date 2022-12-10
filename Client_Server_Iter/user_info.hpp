@@ -138,7 +138,7 @@ class db_user: public database{
         }
 
         int count();
-        int countDistinct(string target_attribute, pair<string, variant<string, int, double>> count_info);
+        int countDistinct(const string target_attribute, pair<string, variant<string, int, double>> count_info);
         int delet(const string primary_val, pair<string, variant<string, int, double>> deleted_info);
         void clean();
 };
