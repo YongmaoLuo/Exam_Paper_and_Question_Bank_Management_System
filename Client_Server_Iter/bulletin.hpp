@@ -46,14 +46,14 @@ class bulletinfo: public database {
 
         void create(bool = false, const char* = "bulletin.db");
         int insert(std::shared_ptr<BulletInfo<string>>);
-        int update(vector<pair<string, string>>, vector<pair<string, string>> changelist);
+        int update(vector<pair<string, string>>, vector<pair<string, variant<string, int, double>>> changelist);
 
         string getBulletin(string primary_val);
         string readBulletin(string primary_val, string bulletinname);
-        string writeBulletin(string primary_val, string bulletinname, string teacher, string text);
+        // string writeBulletin(string primary_val, string bulletinname, string teacher, string text);
 
         int count();
-        int delet(string primary_val, pair<string, string> deleted_info);
+        int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info);
         void clean();
 };
 #endif
