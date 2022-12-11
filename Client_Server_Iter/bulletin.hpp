@@ -23,18 +23,18 @@ struct BulletInfo {
             string path;
             string content;
             string teacher;
-            T status;
             int activity = 0; // no boolean inside sqlite
+            int rubric;
         public:
-            BulletInfo<T>(string path_, string content_, T category_): path(path_), content(content_), chapter(chapter_), category(category_), rubric(0) {};
-            BulletInfo<T>(string path_, string content_, T category_, int rubric_): path(path_), content(content_), chapter(chapter_), category(category_), rubric(rubric_) {};
-            std::tuple<string, string, string, T, int> getElements() const {return std::make_tuple(path, content, chapter, category, rubric);};
+            BulletInfo<T>(string path_, string content_, string teacher_): path(path_), content(content_), teacher(teacher_) {};
+            QuestionInfo<T>(string path_, string content_, string teacher_, int rubric_): path(path_), content(content_),  teacher(teacher_), rubric(rubric_) {};
+            std::tuple<string, string, T, int> getElements() const {return std::make_tuple(path, content, teacher, rubric);};
         };
 
 class bulletinfo: public database {
     private:
-        sqlite3 *db;
-        sqlite3_stmt *stmt;
+        // sqlite3 *db;
+        // sqlite3_stmt *stmt;
         char *zErrMsg;
         int rc;
         string sql;
@@ -45,12 +45,15 @@ class bulletinfo: public database {
         virtual ~bulletinfo(); //drop the table?
 
         void create(bool = false, const char* = "bulletin.db");
-        int insert(bulletInfo<string>&);
-        int update(string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
-        string getQuestion(optional<pair<string, variant<string, int, double>>> constraint, string primary_val);
+        int insert(std::shared_ptr<BulletInfo<string>>);
+        int update(vector<pair<string, string>>, vector<pair<string, string>> changelist);
+
+        string getBulletin(string primary_val);
+        string readBulletin(string primary_val, string bulletinname);
+        string writeBulletin(string primary_val, string bulletinname, string teacher, string text);
+
         int count();
-        vector<string> getQuestionPaths();
-        int delet(string primary_val, pair<string, variant<string, int, double>> deleted_info);
+        int delet(string primary_val, pair<string, string> deleted_info);
         void clean();
 };
 #endif
