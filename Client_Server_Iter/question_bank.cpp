@@ -9,7 +9,7 @@ static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
    return 0;
 }
 
-question_bank::question_bank(){
+question_bank::question_bank() {
    db = 0;
    stmt = 0;
    zErrMsg = 0;
@@ -17,7 +17,7 @@ question_bank::question_bank(){
    // sql = NULL;
 }
 
-question_bank::question_bank(const question_bank& database){
+question_bank::question_bank(const question_bank& database) {
 
 }
 

@@ -18,7 +18,8 @@ inline string custom_to_string(variant<string, int, double> const& value) {
 
 
 template <hashable T>
-struct QuestionInfo{
+struct QuestionInfo {
+        private:
             string path;
             string content;
             T category;
