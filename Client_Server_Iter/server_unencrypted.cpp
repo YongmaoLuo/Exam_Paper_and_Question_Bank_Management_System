@@ -255,7 +255,8 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
         #else
         message = fmt::format("{{\"code\": {}}}", 403);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
     } 
     //memset(&input_buffer, 0, INPUT_BUFFER_SIZE); //zero buffer //bzero
     // bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
@@ -296,7 +297,8 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     message = fmt::format("{{\"code\": {}, \"identity\": \"{}\"}}", status_code, identity);
     #endif
     cout<<"checkin message: "<<message<<endl;
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     
     bindIdentity[connect_fd.source_fd] = identity;
     bindUsername[connect_fd.source_fd] = username;
@@ -318,7 +320,8 @@ vector<string> Server::registerUser(Connector& connect_fd, string username, auto
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     usernameSet.insert(username);
     return messages;
 }
@@ -347,7 +350,8 @@ vector<string> Server::logout(Connector& connect_fd){
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -386,14 +390,16 @@ vector<string> Server::getUser(Connector& connect_fd){
     #endif
 
     messages.reserve(numUsers+1);
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     if(numUsers < 0) return messages;
     optional<pair<string, string>> constraint;
     usernames = user->getUserAttributes(constraint, "USERNAME");
 
     for(int i=0; i<usernames.size(); i++){
         message = fmt::format("{{\"username\": \"{}\"}}", usernames[i]);
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
     }
     return messages;
 }
@@ -423,7 +429,8 @@ vector<string> Server::deleteUser(Connector& connect_fd, string username){
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -466,7 +473,8 @@ vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password){
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -486,7 +494,8 @@ vector<string> Server::getTeachers(){
     #endif
 
     messages.reserve(teachers.size()+1);
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
 
     //experimental
     #pragma omp parallel for num_threads(4)
@@ -510,7 +519,8 @@ vector<string> Server::getSubjects(){
         #else
         message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, subject_num);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
         return messages;
     }
     else status_code = 200;
@@ -523,7 +533,8 @@ vector<string> Server::getSubjects(){
     #endif
 
     messages.reserve(subjects.size()+1);
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
 
     for(int i=0; i<subject_num; i++){
         #ifdef __cpp_lib_format
@@ -531,7 +542,8 @@ vector<string> Server::getSubjects(){
         #else
         message = fmt::format("{{\"subject name\": \"{}\"}}", subjects[i]);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
     }
     return messages;
 }
@@ -550,7 +562,8 @@ vector<string> Server::getChapters(string subject){
         #else
         message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, chapter_num);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
         return messages;
     }
     else status_code = 200;
@@ -564,7 +577,8 @@ vector<string> Server::getChapters(string subject){
     #endif
 
     messages.reserve(chapter_num+1);
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
 
     for(int i=0; i<chapter_num; i++){
         #ifdef __cpp_lib_format
@@ -572,7 +586,8 @@ vector<string> Server::getChapters(string subject){
         #else
         message = fmt::format("{{\"chapter name\": \"{}\"}}", chapters[i]);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
     }
     return messages;
 }
@@ -603,7 +618,8 @@ vector<string> Server::addSubject(string subject) {
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -641,7 +657,8 @@ vector<string> Server::addChapter(string subject, string chapter) {
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -658,7 +675,8 @@ vector<string> Server::getQuestions(string subject, string chapter){
         #else
         message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, question_num);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
         return messages;
     }
     else status_code = 200;
@@ -673,7 +691,8 @@ vector<string> Server::getQuestions(string subject, string chapter){
     #endif
 
     messages.reserve(question_ids.size()+1);
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
 
     for(int i=0; i<question_num; i++){
         
@@ -682,7 +701,8 @@ vector<string> Server::getQuestions(string subject, string chapter){
         #else
         message = fmt::format("{{\"question name\": \"{}\"}}", question_ids[i]);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
         
     }
     return messages;
@@ -703,7 +723,8 @@ vector<string> Server::getQuestions(string subject, string chapter, string quest
     message = fmt::format("{{\"code\": {}, \"question text\": \"{}\"}}", status_code, question_content);
     #endif
 
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -751,7 +772,8 @@ vector<string> Server::writeQuestion(string subject, string chapter, string ques
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -768,7 +790,8 @@ vector<string> Server::deleteQuestion(string subject, string chapter, string que
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
 
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 

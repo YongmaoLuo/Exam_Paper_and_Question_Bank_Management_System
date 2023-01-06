@@ -85,7 +85,7 @@ int db_user::insert(std::shared_ptr<UserInfo<string>> user){
    return rc;
 }
 
-int db_user::update(const string primary_val, vector<pair<string, variant<string, int, double>>> changelist){
+int db_user::update(const string& primary_val, vector<pair<string, variant<string, int, double>>> changelist){
    std::set<string> keys;
    string key;
    while(!changelist.empty()){
@@ -221,7 +221,7 @@ int db_user::count(){
    return output[0];
 }
 
-int db_user::countDistinct(const string target_attribute, pair<string, variant<string, int, double>> count_info) {
+int db_user::countDistinct(const string& target_attribute, pair<string, variant<string, int, double>> count_info) {
    string countKey = count_info.first;
    auto countValue =  count_info.second;
    sql = fmt::format("SELECT COUNT(DISTINCT {}) from USER WHERE {}='{}' LIMIT 1;", target_attribute, countKey, custom_to_string(countValue));
@@ -242,7 +242,7 @@ int db_user::countDistinct(const string target_attribute, pair<string, variant<s
    return output[0];
 }
 
-int db_user::delet(const string primary_val, pair<string, variant<string, int, double>> authenticated_info){
+int db_user::delet(const string& primary_val, pair<string, variant<string, int, double>> authenticated_info){
    string key = authenticated_info.first;
    auto value = authenticated_info.second;
    sql = fmt::format("DELETE from USER where USERNAME = '{}' AND {} = '{}'; \

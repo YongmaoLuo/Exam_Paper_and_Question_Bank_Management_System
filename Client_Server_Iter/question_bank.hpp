@@ -41,7 +41,7 @@ class question_bank: public database{
 
         // vector<string> getQuestionAttributes(string target_attributes, string constraint_key, string constraint_val);
         template<hashable T = string, hashable T_input = string>
-        vector<T> getQuestionAttributes(optional<pair<string, T_input>> constraint, const string target_attribute){
+        vector<T> getQuestionAttributes(optional<pair<string, T_input>> constraint, const string& target_attribute){
             if(constraint){
                 string constraint_key = constraint->first;
                 // auto constraint_val = constraint->second;
@@ -81,7 +81,7 @@ class question_bank: public database{
         }
 
         template<hashable T = string, hashable T_input = string>
-        vector<T> getQuestionAttributes(vector<pair<string, T_input>> constraints, const string target_attribute){
+        vector<T> getQuestionAttributes(vector<pair<string, T_input>> constraints, const string& target_attribute){
             if(!constraints.empty()){
                 sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS WHERE ", target_attribute);
                 int cnt = 0;
