@@ -12,6 +12,7 @@
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/builder/stream/array.hpp>
 
+#include "SimpleJSON/json.hpp"
 
 using bsoncxx::builder::stream::close_array;
 using bsoncxx::builder::stream::close_document;
@@ -80,6 +81,20 @@ namespace defaultsetting {
                 bsoncxx::stdx::optional<mongocxx::result::delete_result> maybe_result = coll.delete_one(query_statement.view());
                 if(maybe_result) return maybe_result -> deleted_count() == 1;
                 return false;
+            }
+
+            json::JSON GetAllDocuments() {
+                mongocxx::collection coll = db[collectionName];
+                mongocxx::cursor cursor = coll.find({});
+                json::JSON result;
+                result["users"] = json::Array();
+
+                if(cursor.begin() != cursor.end()) {
+                    for (auto& doc: cursor) {
+                        result["users"].append(bsoncxx::to_json(doc));
+                    }
+                }
+                return result;
             }
 
     };
