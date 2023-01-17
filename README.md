@@ -1,8 +1,11 @@
 ## Introduction
 
-The repository archives a full-stack demo application, concentrating on exam paper management system. The front-end is based on Qt6 and back-end leverages modern C++ features. The database is implemented with SQLite3. 
+We intend to develop a complicated full stack application based on socket-based server-client connection. The front-end of this application is Qt6 and back-end is SQLite3/MongoDB(experimental). Serveral highlights of this application are:
 
-This is a server-client style application and the connection is based on socket.
+* Modern C++20
+* Multiplexing with epoll (linux only) to achieve pseudo-concurrency
+* Multi-threading
+* A variety of database selection
 
 
 
@@ -14,7 +17,7 @@ This is a server-client style application and the connection is based on socket.
 * String formatting tool: [fmt](https://github.com/fmtlib/fmt)
 * JSON formatting tool: [json](https://github.com/nlohmann/json)
 * Database: [SQLite3](https://github.com/SRombauts/SQLiteCpp/tree/master/sqlite3)
-* Parallelism: openmp
+* Parallelism: [openmp](https://www.openmp.org/resources/)
 
 
 
@@ -39,7 +42,7 @@ cd bin/
 
 ## C++ new features
 
-* Concept & template
+* Concept & Requires & template
 * Structural binding
 * Chrono
 * Constexpr
@@ -47,4 +50,4 @@ cd bin/
 * std::as_const()
 * Final
 * Variant
-* ...
+* Explicit
