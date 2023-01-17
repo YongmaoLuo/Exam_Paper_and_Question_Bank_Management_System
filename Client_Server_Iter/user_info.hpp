@@ -45,13 +45,13 @@ class db_user: public database{
 
         void create(bool = false, const char* = "userinfo.db");
         int insert(std::shared_ptr<UserInfo<string>> user);
-        int update(const string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
+        int update(const string& primary_val, vector<pair<string, variant<string, int, double>>> changelist);
         
         string getUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute);
         
         // vector<string> getUserAttributes(string target_attributes, string constraint_key, string constraint_val);
         template<hashable T = string, hashable T_input = string>
-        vector<T> getUserAttributes(optional<pair<string, T_input>> constraint, string target_attribute){
+        vector<T> getUserAttributes(optional<pair<string, T_input>> constraint, string&& target_attribute){
             if(constraint){
                 string constraint_key = constraint->first;
                 // auto constraint_val = constraint->second;
@@ -91,7 +91,7 @@ class db_user: public database{
         }
 
         template<hashable T = string, hashable T_input = string>
-        vector<T> getUserAttributes(vector<pair<string, T_input>> constraints, string target_attribute){
+        vector<T> getUserAttributes(vector<pair<string, T_input>> constraints, string&& target_attribute){
             if(!constraints.empty()){
                 sql = fmt::format("SELECT {} FROM USER WHERE ", target_attribute);
                 int cnt = 0;
@@ -138,8 +138,8 @@ class db_user: public database{
         }
 
         int count();
-        int countDistinct(const string target_attribute, pair<string, variant<string, int, double>> count_info);
-        int delet(const string primary_val, pair<string, variant<string, int, double>> deleted_info);
+        int countDistinct(const string& target_attribute, pair<string, variant<string, int, double>> count_info);
+        int delet(const string& primary_val, pair<string, variant<string, int, double>> deleted_info);
         void clean();
 };
 #endif

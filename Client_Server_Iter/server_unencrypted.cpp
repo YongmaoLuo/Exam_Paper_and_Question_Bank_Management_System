@@ -17,9 +17,9 @@ Server::Server(int port)
 
 Server::Server(const Server& orig)
 {
-    masterfds = orig.masterfds;
-    tempfds = orig.tempfds;
-    maxfd = orig.maxfd;
+    // masterfds = orig.masterfds;
+    // tempfds = orig.tempfds;
+    // maxfd = orig.maxfd;
     mastersocket_fd = orig.mastersocket_fd;
     tempsocket_fd = orig.tempsocket_fd;
 
@@ -44,8 +44,8 @@ void Server::setup(int port)
         perror("Socket creation failed");
     }
 
-    FD_ZERO(&masterfds);
-    FD_ZERO(&tempfds);
+    // FD_ZERO(&masterfds);
+    // FD_ZERO(&tempfds);
 
     memset(&servaddr, 0, sizeof (servaddr)); //bzero
     servaddr.sin_family = AF_INET;
@@ -84,8 +84,8 @@ void Server::bindSocket()
 	if (bind_ret < 0) {
 		perror("[SERVER] [ERROR] bind() failed");
 	}
-	FD_SET(mastersocket_fd, &masterfds); //insert the master socket file-descriptor into the master fd-set
-	maxfd = mastersocket_fd; //set the current known maximum file descriptor count
+	// FD_SET(mastersocket_fd, &masterfds); //insert the master socket file-descriptor into the master fd-set
+	// maxfd = mastersocket_fd; //set the current known maximum file descriptor count
 }
 
 void Server::startListen()
@@ -100,7 +100,10 @@ void Server::startListen()
 	if (listen_ret < 0) {
 		perror("[SERVER] [ERROR] listen() failed");
 	}
-
+    eFd = epoll_create(1);
+    epev.events = EPOLLIN;
+    epev.data.fd = mastersocket_fd;
+    epoll_ctl(eFd, EPOLL_CTL_ADD, mastersocket_fd, &epev);
 }
 
 void Server::shutdown()
@@ -122,17 +125,26 @@ void Server::handleNewConnection()
 	if (tempsocket_fd < 0) {
         	perror("[SERVER] [ERROR] accept() failed");
 	} else {
-        	FD_SET(tempsocket_fd, &masterfds);
-		    //increment the maximum known file descriptor (select() needs it)
-        	if (tempsocket_fd > maxfd) {
-            		maxfd = tempsocket_fd;
-			#ifdef SERVER_DEBUG
-            		std::cout << "[SERVER] incrementing maxfd to " << maxfd << std::endl;
-			#endif
-        	}
-        	#ifdef SERVER_DEBUG
-        	printf("[SERVER] [CONNECTION] New connection on socket fd '%d'.\n",tempsocket_fd);
-		#endif
+        	// FD_SET(tempsocket_fd, &masterfds);
+            epev.events = EPOLLIN | EPOLLET;
+            epev.data.fd = tempsocket_fd;
+            int flags = fcntl(tempsocket_fd, F_GETFL, 0);
+            if(flags < 0 || fcntl(tempsocket_fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+                cout<<"Set non-blocking error, fd: "<<tempsocket_fd<<endl;
+                return;
+            } 
+
+            epoll_ctl(eFd, EPOLL_CTL_ADD, tempsocket_fd, &epev);
+		//     //increment the maximum known file descriptor (select() needs it)
+        // 	if (tempsocket_fd > maxfd) {
+        //     		maxfd = tempsocket_fd;
+		// 	#ifdef SERVER_DEBUG
+        //     		std::cout << "[SERVER] incrementing maxfd to " << maxfd << std::endl;
+		// 	#endif
+        // 	}
+        // 	#ifdef SERVER_DEBUG
+        // 	printf("[SERVER] [CONNECTION] New connection on socket fd '%d'.\n",tempsocket_fd);
+		// #endif
     }
     cout<<"Successfully connected!"<<endl;
     // // newConnectionCallback(tempsocket_fd); //call the callback
@@ -168,7 +180,7 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
         	//disconnectCallback((uint16_t)fd);
         }
         close(connect_fd.source_fd); //close connection to client
-        FD_CLR(connect_fd.source_fd, &masterfds); //clear the client fd from fd set
+        // FD_CLR(connect_fd.source_fd, &masterfds); //clear the client fd from fd set
         return messages;
     }
     #ifdef SERVER_DEBUG
@@ -255,7 +267,8 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
         #else
         message = fmt::format("{{\"code\": {}}}", 403);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
     } 
     //memset(&input_buffer, 0, INPUT_BUFFER_SIZE); //zero buffer //bzero
     // bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
@@ -296,7 +309,8 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     message = fmt::format("{{\"code\": {}, \"identity\": \"{}\"}}", status_code, identity);
     #endif
     cout<<"checkin message: "<<message<<endl;
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     
     bindIdentity[connect_fd.source_fd] = identity;
     bindUsername[connect_fd.source_fd] = username;
@@ -318,7 +332,8 @@ vector<string> Server::registerUser(Connector& connect_fd, string username, auto
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     usernameSet.insert(username);
     return messages;
 }
@@ -347,7 +362,8 @@ vector<string> Server::logout(Connector& connect_fd){
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -386,14 +402,16 @@ vector<string> Server::getUser(Connector& connect_fd){
     #endif
 
     messages.reserve(numUsers+1);
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     if(numUsers < 0) return messages;
     optional<pair<string, string>> constraint;
     usernames = user->getUserAttributes(constraint, "USERNAME");
 
     for(int i=0; i<usernames.size(); i++){
         message = fmt::format("{{\"username\": \"{}\"}}", usernames[i]);
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
     }
     return messages;
 }
@@ -423,7 +441,8 @@ vector<string> Server::deleteUser(Connector& connect_fd, string username){
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -466,7 +485,8 @@ vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password){
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -486,7 +506,8 @@ vector<string> Server::getTeachers(){
     #endif
 
     messages.reserve(teachers.size()+1);
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
 
     //experimental
     #pragma omp parallel for num_threads(4)
@@ -510,7 +531,8 @@ vector<string> Server::getSubjects(){
         #else
         message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, subject_num);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
         return messages;
     }
     else status_code = 200;
@@ -523,7 +545,8 @@ vector<string> Server::getSubjects(){
     #endif
 
     messages.reserve(subjects.size()+1);
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
 
     for(int i=0; i<subject_num; i++){
         #ifdef __cpp_lib_format
@@ -531,7 +554,8 @@ vector<string> Server::getSubjects(){
         #else
         message = fmt::format("{{\"subject name\": \"{}\"}}", subjects[i]);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
     }
     return messages;
 }
@@ -550,7 +574,8 @@ vector<string> Server::getChapters(string subject){
         #else
         message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, chapter_num);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
         return messages;
     }
     else status_code = 200;
@@ -564,7 +589,8 @@ vector<string> Server::getChapters(string subject){
     #endif
 
     messages.reserve(chapter_num+1);
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
 
     for(int i=0; i<chapter_num; i++){
         #ifdef __cpp_lib_format
@@ -572,7 +598,8 @@ vector<string> Server::getChapters(string subject){
         #else
         message = fmt::format("{{\"chapter name\": \"{}\"}}", chapters[i]);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
     }
     return messages;
 }
@@ -603,7 +630,8 @@ vector<string> Server::addSubject(string subject) {
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -641,7 +669,8 @@ vector<string> Server::addChapter(string subject, string chapter) {
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -658,7 +687,8 @@ vector<string> Server::getQuestions(string subject, string chapter){
         #else
         message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, question_num);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
         return messages;
     }
     else status_code = 200;
@@ -673,7 +703,8 @@ vector<string> Server::getQuestions(string subject, string chapter){
     #endif
 
     messages.reserve(question_ids.size()+1);
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
 
     for(int i=0; i<question_num; i++){
         
@@ -682,7 +713,8 @@ vector<string> Server::getQuestions(string subject, string chapter){
         #else
         message = fmt::format("{{\"question name\": \"{}\"}}", question_ids[i]);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
         
     }
     return messages;
@@ -703,7 +735,8 @@ vector<string> Server::getQuestions(string subject, string chapter, string quest
     message = fmt::format("{{\"code\": {}, \"question text\": \"{}\"}}", status_code, question_content);
     #endif
 
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -751,7 +784,8 @@ vector<string> Server::writeQuestion(string subject, string chapter, string ques
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -768,37 +802,50 @@ vector<string> Server::deleteQuestion(string subject, string chapter, string que
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
 
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
 void Server::loop()
 {
-    tempfds = masterfds; //copy fd_set for select()
-    #ifdef SERVER_DEBUG
-    printf("[SERVER] [MISC] max fd = '%hu' \n", maxfd);
-    std::cout << "[SERVER] [MISC] calling select()\n";
-    #endif
-    int sel = select(maxfd + 1, &tempfds, NULL, NULL, NULL); //blocks until activity
-    //printf("[SERVER] [MISC] select() ret %d, processing...\n", sel);
-    if (sel < 0) {
-        perror("[SERVER] [ERROR] select() failed");
-        shutdown();
-    }
-    cout<<"sel: "<<sel<<endl;
+    // tempfds = masterfds; //copy fd_set for select()
+    // #ifdef SERVER_DEBUG
+    // printf("[SERVER] [MISC] max fd = '%hu' \n", maxfd);
+    // std::cout << "[SERVER] [MISC] calling select()\n";
+    // #endif
+    // int sel = select(maxfd + 1, &tempfds, NULL, NULL, NULL); //blocks until activity
+    // //printf("[SERVER] [MISC] select() ret %d, processing...\n", sel);
+    // if (sel < 0) {
+    //     perror("[SERVER] [ERROR] select() failed");
+    //     shutdown();
+    // }
+    // cout<<"sel: "<<sel<<endl;
 
     //no problems, we're all set
+    int eNum = epoll_wait(eFd, events, EVENTS_SIZE, -1);
+    if(eNum == -1) {cout<<"epoll wait"<<endl; return;}
 
     //loop the fd_set and check which socket has interactions available
-    for (int i = 0; i <= maxfd; i++) {
-        if (FD_ISSET(i, &tempfds)) { //if the socket has activity pending
-            if (mastersocket_fd == i) {
+    for (int i = 0; i <= eNum; i++) {
+        //if (FD_ISSET(i, &tempfds)) { //if the socket has activity pending
+        if(events[i].data.fd == mastersocket_fd) {
+            //if (mastersocket_fd == i) {
+            if(events[i].events & EPOLLIN) {
                 //new connection on master socket
                 handleNewConnection();
-            } else {
+            }
+        }
+        else {
+            // check if there is a potential disconnection
+            if(events[i].events & EPOLLERR || events[i].events & EPOLLHUP) {
+                epoll_ctl(eFd, EPOLL_CTL_DEL, events[i].data.fd, nullptr);
+                close(events[i].data.fd);
+            } else if (events[i].events & EPOLLIN) {
                 //exisiting connection has new data
                 Connector connect_fd = Connector();
-                connect_fd.source_fd = i;
+                // connect_fd.source_fd = i;
+                connect_fd.source_fd = events[i].data.fd;
                 vector<string> messages = recvInputFromExisting(connect_fd);
                 if(!messages.empty()){
                     messages.shrink_to_fit();
@@ -806,6 +853,7 @@ void Server::loop()
                     bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
                 }
             }
+                
         } //loop on to see if there is more
     }
 }
