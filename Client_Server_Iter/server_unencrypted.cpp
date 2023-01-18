@@ -414,11 +414,15 @@ vector<string> Server::getUser(Connector& connect_fd){
     optional<pair<string, string>> constraint;
     usernames = user->getUserAttributes(constraint, "USERNAME");
 
-    for(int i=0; i<usernames.size(); i++){
-        message = fmt::format("{{\"username\": \"{}\"}}", usernames[i]);
-        // messages.push_back(message);
-        messages.push_back(std::move(message));
-    }
+    // experimental
+    usernames = helper(usernames, "username");
+    messages.insert(messages.end(), make_move_iterator(usernames.begin()), make_move_iterator(usernames.end()));
+
+    // for(int i=0; i<usernames.size(); i++){
+    //     message = fmt::format("{{\"username\": \"{}\"}}", usernames[i]);
+    //     // messages.push_back(message);
+    //     messages.push_back(std::move(message));
+    // }
     return messages;
 }
 
@@ -520,7 +524,7 @@ vector<string> Server::getTeachers(){
     // for(int i=0; i<teachers.size(); i++) {
     //     messages.push_back(fmt::format("{{\"username\": \"{}\"}}", teachers[i]));
     // }
-    messages.insert(messages.end(), teachers.begin(), teachers.end());
+    messages.insert(messages.end(), make_move_iterator(teachers.begin()), make_move_iterator(teachers.end()));
     return messages;
 }
 
@@ -556,7 +560,7 @@ vector<string> Server::getSubjects(){
 
     // experimental
     subjects = helper(subjects, "subject name");
-    messages.insert(messages.end(), subjects.begin(), subjects.end());
+    messages.insert(messages.end(), make_move_iterator(subjects.begin()), make_move_iterator(subjects.end()));
     // for(int i=0; i<subject_num; i++){
     //     #ifdef __cpp_lib_format
     //     message = std::format("{\"subject name\": \"{}\"}", subjects[i]);
@@ -603,7 +607,7 @@ vector<string> Server::getChapters(string subject){
 
     // vectorization transform on chapters
     chapters = helper(chapters, "chapter name");
-    messages.insert(messages.end(), chapters.begin(), chapters.end());
+    messages.insert(messages.end(), make_move_iterator(chapters.begin()), make_move_iterator(chapters.end()));
     // for(int i=0; i<chapter_num; i++){
     //     #ifdef __cpp_lib_format
     //     message = std::format("{\"chapter name\": \"{}\"}", chapters[i]);
@@ -720,7 +724,7 @@ vector<string> Server::getQuestions(string subject, string chapter){
 
     //experimental
     question_ids = helper(question_ids, "question name");
-    messages.insert(messages.end(), question_ids.begin(), question_ids.end());
+    messages.insert(messages.end(), make_move_iterator(question_ids.begin()), make_move_iterator(question_ids.end()));
 
     // for(int i=0; i<question_num; i++){
         
