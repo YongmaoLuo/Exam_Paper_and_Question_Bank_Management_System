@@ -29,7 +29,9 @@ Other than performance, we also take safety into consideration. We had pragma ke
 
 ## Quick Start
 
-Compile server with CMakeLists.txt.
+In the front-end part, activate through the executable file.
+
+In the back-end part, compile server with CMakeLists.txt.
 
 ```bash
 cmake CMakeLists.txt
