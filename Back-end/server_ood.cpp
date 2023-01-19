@@ -133,6 +133,10 @@ void Server::startListen()
 	if (listen_ret < 0) {
 		perror("[SERVER] [ERROR] listen() failed");
 	}
+    eFd = epoll_create(1);
+    epev.events = EPOLLIN;
+    epev.data.fd = mastersocket_fd;
+    epoll_ctl(eFd, EPOLL_CTL_ADD, mastersocket_fd, &epev);
 
 }
 
