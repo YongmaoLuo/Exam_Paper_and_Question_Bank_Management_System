@@ -17,9 +17,9 @@ Server::Server(string digital_certificate_path, string privateKey_path, int port
 
 Server::Server(const Server& orig)
 {
-    masterfds = orig.masterfds;
-    tempfds = orig.tempfds;
-    maxfd = orig.maxfd;
+    //masterfds = orig.masterfds;
+    //tempfds = orig.tempfds;
+    //maxfd = orig.maxfd;
     mastersocket_fd = orig.mastersocket_fd;
     tempsocket_fd = orig.tempsocket_fd;
 
@@ -50,8 +50,8 @@ void Server::setup(int port, string digital_certificate_path, string privateKey_
         perror("Socket creation failed");
     }
 
-    FD_ZERO(&masterfds);
-    FD_ZERO(&tempfds);
+    // FD_ZERO(&masterfds);
+    // FD_ZERO(&tempfds);
 
     memset(&servaddr, 0, sizeof (servaddr)); //bzero
     servaddr.sin_family = AF_INET;
@@ -117,8 +117,8 @@ void Server::bindSocket()
 	if (bind_ret < 0) {
 		perror("[SERVER] [ERROR] bind() failed");
 	}
-	FD_SET(mastersocket_fd, &masterfds); //insert the master socket file-descriptor into the master fd-set
-	maxfd = mastersocket_fd; //set the current known maximum file descriptor count
+	// FD_SET(mastersocket_fd, &masterfds); //insert the master socket file-descriptor into the master fd-set
+	// maxfd = mastersocket_fd; //set the current known maximum file descriptor count
 }
 
 void Server::startListen()
@@ -161,17 +161,16 @@ void Server::handleNewConnection()
 	if (tempsocket_fd < 0) {
         	perror("[SERVER] [ERROR] accept() failed");
 	} else {
-        	FD_SET(tempsocket_fd, &masterfds);
-		    //increment the maximum known file descriptor (select() needs it)
-        	if (tempsocket_fd > maxfd) {
-            		maxfd = tempsocket_fd;
-			#ifdef SERVER_DEBUG
-            		std::cout << "[SERVER] incrementing maxfd to " << maxfd << std::endl;
-			#endif
-        	}
-        	#ifdef SERVER_DEBUG
-        	printf("[SERVER] [CONNECTION] New connection on socket fd '%d'.\n",tempsocket_fd);
-		#endif
+        	// FD_SET(tempsocket_fd, &masterfds);
+		    epev.events = EPOLLIN | EPOLLET;
+            epev.data.fd = tempsocket_fd;
+            int flags = fcntl(tempsocket_fd, F_GETFL, 0);
+            if(flags < 0 || fcntl(tempsocket_fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+                cout<<"Set non-blocking error, fd: "<<tempsocket_fd<<endl;
+                return;
+            } 
+
+            epoll_ctl(eFd, EPOLL_CTL_ADD, tempsocket_fd, &epev);
     }
     cout<<"Successfully connected!"<<endl;
     // // newConnectionCallback(tempsocket_fd); //call the callback
@@ -207,7 +206,7 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
         	//disconnectCallback((uint16_t)fd);
         }
         close(connect_fd.source_fd); //close connection to client
-        FD_CLR(connect_fd.source_fd, &masterfds); //clear the client fd from fd set
+        // FD_CLR(connect_fd.source_fd, &masterfds); //clear the client fd from fd set
         return messages;
     }
     #ifdef SERVER_DEBUG
@@ -811,31 +810,45 @@ vector<string> Server::deleteQuestion(string subject, string chapter, string que
 
 void Server::loop()
 {
-    tempfds = masterfds; //copy fd_set for select()
-    #ifdef SERVER_DEBUG
-    printf("[SERVER] [MISC] max fd = '%hu' \n", maxfd);
-    std::cout << "[SERVER] [MISC] calling select()\n";
-    #endif
-    int sel = select(maxfd + 1, &tempfds, NULL, NULL, NULL); //blocks until activity
-    //printf("[SERVER] [MISC] select() ret %d, processing...\n", sel);
-    if (sel < 0) {
-        perror("[SERVER] [ERROR] select() failed");
-        shutdown();
-    }
-    cout<<"sel: "<<sel<<endl;
+    // tempfds = masterfds; //copy fd_set for select()
+    // #ifdef SERVER_DEBUG
+    // printf("[SERVER] [MISC] max fd = '%hu' \n", maxfd);
+    // std::cout << "[SERVER] [MISC] calling select()\n";
+    // #endif
+    // int sel = select(maxfd + 1, &tempfds, NULL, NULL, NULL); //blocks until activity
+    // //printf("[SERVER] [MISC] select() ret %d, processing...\n", sel);
+    // if (sel < 0) {
+    //     perror("[SERVER] [ERROR] select() failed");
+    //     shutdown();
+    // }
+    // cout<<"sel: "<<sel<<endl;
 
     //no problems, we're all set
+    int eNum = epoll_wait(eFd, events, EVENTS_SIZE, -1);
+    if(eNum == -1) {cout<<"epoll wait"<<endl; return;}
 
     //loop the fd_set and check which socket has interactions available
-    for (int i = 0; i <= maxfd; i++) {
-        if (FD_ISSET(i, &tempfds)) { //if the socket has activity pending
-            if (mastersocket_fd == i) {
+    // experimental
+    #pragma omp parallel for num_threads(4)
+    for (int i = 0; i <= eNum; i++) {
+        //if (FD_ISSET(i, &tempfds)) { //if the socket has activity pending
+        if(events[i].data.fd == mastersocket_fd) {
+            //if (mastersocket_fd == i) {
+            if(events[i].events & EPOLLIN) {
                 //new connection on master socket
                 handleNewConnection();
-            } else {
+            }
+        }
+        else {
+            // check if there is a potential disconnection
+            if(events[i].events & EPOLLERR || events[i].events & EPOLLHUP) {
+                epoll_ctl(eFd, EPOLL_CTL_DEL, events[i].data.fd, nullptr);
+                close(events[i].data.fd);
+            } else if (events[i].events & EPOLLIN) {
                 //exisiting connection has new data
                 Connector connect_fd = Connector();
-                connect_fd.source_fd = i;
+                // connect_fd.source_fd = i;
+                connect_fd.source_fd = events[i].data.fd;
                 vector<string> messages = recvInputFromExisting(connect_fd);
                 if(!messages.empty()){
                     messages.shrink_to_fit();
@@ -843,6 +856,7 @@ void Server::loop()
                     bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
                 }
             }
+                
         } //loop on to see if there is more
     }
 }

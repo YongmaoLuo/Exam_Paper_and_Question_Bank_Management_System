@@ -847,6 +847,8 @@ void Server::loop()
     if(eNum == -1) {cout<<"epoll wait"<<endl; return;}
 
     //loop the fd_set and check which socket has interactions available
+    // experimental
+    #pragma omp parallel for num_threads(4)
     for (int i = 0; i <= eNum; i++) {
         //if (FD_ISSET(i, &tempfds)) { //if the socket has activity pending
         if(events[i].data.fd == mastersocket_fd) {

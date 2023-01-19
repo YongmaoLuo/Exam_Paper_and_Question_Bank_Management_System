@@ -29,6 +29,11 @@ using namespace std;
 #define FMT_HEADER_ONLY
 #include <fmt/format.h>
 
+// epoll
+#include <sys/epoll.h>
+#include <fcntl.h>
+#define EVENTS_SIZE 20
+
 inline std::string escapeJsonString(std::string input){
     for(int i=0;;i++){
         if(i>=input.length())
@@ -96,15 +101,18 @@ public:
 
 private:
     //fd_set file descriptor sets for use with FD_ macros
-    fd_set masterfds;
-    fd_set tempfds;
+    // fd_set masterfds;
+    // fd_set tempfds;
 
     //unsigned integer to keep track of maximum fd value, required for select()
-    uint16_t maxfd;
+    // uint16_t maxfd;
 
     //socket file descriptors
     int mastersocket_fd; //master socket which receives new connections
     int tempsocket_fd; //temporary socket file descriptor which holds new clients
+    int eFd; // used for epoll
+    epoll_event events[EVENTS_SIZE]; // callback array for epoll events
+    epoll_event epev{};
 
     //client connection data
     struct sockaddr_storage client_addr;
