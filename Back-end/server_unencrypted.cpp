@@ -407,7 +407,8 @@ vector<string> Server::getUser(Connector& connect_fd){
     message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, numUsers);
     #endif
 
-    messages.reserve(numUsers+1);
+    // messages.reserve(numUsers+1);
+    messages.resize(numUsers+1);
     // messages.push_back(message);
     messages.push_back(std::move(message));
     if(numUsers < 0) return messages;
@@ -515,7 +516,8 @@ vector<string> Server::getTeachers(){
     message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, teachers.size());
     #endif
 
-    messages.reserve(teachers.size()+1);
+    messages.resize(teachers.size()+1);
+    // messages.reserve(teachers.size()+1);
     // messages.push_back(message);
     messages.push_back(std::move(message));
 
@@ -554,7 +556,8 @@ vector<string> Server::getSubjects(){
     message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, subjects.size());
     #endif
 
-    messages.reserve(subjects.size()+1);
+    messages.resize(subjects.size()+1);
+    // messages.reserve(subjects.size()+1);
     // messages.push_back(message);
     messages.push_back(std::move(message));
 
@@ -601,7 +604,8 @@ vector<string> Server::getChapters(string subject){
     message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, chapter_num);
     #endif
 
-    messages.reserve(chapter_num+1);
+    messages.resize(chapter_num+1);
+    // messages.reserve(chapter_num+1);
     // messages.push_back(message);
     messages.push_back(std::move(message));
 
@@ -718,7 +722,8 @@ vector<string> Server::getQuestions(string subject, string chapter){
     message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, question_ids.size());
     #endif
 
-    messages.reserve(question_ids.size()+1);
+    messages.resize(question_ids.size()+1);
+    // messages.reserve(question_ids.size()+1);
     // messages.push_back(message);
     messages.push_back(std::move(message));
 
