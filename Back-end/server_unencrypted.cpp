@@ -21,19 +21,19 @@ Server::Server(int port)
     setup(port);
 }
 
-Server::Server(const Server& orig)
-{
-    // masterfds = orig.masterfds;
-    // tempfds = orig.tempfds;
-    // maxfd = orig.maxfd;
-    mastersocket_fd = orig.mastersocket_fd;
-    tempsocket_fd = orig.tempsocket_fd;
+// Server::Server(const Server& orig)
+// {
+//     // masterfds = orig.masterfds;
+//     // tempfds = orig.tempfds;
+//     // maxfd = orig.maxfd;
+//     mastersocket_fd = orig.mastersocket_fd;
+//     tempsocket_fd = orig.tempsocket_fd;
 
-    char input_buffer[INPUT_BUFFER_SIZE];
-    strcpy(input_buffer, orig.input_buffer);
-    char remote_ip[INET6_ADDRSTRLEN];
-    strcpy(remote_ip, orig.remote_ip);
-}
+//     char input_buffer[INPUT_BUFFER_SIZE];
+//     strcpy(input_buffer, orig.input_buffer);
+//     char remote_ip[INET6_ADDRSTRLEN];
+//     strcpy(remote_ip, orig.remote_ip);
+// }
 
 Server::~Server()
 {
@@ -922,15 +922,25 @@ uint16_t Server::recvMessage(Connector conn, char *messageBuffer){
     return recv(conn.source_fd, messageBuffer, INPUT_BUFFER_SIZE, 0);
 }
 
+shared_ptr<Server> Server::server_ = nullptr;
+
+shared_ptr<Server> Server::getInstance(int port) {
+    if(server_ == nullptr) server_ = shared_ptr<Server>(new Server(port));
+    return server_;
+}
+
+shared_ptr<Server> Server::getInstance() {
+    if(server_ == nullptr) server_ = shared_ptr<Server>(new Server());
+    return server_;
+}
 
 
 int main(int argc, char* argv[]){
-    Server server_object = Server();
-    // db_user user = db_user();
-    // user.create(false);
-    server_object.init();
+    // Server server_object = Server();
+    Server* server_object = Server::getInstance();
+    server_object->init();
     while(true){
-        server_object.loop();
+        server_object->loop();
     }
     return 0;
 }

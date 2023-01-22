@@ -32,6 +32,7 @@ using namespace std;
 #include <fcntl.h>
 #define EVENTS_SIZE 20
 
+
 inline std::string escapeJsonString(std::string input){
     for(int i=0;;i++){
         if(i>=input.length())
@@ -54,10 +55,16 @@ class db_user;
 class question_bank;
 class Server
 {
+protected:
+    static shared_ptr<Server> server_;
 public:
-    explicit Server();
-    explicit Server(int port);
-    explicit Server(const Server& orig);
+
+    void operator=(Server const&) = delete;
+    Server(Server const&) = delete;
+
+    static shared_ptr<Server> getInstance(int port); 
+    static shared_ptr<Server> getInstance(); 
+
     virtual ~Server();
     
     struct Connector {
@@ -79,6 +86,9 @@ public:
     uint16_t recvMessage(Connector conn, char *messageBuffer);
 
 private:
+    // make it singleton
+    explicit Server();
+    explicit Server(int port);
     //fd_set file descriptor sets for use with FD_ macros
     // fd_set masterfds;
     // fd_set tempfds;
