@@ -937,7 +937,7 @@ shared_ptr<Server> Server::getInstance() {
 
 int main(int argc, char* argv[]){
     // Server server_object = Server();
-    Server* server_object = Server::getInstance();
+    shared_ptr<Server> server_object = Server::getInstance();
     server_object->init();
     while(true){
         server_object->loop();
