@@ -32,6 +32,8 @@ using namespace std;
 #include <fcntl.h>
 #define EVENTS_SIZE 20
 
+#include <mutex>
+
 
 inline std::string escapeJsonString(std::string input){
     for(int i=0;;i++){
@@ -57,8 +59,9 @@ class Server
 {
 protected:
     static shared_ptr<Server> server_;
-public:
+    static std::mutex mutex_;
 
+public:
     void operator=(Server const&) = delete;
     Server(Server const&) = delete;
 
