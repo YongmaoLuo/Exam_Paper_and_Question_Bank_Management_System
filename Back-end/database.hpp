@@ -40,13 +40,10 @@ concept hashable = requires(T a)
     { std::hash<T>{}(a) } -> std::convertible_to<std::size_t>;
 };
 
-static int callback(void *NotUsed, int argc, char **argv, char **azColName) {
-   int i;
-   for(i = 0; i<argc; i++) {
-      printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
-   }
-   printf("\n");
-   return 0;
+template<typename T>
+static int c_callback(void *params, int argc, char **argv, char **azColName) {
+   T* database = reinterpret_cast<T*>(params);
+   return database->callback(argc, argv, azColName);
 }
 
 class database{
@@ -60,6 +57,14 @@ class database{
         virtual void close(){
             sqlite3_finalize(stmt);
             sqlite3_close(db);
+        }
+        int callback(int argc, char **argv, char **azColName) {
+            int i;
+            for(i = 0; i<argc; i++) {
+                printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+            }
+            printf("\n");
+            return 0;
         }
 };
 #endif

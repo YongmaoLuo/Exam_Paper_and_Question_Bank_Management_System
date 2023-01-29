@@ -43,7 +43,7 @@ void db_user::create(bool clear/*= false*/, const char* database_name/*= "userin
             ) WITHOUT ROWID;" ;
 
    /* Execute SQL statement */
-   rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
 
    if(rc != SQLITE_OK){
       fprintf(stderr, "SQL dropped: %s\n", zErrMsg);
@@ -74,7 +74,7 @@ int db_user::insert(std::shared_ptr<UserInfo<string>> user){
    sql = fmt::format("INSERT INTO USER (USERNAME, PASSWORD, IDENTITY, STATUS, ACTIVITY) "  \
             "VALUES ('{}', '{}', '{}', '{}', '{}'); SELECT * FROM USER", username, password, identity, status, activity);
    cout<<sql<<endl;
-   rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
          fprintf(stderr, "SQL error: %s\n", zErrMsg);
          sqlite3_free(zErrMsg);
@@ -101,7 +101,7 @@ int db_user::update(const string& primary_val, vector<pair<string, variant<strin
       if(key == "USERNAME") return -1;
       sql = fmt::format("UPDATE USER set {} = '{}' where USERNAME = '{}'; SELECT * FROM USER", key, custom_to_string(value), primary_val);
 
-      rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+      rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
       if (rc != SQLITE_OK) {
             fprintf(stderr, "SQL error: %s\n", zErrMsg);
             sqlite3_free(zErrMsg);
@@ -247,7 +247,7 @@ int db_user::delet(const string& primary_val, pair<string, variant<string, int, 
    auto value = authenticated_info.second;
    sql = fmt::format("DELETE from USER where USERNAME = '{}' AND {} = '{}'; \
                 SELECT * from USER", primary_val, key, custom_to_string(value));
-   rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);
@@ -260,7 +260,7 @@ int db_user::delet(const string& primary_val, pair<string, variant<string, int, 
 
 void db_user::clean(){
    sql = "DROP TABLE IF EXISTS USER;";
-   rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);

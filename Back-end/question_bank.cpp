@@ -44,7 +44,7 @@ void question_bank::create(bool clear/*= false*/, const char* database_name/*= "
             ) WITHOUT ROWID" ; // without rowid means using clustered index
 
    /* Execute SQL statement */
-   rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
 
    if(rc != SQLITE_OK){
       fprintf(stderr, "SQL dropped: %s\n", zErrMsg);
@@ -64,7 +64,7 @@ int question_bank::insert(std::shared_ptr<QuestionInfo<string>> question){
    if(category.empty()) category = "undefined";
    sql = fmt::format("INSERT INTO QUESTIONS (PATH, CONTENT, CHAPTER, SUBJECT, RUBRIC) "  \
             "VALUES ('{}', '{}', '{}', '{}', '{}'); SELECT * FROM QUESTIONS", path, content, chapter, category, rubric);
-   rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
          fprintf(stderr, "SQL error: %s\n", zErrMsg);
          sqlite3_free(zErrMsg);
@@ -98,7 +98,7 @@ int question_bank::update(vector<pair<string, string>> primary_pairs, vector<pai
       for(int i=0; i<primary_pairs.size()-1; i++) sql += fmt::format("{} = '{}' AND ", primary_pairs[i].first, primary_pairs[i].second);
       sql += fmt::format("{} = '{}';", primary_pairs[primary_pairs.size()-1].first, primary_pairs[primary_pairs.size()-1].second);
 
-      rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+      rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
       if (rc != SQLITE_OK) {
             fprintf(stderr, "SQL error: %s\n", zErrMsg);
             sqlite3_free(zErrMsg);
@@ -304,7 +304,7 @@ int question_bank::delet(vector<pair<string, string>> primary_pairs){
       else sql += fmt::format("{} = '{}' ;", primary_pairs[i].first, primary_pairs[i].second);
    }
     
-   rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);
@@ -317,7 +317,7 @@ int question_bank::delet(vector<pair<string, string>> primary_pairs){
 
 void question_bank::clean(){
    sql = "DROP TABLE IF EXISTS QUESTIONS;";
-   rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);
