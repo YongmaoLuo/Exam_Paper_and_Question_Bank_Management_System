@@ -926,14 +926,20 @@ shared_ptr<Server> Server::server_ = nullptr;
 std::mutex Server::mutex_;
 
 shared_ptr<Server> Server::getInstance(int port) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if(server_ == nullptr) server_ = shared_ptr<Server>(new Server(port));
+    // double checked locking
+    if(server_ == nullptr) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if(server_ == nullptr) server_ = shared_ptr<Server>(new Server(port));
+    }
     return server_;
 }
 
 shared_ptr<Server> Server::getInstance() {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if(server_ == nullptr) server_ = shared_ptr<Server>(new Server());
+    // double checked locking
+    if(server_ == nullptr) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if(server_ == nullptr) server_ = shared_ptr<Server>(new Server());
+    }
     return server_;
 }
 
