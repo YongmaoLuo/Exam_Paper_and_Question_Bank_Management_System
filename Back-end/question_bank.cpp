@@ -278,19 +278,8 @@ vector<string> question_bank::getQuestionPaths(){
       vector<string> row;
       num_cols = sqlite3_column_count(stmt);
       for(int i = 0; i < num_cols; i++){
-         switch(sqlite3_column_type(stmt, i)){
-            case(SQLITE3_TEXT):
-               row.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, i))));
-               break;
-            case(SQLITE_INTEGER):
-               row.push_back(to_string(sqlite3_column_int(stmt, i)));
-               break;
-            case(SQLITE_FLOAT):
-               row.push_back(to_string(sqlite3_column_double(stmt, i)));
-               break;
-            default:
-               break;
-         }
+         assert(sqlite3_column_type(stmt, i) == SQLITE_TEXT);
+         row.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, i))));    
       }
       output.insert(output.end(), row.begin(), row.end());
    }

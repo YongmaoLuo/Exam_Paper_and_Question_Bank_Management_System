@@ -58,13 +58,44 @@ class database{
             sqlite3_finalize(stmt);
             sqlite3_close(db);
         }
-        int callback(int argc, char **argv, char **azColName) {
+        virtual int callback(int argc, char **argv, char **azColName) {
             int i;
             for(i = 0; i<argc; i++) {
                 printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
             }
             printf("\n");
             return 0;
+        }
+        
+        template<hashable T = string>
+        vector<T> sqlexec(const string& sql) {
+            sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
+            sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+            int num_cols;
+            vector<T> output;
+            output.reserve(20);
+            while(sqlite3_step(stmt) != SQLITE_DONE){
+                vector<T> row;
+                num_cols = sqlite3_column_count(stmt);
+                for(int i = 0; i < num_cols; i++){
+                    switch(sqlite3_column_type(stmt, i)){
+                        case(SQLITE3_TEXT):
+                        if constexpr(std::is_same_v<T, std::string>) row.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, i))));
+                        break;
+                        case(SQLITE_INTEGER):
+                        if constexpr(std::is_same_v<T, int>) row.push_back(sqlite3_column_int(stmt, i));
+                        break;
+                        case(SQLITE_FLOAT):
+                        if constexpr(std::is_same_v<T, double>) row.push_back(sqlite3_column_double(stmt, i));
+                        break;
+                        default:
+                        break;
+                    }
+                }
+                output.insert(output.end(), row.begin(), row.end());
+            }
+            output.shrink_to_fit();
+            return output;
         }
 };
 #endif

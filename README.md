@@ -1,3 +1,5 @@
+*This repo will be archived temporarily.*
+
 ## Introduction
 
 We developed a complicated full stack application based on socket-based single-server-multi-client connection. The front-end of this application is Qt6 and back-end is SQLite3/MongoDB(experimental). Serveral highlights of this application are:
