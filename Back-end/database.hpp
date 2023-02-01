@@ -50,6 +50,7 @@ class database{
     protected:
         sqlite3 *db;
         sqlite3_stmt *stmt;
+        char *zErrMsg;
     public:
         virtual void create(bool, const char*) = 0;
         virtual int count() = 0;
@@ -94,6 +95,37 @@ class database{
                 }
                 output.insert(output.end(), row.begin(), row.end());
             }
+            output.shrink_to_fit();
+            sqlite3_finalize(stmt);
+            return output;
+        }
+
+        // could be used to customize postprocessing
+        vector<string> sqlGetTable(const string& sql) {
+            char** pResult;
+            int nRow;
+            int nCol;
+            int nResult = sqlite3_get_table(db, sql.c_str(), &pResult, &nRow, &nCol, &zErrMsg);
+
+            vector<string> output;
+            output.reserve(20);
+            if (nResult != SQLITE_OK)
+            {
+                sqlite3_free(zErrMsg);
+                return output;
+            }
+
+            int nIndex = nCol;
+            for(int i=0;i<nRow;i++)
+            {
+                for(int j=0;j<nCol;j++)
+                {
+                    output.push_back(pResult[j]); // attribute name
+                    output.push_back(pResult[nIndex]);
+                    ++nIndex;
+                }
+            }
+            sqlite3_free_table(pResult);
             output.shrink_to_fit();
             return output;
         }

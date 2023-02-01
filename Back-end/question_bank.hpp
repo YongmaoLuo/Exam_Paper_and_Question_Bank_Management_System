@@ -24,7 +24,7 @@ class question_bank: public database{
     private:
         // sqlite3 *db;
         // sqlite3_stmt *stmt;
-        char *zErrMsg;
+        // char *zErrMsg;
         int rc;
         string sql;
         

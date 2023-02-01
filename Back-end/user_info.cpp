@@ -73,7 +73,7 @@ int db_user::insert(std::shared_ptr<UserInfo<string>> user){
    if(status.empty()) status = "valid";
    sql = fmt::format("INSERT INTO USER (USERNAME, PASSWORD, IDENTITY, STATUS, ACTIVITY) "  \
             "VALUES ('{}', '{}', '{}', '{}', '{}'); SELECT * FROM USER", username, password, identity, status, activity);
-   cout<<sql<<endl;
+
    rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
          fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -145,7 +145,7 @@ string db_user::getUserAttribute(optional<pair<string, variant<string, int, doub
    }
    else sql = fmt::format("SELECT {} FROM USER " \
                      "WHERE USERNAME = '{}' LIMIT 1; ", target_attribute, primary_val);
-   cout<<sql<<endl;
+
    // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
    sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
