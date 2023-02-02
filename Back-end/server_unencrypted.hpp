@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <iostream>
+#include <exception>
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 using namespace std;
@@ -125,6 +126,8 @@ private:
     set<string> usernameSet;
     map<string, int> logined_users;
 
+    map<int, string> archived_msg;
+
     void (*newConnectionCallback) (uint16_t fd);
     void (*receiveCallback) (uint16_t fd, char *buffer);
     void (*disconnectCallback) (uint16_t fd);
@@ -149,6 +152,7 @@ private:
 
     vector<string> recvInputFromExisting(Connector&);
     void sendMsgToExisting(Connector&, vector<string>&);
+    void resendMsgToExisting(Connector&);
     vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity);
     vector<string> authenticateUser(Connector& conn, string username, auto password);
     vector<string> logout(Connector&);

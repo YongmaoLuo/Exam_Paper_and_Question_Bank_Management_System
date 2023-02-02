@@ -163,12 +163,28 @@ void Server::handleNewConnection()
 void Server::sendMsgToExisting(Connector& connect_fd, vector<string>& messages){
     for(int i=0; i<messages.size(); i++){
         int bytes = sendMessage(connect_fd, messages[i].c_str());
-        while(bytes < 0){
+        int retry = 5;
+        while(bytes < 0 && retry-- >= 0){
             bytes = sendMessage(connect_fd, messages[i].c_str());
+        }
+        // If still failed to send, archive the msg and send again afterwards
+        if(bytes < 0) {
+            archived_msg[connect_fd.source_fd] = messages[i];
+            cout<<"Message sent imcomplete!"<<endl;
+            break;
         }
         usleep(100000);
     }
 
+}
+
+void Server::resendMsgToExisting(Connector& connect_fd) {
+    vector<string> messages;
+    if(archived_msg.find(connect_fd.source_fd) != archived_msg.end()) {
+        messages.push_back(archived_msg[connect_fd.source_fd]);
+        sendMsgToExisting(connect_fd, messages); // If still failed to send, discard the message
+        archived_msg.erase(connect_fd.source_fd);
+    }
 }
 
 vector<string> Server::recvInputFromExisting(Connector& connect_fd)
@@ -873,6 +889,7 @@ void Server::loop()
                 Connector connect_fd = Connector();
                 // connect_fd.source_fd = i;
                 connect_fd.source_fd = events[i].data.fd;
+                resendMsgToExisting(connect_fd);
                 vector<string> messages = recvInputFromExisting(connect_fd);
                 if(!messages.empty()){
                     messages.shrink_to_fit();
@@ -950,8 +967,14 @@ int main(int argc, char* argv[]){
     // Server server_object = Server();
     shared_ptr<Server> server_object = Server::getInstance();
     server_object->init();
-    while(true){
-        server_object->loop();
+    try {
+        while(true){
+            server_object->loop();
+        }
+    } catch (std::exception& e) {
+        server_object->shutdown();
+        return 1;
     }
+    
     return 0;
 }
