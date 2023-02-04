@@ -63,7 +63,7 @@ int question_bank::insert(std::shared_ptr<QuestionInfo<string>> question){
    auto [path, content, chapter, category, rubric] = question->getElements();
    if(category.empty()) category = "undefined";
    sql = fmt::format("INSERT INTO QUESTIONS (PATH, CONTENT, CHAPTER, SUBJECT, RUBRIC) "  \
-            "VALUES ('{}', '{}', '{}', '{}', '{}'); SELECT * FROM QUESTIONS", path, content, chapter, category, rubric);
+            "VALUES ('{}', '{}', '{}', '{}', '{}'); COMMIT;", path, content, chapter, category, rubric);
    rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
          fprintf(stderr, "SQL error: %s\n", zErrMsg);
@@ -97,6 +97,8 @@ int question_bank::update(vector<pair<string, string>> primary_pairs, vector<pai
       sql = fmt::format("UPDATE QUESTIONS set {} = '{}' where ", key, custom_to_string(value));
       for(int i=0; i<primary_pairs.size()-1; i++) sql += fmt::format("{} = '{}' AND ", primary_pairs[i].first, primary_pairs[i].second);
       sql += fmt::format("{} = '{}';", primary_pairs[primary_pairs.size()-1].first, primary_pairs[primary_pairs.size()-1].second);
+      // DML needs commit
+      sql += "commit;";
 
       rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
       if (rc != SQLITE_OK) {
@@ -120,35 +122,8 @@ string question_bank::getQuestion(optional<pair<string, variant<string, int, dou
    }
    else sql = fmt::format("SELECT CONTENT FROM QUESTIONS " \
                   "WHERE PATH = '{}'; ", primary_val);
-   // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
-   sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
-   // if(sqlite3_step(stmt) != SQLITE_DONE){
-   //    fprintf(stderr, "SQL error");
-   //    return false;
-   // }
-   int num_cols;
-   vector<string> output;
-   while(sqlite3_step(stmt) != SQLITE_DONE){
-      vector<string> row;
-      num_cols = sqlite3_column_count(stmt);
-      for(int i = 0; i < num_cols; i++){
-         switch(sqlite3_column_type(stmt, i)){
-            case(SQLITE3_TEXT):
-               row.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, i))));
-               break;
-            case(SQLITE_INTEGER):
-               row.push_back(to_string(sqlite3_column_int(stmt, i)));
-               break;
-            case(SQLITE_FLOAT):
-               row.push_back(to_string(sqlite3_column_double(stmt, i)));
-               break;
-            default:
-               break;
-         }
-      }
-      output.insert(output.end(), row.begin(), row.end());
-   }
+
+   vector<string> output = sqlexec<string>(sql);
    
    if(!output.empty()) return output[0];
    cout<<"question not found"<<endl;
@@ -191,6 +166,7 @@ string question_bank::getQuestionAttribute(optional<pair<string, variant<string,
             res = string(row_content_raw, bytes);
          }
    }
+   sqlite3_finalize(stmt);
    if(bytes) return res;
    else return {};
 }
@@ -210,6 +186,7 @@ int question_bank::count(){
       }
       output.insert(output.end(), row.begin(), row.end());
    }
+   sqlite3_finalize(stmt);
    if(output.empty()) return -1;
    return output[0];
 }
@@ -237,6 +214,7 @@ int question_bank::countDistinct(const string target_attribute, vector<pair<stri
       }
       output.insert(output.end(), row.begin(), row.end());
    }
+   sqlite3_finalize(stmt);
    if(output.empty()) return -1;
    return output[0];
 }
@@ -264,6 +242,7 @@ int question_bank::countDistinct(const string target_attribute, optional<pair<st
       }
       output.insert(output.end(), row.begin(), row.end());
    }
+   sqlite3_finalize(stmt);
    if(output.empty()) return -1;
    return output[0];
 }
@@ -283,6 +262,7 @@ vector<string> question_bank::getQuestionPaths(){
       }
       output.insert(output.end(), row.begin(), row.end());
    }
+   sqlite3_finalize(stmt);
    return output;
 }
 
@@ -292,6 +272,8 @@ int question_bank::delet(vector<pair<string, string>> primary_pairs){
       if(i < primary_pairs.size()-1)  sql += fmt::format("{} = '{}' AND ", primary_pairs[i].first, primary_pairs[i].second);
       else sql += fmt::format("{} = '{}' ;", primary_pairs[i].first, primary_pairs[i].second);
    }
+   // DML needs commit
+   sql += "commit;";
     
    rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
    if (rc != SQLITE_OK) {

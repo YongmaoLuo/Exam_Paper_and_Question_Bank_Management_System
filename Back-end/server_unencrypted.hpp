@@ -126,7 +126,7 @@ private:
     set<string> usernameSet;
     map<string, int> logined_users;
 
-    map<int, string> archived_msg;
+    map<int, vector<string>> archived_msg;
 
     void (*newConnectionCallback) (uint16_t fd);
     void (*receiveCallback) (uint16_t fd, char *buffer);

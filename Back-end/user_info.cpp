@@ -72,7 +72,7 @@ int db_user::insert(std::shared_ptr<UserInfo<string>> user){
    auto [username, password, identity, status, activity] = user->getElements();
    if(status.empty()) status = "valid";
    sql = fmt::format("INSERT INTO USER (USERNAME, PASSWORD, IDENTITY, STATUS, ACTIVITY) "  \
-            "VALUES ('{}', '{}', '{}', '{}', '{}'); SELECT * FROM USER", username, password, identity, status, activity);
+            "VALUES ('{}', '{}', '{}', '{}', '{}'); COMMIT;", username, password, identity, status, activity);
 
    rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
@@ -99,7 +99,7 @@ int db_user::update(const string& primary_val, vector<pair<string, variant<strin
       keys.insert(key);
       
       if(key == "USERNAME") return -1;
-      sql = fmt::format("UPDATE USER set {} = '{}' where USERNAME = '{}'; SELECT * FROM USER", key, custom_to_string(value), primary_val);
+      sql = fmt::format("UPDATE USER set {} = '{}' where USERNAME = '{}'; COMMIT;", key, custom_to_string(value), primary_val);
 
       rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
       if (rc != SQLITE_OK) {
@@ -130,6 +130,7 @@ string db_user::checkType(string target_attribute){
          }
    }
    transform(res.begin(), res.end(), res.begin(), ::toupper);
+   sqlite3_finalize(stmt);
    return res;
 }
 
@@ -162,6 +163,7 @@ string db_user::getUserAttribute(optional<pair<string, variant<string, int, doub
             res = string(row_content_raw, bytes);
          }
    }
+   sqlite3_finalize(stmt);
    if(bytes) return res;
    else return {};
 }
@@ -217,6 +219,7 @@ int db_user::count(){
       }
       output.insert(output.end(), row.begin(), row.end());
    }
+   sqlite3_finalize(stmt);
    if(output.empty()) return -1;
    return output[0];
 }
@@ -238,6 +241,7 @@ int db_user::countDistinct(const string& target_attribute, pair<string, variant<
       }
       output.insert(output.end(), row.begin(), row.end());
    }
+   sqlite3_finalize(stmt);
    if(output.empty()) return -1;
    return output[0];
 }
@@ -245,8 +249,7 @@ int db_user::countDistinct(const string& target_attribute, pair<string, variant<
 int db_user::delet(const string& primary_val, pair<string, variant<string, int, double>> authenticated_info){
    string key = authenticated_info.first;
    auto value = authenticated_info.second;
-   sql = fmt::format("DELETE from USER where USERNAME = '{}' AND {} = '{}'; \
-                SELECT * from USER", primary_val, key, custom_to_string(value));
+   sql = fmt::format("DELETE from USER where USERNAME = '{}' AND {} = '{}'; COMMIT;", primary_val, key, custom_to_string(value));
    rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error: %s\n", zErrMsg);

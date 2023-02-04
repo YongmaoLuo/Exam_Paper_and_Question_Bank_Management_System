@@ -158,6 +158,8 @@ void Server::handleNewConnection()
     // struct Connector connect_fd = Connector();
     // connect_fd.source_fd = tempsocket_fd;
     // sendMessage(connect_fd, message.c_str());
+    resendMsgToExisting(connect_fd); // It is advised to send once connected
+    // on the client, should be non-blocked receive
 }
 
 void Server::sendMsgToExisting(Connector& connect_fd, vector<string>& messages){
@@ -169,9 +171,8 @@ void Server::sendMsgToExisting(Connector& connect_fd, vector<string>& messages){
         }
         // If still failed to send, archive the msg and send again afterwards
         if(bytes < 0) {
-            archived_msg[connect_fd.source_fd] = messages[i];
-            cout<<"Message sent imcomplete!"<<endl;
-            break;
+            archived_msg[connect_fd.source_fd].push_back(messages[i]);
+            cout<<"Message sent incomplete!"<<endl;
         }
         usleep(100000);
     }
@@ -179,9 +180,7 @@ void Server::sendMsgToExisting(Connector& connect_fd, vector<string>& messages){
 }
 
 void Server::resendMsgToExisting(Connector& connect_fd) {
-    vector<string> messages;
-    if(archived_msg.find(connect_fd.source_fd) != archived_msg.end()) {
-        messages.push_back(archived_msg[connect_fd.source_fd]);
+    if(archived_msg.find(connect_fd.source_fd) != archived_msg.end() && !archived_msg[connect_fd.source_fd].empty()) {
         sendMsgToExisting(connect_fd, messages); // If still failed to send, discard the message
         archived_msg.erase(connect_fd.source_fd);
     }
@@ -889,7 +888,7 @@ void Server::loop()
                 Connector connect_fd = Connector();
                 // connect_fd.source_fd = i;
                 connect_fd.source_fd = events[i].data.fd;
-                resendMsgToExisting(connect_fd);
+                
                 vector<string> messages = recvInputFromExisting(connect_fd);
                 if(!messages.empty()){
                     messages.shrink_to_fit();
