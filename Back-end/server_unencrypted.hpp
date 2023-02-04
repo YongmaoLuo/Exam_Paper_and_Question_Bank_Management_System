@@ -34,6 +34,7 @@ using namespace std;
 #define EVENTS_SIZE 20
 
 #include <mutex>
+#include <csignal>
 
 
 inline std::string escapeJsonString(std::string input){
@@ -50,6 +51,26 @@ inline std::string escapeJsonString(std::string input){
     }
     }
     return input;
+}
+
+
+class InterruptException : public std::exception
+  {
+   public:
+    InterruptException(int _s) : signal_(_s) { }
+    int signal() const noexcept
+    {
+      return this->signal_;
+    }
+
+   private:
+    int signal_;
+  };
+
+/// method to throw exception at signal interrupt
+void sig_to_exception(int s)
+{
+    throw InterruptException(s);
 }
 
 // #include "user_info.hpp"
@@ -153,6 +174,7 @@ private:
     vector<string> recvInputFromExisting(Connector&);
     void sendMsgToExisting(Connector&, vector<string>&);
     void resendMsgToExisting(Connector&);
+    int sendMsgRedirect(string&&, vector<string>&);
     vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity);
     vector<string> authenticateUser(Connector& conn, string username, auto password);
     vector<string> logout(Connector&);

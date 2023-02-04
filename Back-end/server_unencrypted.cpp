@@ -186,6 +186,15 @@ void Server::resendMsgToExisting(Connector& connect_fd) {
     }
 }
 
+int Server::sendMsgRedirect(string&& username, vector<string>& messages) {
+    int user_fd = logined_users[username];
+    Connector connect_fd = Connector();
+    connect_fd.source_fd = user_fd;
+    sendMsgToExisting(connect_fd, messages);
+    if(archived_msg.find(user_fd) != archived_msg.end() && !archived_msg[user_fd].empty()) return -1;
+    return 0;
+}
+
 vector<string> Server::recvInputFromExisting(Connector& connect_fd)
 {
     vector<string> messages;
@@ -963,6 +972,13 @@ shared_ptr<Server> Server::getInstance() {
 
 
 int main(int argc, char* argv[]){
+    // activate signal handling
+    struct sigaction sigIntHandler;
+    sigIntHandler.sa_handler = sig_to_exception;
+    sigemptyset(&sigIntHandler.sa_mask);
+    sigIntHandler.sa_flags = 0;
+    sigaction(SIGINT, &sigIntHandler, NULL);
+
     // Server server_object = Server();
     shared_ptr<Server> server_object = Server::getInstance();
     server_object->init();
@@ -970,7 +986,12 @@ int main(int argc, char* argv[]){
         while(true){
             server_object->loop();
         }
-    } catch (std::exception& e) {
+    } catch (const InterruptException& e1) {
+        server_object->shutdown();
+        return -1;
+    }
+    
+    catch (std::exception& e2) {
         server_object->shutdown();
         return 1;
     }
