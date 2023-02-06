@@ -21,6 +21,7 @@
 #include <concepts>
 #include <cctype>
 #include <cassert>
+#include <type_traits>
 
 using namespace std;
 
@@ -40,8 +41,10 @@ concept hashable = requires(T a)
     { std::hash<T>{}(a) } -> std::convertible_to<std::size_t>;
 };
 
-template<typename T>
-static int c_callback(void *params, int argc, char **argv, char **azColName) {
+class database;
+
+template<typename T> static int c_callback(void *params, int argc, char **argv, char **azColName) requires std::is_base_of<database, T>::value
+{
    T* database = reinterpret_cast<T*>(params);
    return database->callback(argc, argv, azColName);
 }

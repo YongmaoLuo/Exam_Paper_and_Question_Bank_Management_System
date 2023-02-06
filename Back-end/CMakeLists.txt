@@ -24,4 +24,4 @@ include_directories(./SQLite3-Encryption/src)
 add_executable(cplusplusproject2022fall
                server_unencrypted.cpp)
 
-target_link_libraries(cplusplusproject2022fall -lsqlite3 -lssl -lcrypto -fopenmp)
+target_link_libraries(cplusplusproject2022fall -lsqlite3 -lssl -lcrypto -fopenmp -fconcepts)

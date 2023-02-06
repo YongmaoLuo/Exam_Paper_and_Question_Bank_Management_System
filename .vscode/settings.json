@@ -106,6 +106,8 @@
         "random": "cpp",
         "numbers": "cpp",
         "condition_variable": "cpp",
-        "semaphore": "cpp"
+        "semaphore": "cpp",
+        "csignal": "cpp",
+        "future": "cpp"
     }
 }
