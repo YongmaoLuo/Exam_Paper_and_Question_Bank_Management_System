@@ -74,7 +74,7 @@ class database{
         template<hashable T = string>
         vector<T> sqlexec(const string& sql) {
             sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-            sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+            sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
             int num_cols;
             vector<T> output;
             output.reserve(20);

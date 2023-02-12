@@ -116,7 +116,7 @@ int db_user::update(const string& primary_val, vector<pair<string, variant<strin
 string db_user::checkType(string target_attribute){
    sql = fmt::format("SELECT typeof({}) FROM USER LIMIT 1;", target_attribute);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
    int bytes;
    char* row_content_raw;
@@ -149,7 +149,7 @@ string db_user::getUserAttribute(optional<pair<string, variant<string, int, doub
 
    // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
    int bytes = 0;
    char* row_content_raw;
@@ -207,7 +207,7 @@ string db_user::getUserAttribute(optional<pair<string, variant<string, int, doub
 int db_user::count(){
    sql = "SELECT COUNT (*) from USER LIMIT 1;"; 
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
    vector<int> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){
@@ -229,7 +229,7 @@ int db_user::countDistinct(const string& target_attribute, pair<string, variant<
    auto countValue =  count_info.second;
    sql = fmt::format("SELECT COUNT(DISTINCT {}) from USER WHERE {}='{}' LIMIT 1;", target_attribute, countKey, custom_to_string(countValue));
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
    vector<int> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){

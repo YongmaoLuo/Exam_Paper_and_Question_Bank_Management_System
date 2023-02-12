@@ -152,7 +152,7 @@ string question_bank::getQuestionAttribute(optional<pair<string, variant<string,
    cout<<sql<<endl;
    // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
    int bytes = 0;
    char* row_content_raw;
@@ -174,7 +174,7 @@ string question_bank::getQuestionAttribute(optional<pair<string, variant<string,
 int question_bank::count(){
    sql = "SELECT COUNT (*) from QUESTIONS LIMIT 1;"; 
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
    vector<int> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){
@@ -202,7 +202,7 @@ int question_bank::countDistinct(const string target_attribute, vector<pair<stri
    }
    sql += fmt::format("{} != 'placeholder' LIMIT 1;", target_attribute);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
    vector<int> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){
@@ -230,7 +230,7 @@ int question_bank::countDistinct(const string target_attribute, optional<pair<st
       sql = fmt::format("select count(DISTINCT {}) from QUESTIONS where {} != 'placeholder' LIMIT 1;", target_attribute, target_attribute);
    }
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
    vector<int> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){
@@ -250,7 +250,7 @@ int question_bank::countDistinct(const string target_attribute, optional<pair<st
 vector<string> question_bank::getQuestionPaths(){
    sql = "SELECT PATH from QUESTIONS;";
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
    vector<string> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){
