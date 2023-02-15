@@ -86,5 +86,15 @@ class question_bank: public database{
         vector<string> getQuestionPaths();
         int delet(vector<pair<string, string>>);
         void clean();
+        void reorganize() {
+            sql = "DELETE FROM QUESTIONS IF EXISTS;";
+            rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
+            if (rc != SQLITE_OK) {
+                fprintf(stderr, "SQL error: %s\n", zErrMsg);
+                sqlite3_free(zErrMsg);
+            } else {
+                fprintf(stdout, "Table truncated successfully\n");
+            }
+        }
 };
 #endif

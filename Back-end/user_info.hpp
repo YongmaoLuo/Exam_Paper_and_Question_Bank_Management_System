@@ -93,5 +93,15 @@ class db_user: public database{
         int countDistinct(const string& target_attribute, pair<string, variant<string, int, double>> count_info);
         int delet(const string& primary_val, pair<string, variant<string, int, double>> deleted_info);
         void clean();
+        void reorganize() {
+            sql = "DELETE FROM USER IF EXISTS;";
+            rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
+            if (rc != SQLITE_OK) {
+                fprintf(stderr, "SQL error: %s\n", zErrMsg);
+                sqlite3_free(zErrMsg);
+            } else {
+                fprintf(stdout, "Table truncated successfully\n");
+            }
+        }
 };
 #endif

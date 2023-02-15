@@ -62,6 +62,18 @@ class database{
             sqlite3_finalize(stmt);
             sqlite3_close(db);
         }
+        virtual void reorganize() = 0;
+        template<typename T>
+        void rollback() {
+            const char* statement = "ROLLBACK;";
+            int rc = sqlite3_exec(db, statement, c_callback<T>, 0, &zErrMsg);
+            if(rc != SQLITE_OK){
+                fprintf(stderr, "SQL transaction rollback: %s\n", zErrMsg);
+                sqlite3_free(zErrMsg);
+            } else {
+                fprintf(stdout, "Transaction rollback successfully\n");
+            }
+        }
         virtual int callback(int argc, char **argv, char **azColName) {
             int i;
             for(i = 0; i<argc; i++) {
