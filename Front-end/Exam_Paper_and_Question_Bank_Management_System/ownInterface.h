@@ -10,9 +10,29 @@
 #include "tcpclientsocket.h"
 #include <nlohmann/json.hpp>
 #include <unistd.h>
+#include <chrono>
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 using json=nlohmann::json;
+
+inline std::string escapeJsonString(std::string input){
+    for(int i=0;;i++){
+        if(i>=input.length())
+            break;
+        if(input[i]=='\n'){
+            input.erase(i,1);
+            input.insert(i,"\\n");
+            i++;
+        }else if(input[i]=='\\'){
+            input.insert(i,"\\");
+            i++;
+        }else if(input[i]=='\"'){
+            input.insert(i,"\\");
+            i++;
+        }
+    }
+    return input;
+}
 
 class Login{// login panel
 protected:
@@ -66,7 +86,7 @@ class PaperProduction{// paper generation
 protected:
     QStringList questionsList;// store question list
     virtual void delete_question(QString questionName)=0;// delete question from the list
-    virtual void output_paper(QDir paperDir,QStringList questionsList)=0;// output paper
+    virtual void output_paper(QString pathName,QStringList questionsList)=0;// output paper
     virtual void read_questions(QStringList questionsList)=0;// read all questions and display
 public:
     virtual void add_question(QString subject,QString chapter,QString timeStamp)=0;// add question into the paper

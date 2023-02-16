@@ -44,7 +44,6 @@ private slots:
     void on_bulletinAction_triggered();
     void on_makePaperAction_triggered();
 
-    void receive_rulemaker_panel_closure();
     void receive_paper_production_panel_closure();
 
     void on_addPaperButton_clicked();
@@ -54,11 +53,9 @@ public slots:
 
 private:
     Ui::MainWindow *ui;
-    std::unique_ptr<TCPClientSocket> client;
-    RuleMakerDialog *rulemakerPanel=nullptr;
-    PaperProductionDialog *paperPanel=nullptr;
-    QString tempSubject,tempChapter,tempQuestionName,tempQuestionText;
-    bool canMakePaper=false;
+    std::shared_ptr<TCPClientSocket> client;
+    std::unique_ptr<PaperProductionDialog> paperPanel;
+    bool canMakePaper=true;
     void get_subjects() override;
     void get_chapters(QString subject) override;
     void get_questions(QString subject,QString chapter) override;
@@ -70,6 +67,7 @@ private:
     void delete_question(QString subject,QString chapter,QString timeStamp) override;
     void read_question(QString subject,QString chapter,QString timeStamp) override;
     void write_question(QString subject,QString chapter,QString timeStamp,QString questionText) override;
+
 public:
     void open_question_management_panel() override;
 };

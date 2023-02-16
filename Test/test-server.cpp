@@ -102,6 +102,7 @@ int main(int argc , char *argv[])
     puts("Waiting for connections ...");  
     std::string bulletinText="";
     std::string teacherName="";
+    std::string questionText="";
          
     while(TRUE)  
     {  
@@ -265,6 +266,69 @@ int main(int argc , char *argv[])
                         std::string ret=sendPacket.dump();
                         send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
                     }else if(recvPacket["command"]=="delete bulletin"){
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200}}"));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                    }else if(recvPacket["command"]=="get subjects"){
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200, \"counts\": {}}}",5));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                        usleep(100);
+                        for(int i=0;i<5;i++){
+                            sendPacket=json::parse(fmt::format("{{\"subject name\": \"{}\"}}","subject"+std::to_string(i)));
+                            std::string ret=sendPacket.dump();
+                            send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                            usleep(100);
+                        }
+                    }else if(recvPacket["command"]=="get chapters"){
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200, \"counts\": {}}}",5));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                        usleep(100);
+                        for(int i=0;i<5;i++){
+                            sendPacket=json::parse(fmt::format("{{\"chapter name\": \"{}\"}}","chapter"+std::to_string(i)));
+                            std::string ret=sendPacket.dump();
+                            send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                            usleep(100);
+                        }
+                    }else if(recvPacket["command"]=="get questions"){
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200, \"counts\": {}}}",5));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                        usleep(100);
+                        for(int i=0;i<5;i++){
+                            auto t=std::chrono::system_clock::now();
+                            sendPacket=json::parse(fmt::format("{{\"question name\": \"{}\"}}",
+                            fmt::format("{:%Y-%m-%d_%H-%M-%S}",std::chrono::floor<std::chrono::seconds>(t))));
+                            std::string ret=sendPacket.dump();
+                            send(sd , ret.c_str(), strlen(ret.c_str()), 0);
+                            usleep(100);
+                        }
+                    }else if(recvPacket["command"]=="read question"){
+                        std::cout<<"question Text: "<<questionText<<std::endl;
+                        std::string escapeQuestion=escapeJsonString(questionText);
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200,\"question text\":\"{}\"}}",escapeQuestion));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                    }else if(recvPacket["command"]=="write question"){
+                        std::cout<<"question Text: "<<recvPacket["question text"]<<std::endl;
+                        questionText=recvPacket["question text"];
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200}}"));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                    }else if(recvPacket["command"]=="delete question"){
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200}}"));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                    }else if(recvPacket["command"]=="delete chapter"){
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200}}"));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                    }else if(recvPacket["command"]=="delete subject"){
+                        json sendPacket=json::parse(fmt::format("{{\"code\": 200}}"));
+                        std::string ret=sendPacket.dump();
+                        send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );
+                    }else if(recvPacket["command"]=="logout"){
                         json sendPacket=json::parse(fmt::format("{{\"code\": 200}}"));
                         std::string ret=sendPacket.dump();
                         send(sd , ret.c_str(), strlen(ret.c_str()) , 0 );

@@ -24,7 +24,7 @@ class question_bank: public database{
     private:
         // sqlite3 *db;
         // sqlite3_stmt *stmt;
-        char *zErrMsg;
+        // char *zErrMsg;
         int rc;
         string sql;
         
@@ -41,7 +41,7 @@ class question_bank: public database{
 
         // vector<string> getQuestionAttributes(string target_attributes, string constraint_key, string constraint_val);
         template<hashable T = string, hashable T_input = string>
-        vector<T> getQuestionAttributes(optional<pair<string, T_input>> constraint, const string target_attribute){
+        vector<T> getQuestionAttributes(optional<pair<string, T_input>> constraint, const string& target_attribute){
             if(constraint){
                 string constraint_key = constraint->first;
                 // auto constraint_val = constraint->second;
@@ -53,35 +53,11 @@ class question_bank: public database{
                      "WHERE {} = '{}' AND {} != 'placeholder'; ", target_attribute, constraint_key, constraint_val_str, target_attribute);
             } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS where {} != 'placeholder';", target_attribute, target_attribute);
             
-            sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-            sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
-            int num_cols;
-            vector<T> output;
-            while(sqlite3_step(stmt) != SQLITE_DONE){
-                vector<T> row;
-                num_cols = sqlite3_column_count(stmt);
-                for(int i = 0; i < num_cols; i++){
-                    switch(sqlite3_column_type(stmt, i)){
-                        case(SQLITE3_TEXT):
-                        if constexpr(std::is_same_v<T, std::string>) row.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, i))));
-                        break;
-                        case(SQLITE_INTEGER):
-                        if constexpr(std::is_same_v<T, int>) row.push_back(sqlite3_column_int(stmt, i));
-                        break;
-                        case(SQLITE_FLOAT):
-                        if constexpr(std::is_same_v<T, double>) row.push_back(sqlite3_column_double(stmt, i));
-                        break;
-                        default:
-                        break;
-                    }
-                }
-                output.insert(output.end(), row.begin(), row.end());
-            }
-            return output;
+            return sqlexec<T>(sql);
         }
 
         template<hashable T = string, hashable T_input = string>
-        vector<T> getQuestionAttributes(vector<pair<string, T_input>> constraints, const string target_attribute){
+        vector<T> getQuestionAttributes(vector<pair<string, T_input>> constraints, const string& target_attribute){
             if(!constraints.empty()){
                 sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS WHERE ", target_attribute);
                 int cnt = 0;
@@ -100,31 +76,7 @@ class question_bank: public database{
                 sql += fmt::format(" AND {} != 'placeholder';", target_attribute);
             } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS where {} != 'placeholder';", target_attribute);
             
-            sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-            sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
-            int num_cols;
-            vector<T> output;
-            while(sqlite3_step(stmt) != SQLITE_DONE){
-                vector<T> row;
-                num_cols = sqlite3_column_count(stmt);
-                for(int i = 0; i < num_cols; i++){
-                    switch(sqlite3_column_type(stmt, i)){
-                        case(SQLITE3_TEXT):
-                        if constexpr(std::is_same_v<T, std::string>) row.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, i))));
-                        break;
-                        case(SQLITE_INTEGER):
-                        if constexpr(std::is_same_v<T, int>) row.push_back(sqlite3_column_int(stmt, i));
-                        break;
-                        case(SQLITE_FLOAT):
-                        if constexpr(std::is_same_v<T, double>) row.push_back(sqlite3_column_double(stmt, i));
-                        break;
-                        default:
-                        break;
-                    }
-                }
-                output.insert(output.end(), row.begin(), row.end());
-            }
-            return output;
+            return sqlexec<T>(sql);
         }
 
         string getQuestion(optional<pair<string, variant<string, int, double>>> constraint, string primary_val);
@@ -134,5 +86,15 @@ class question_bank: public database{
         vector<string> getQuestionPaths();
         int delet(vector<pair<string, string>>);
         void clean();
+        void reorganize() {
+            sql = "DELETE FROM QUESTIONS IF EXISTS;";
+            rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
+            if (rc != SQLITE_OK) {
+                fprintf(stderr, "SQL error: %s\n", zErrMsg);
+                sqlite3_free(zErrMsg);
+            } else {
+                fprintf(stdout, "Table truncated successfully\n");
+            }
+        }
 };
 #endif

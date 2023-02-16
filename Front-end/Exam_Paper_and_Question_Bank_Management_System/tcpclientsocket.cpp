@@ -14,7 +14,7 @@ TCPClientSocket::TCPClientSocket()
         this->fd=-1;
     }
     memset(&this->sAddr,0,sizeof(this->sAddr));
-    this->sAddr.sin_len=sizeof(this->sAddr);
+    this->sAddr.sin_len=(__uint8_t)sizeof(this->sAddr);
     this->sAddr.sin_family = AF_INET;
 }
 
@@ -75,7 +75,7 @@ int TCPClientSocket::receive(json &receivedJson){
         perror("receiving message too long");
         return -1;
     }
-    //std::cout<<"recv message: "<<recvBuff<<std::endl;
+    std::cout<<"recv message: "<<recvBuff<<std::endl;
     receivedJson=json::parse(recvBuff);
     return 0;
 }

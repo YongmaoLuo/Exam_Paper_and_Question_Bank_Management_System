@@ -2,12 +2,12 @@
 #include "ui_paperproductiondialog.h"
 #include <QTextStream>
 #include <QMessageBox>
-PaperProductionDialog::PaperProductionDialog(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::PaperProductionDialog)
+PaperProductionDialog::PaperProductionDialog(QWidget *parent,std::shared_ptr<TCPClientSocket> client) :
+    QDialog(parent), ui(new Ui::PaperProductionDialog)
 {
     ui->setupUi(this);
     ui->deleteButton->setEnabled(false);
+    this->client = client;
 }
 
 PaperProductionDialog::~PaperProductionDialog()
@@ -20,31 +20,53 @@ void PaperProductionDialog::delete_question(QString questionName){
     read_questions(this->questionsList);
 }
 
-void PaperProductionDialog::output_paper(QDir paperDir,QStringList questionsList){
+void PaperProductionDialog::output_paper(QString pathName,QStringList questionsList){
     if(questionsList.isEmpty()){
-        QMessageBox::information(this,"提示","试卷列表为空！请添加题目后输出。");
+        QMessageBox::information(this,"remind","the question list is empty, please add questions to it");
         return;
     }
-    QString outputPaper;
+
+    QFile output("paper.txt");
+    if(!QDir::setCurrent(pathName)){
+        QMessageBox::information(this,"warning","open "+pathName+" failed");
+        return;
+    }
+    if(!output.open(QIODevice::OpenModeFlag::ReadWrite)){
+        QMessageBox::information(this,"warning",output.errorString()+" "+pathName+"/paper.txt");
+        return;
+    }
+    QTextStream write(&output);
     for(int i=0;i<questionsList.count();i++){
         QStringList threeElements=questionsList.at(i).split(".");
         QString subject=threeElements.at(0);
         QString chapter=threeElements.at(1);
-        QString timeStamp=threeElements.at(2);
-        QFile questionFile("./Question/"+subject.trimmed()+"/"+chapter.trimmed()+"/"+timeStamp.trimmed());
-        questionFile.open(QIODevice::ReadOnly);
-        QTextStream questionRead(&questionFile);
-        QString questionText=questionRead.readAll();
-        questionFile.close();
-        questionText=QString::number(i+1)+"."+questionText+"\n";
-        outputPaper.append(questionText);
+        QString questionName=threeElements.at(2);
+        json sendPacket=json::parse(fmt::format("{{\"command\":\"read question\",\"subject name\":\"{}\",\"chapter name\":\"{}\",\"question name\":\"{}\"}}",
+                                                subject.toStdString(),chapter.toStdString(),questionName.toStdString()));
+        if(client->sendToServer(sendPacket)==-1){
+            QMessageBox::warning(this,"warning","send read question command failed");
+            return;
+        }
+        json recvPacket;
+        if(client->receive(recvPacket)==-1){
+            QMessageBox::warning(this,"warning","receive server response failed");
+            return;
+        }
+        if(recvPacket["code"]!=200){
+            QMessageBox::warning(this,"warning","read question unsuccessful from the server");
+            return;
+        }
+        std::cout<<"question text: "<<recvPacket["question text"]<<std::endl;
+        write<<QString::fromUtf8(std::string(recvPacket["question text"]).c_str())<<'\n';
+        if(write.status()==QTextStream::WriteFailed){
+            QMessageBox::warning(this,"warning","cannot write to this file");
+            return;
+        }
+        write<<'\n';
     }
-    QFile output(paperDir.path().trimmed()+"/paper.txt");
-    output.open(QIODevice::WriteOnly);
-    QTextStream write(&output);
-    write<<outputPaper;
+    write.flush();
     output.close();
-    QMessageBox::information(this,"提示","输出试卷成功，请前往相应目录查看试卷");
+    QMessageBox::information(this,"reminder",QString::fromUtf8(fmt::format("output paper successfully, please go to the {} to find the paper file",pathName.toStdString())));
 }
 
 void PaperProductionDialog::read_questions(QStringList questionsList){
@@ -60,7 +82,7 @@ void PaperProductionDialog::add_question(QString subject,QString chapter,QString
 }
 
 void PaperProductionDialog::open_paper_production_panel(){
-    this->setWindowTitle("试卷制作界面");
+    this->setWindowTitle("paper generation window");
     this->show();
 }
 
@@ -89,5 +111,12 @@ void PaperProductionDialog::on_deleteButton_clicked()
 
 void PaperProductionDialog::on_outputButton_clicked()
 {
-    output_paper(QDir("."),this->questionsList);
+    QString pathName=QStandardPaths::displayName(QStandardPaths::DownloadLocation);
+    std::cout<<"path name: "<<pathName.toStdString()<<std::endl;
+//    if(pathName.compare("Desktop")==0)
+//        pathName="~/"+pathName;
+#ifdef BUILD_ON_MAC
+    pathName=".";
+#endif
+    output_paper(pathName,this->questionsList);
 }

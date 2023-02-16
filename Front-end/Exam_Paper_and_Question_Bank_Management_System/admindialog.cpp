@@ -49,6 +49,11 @@ void AdminDialog::read_users(){
 }
 
 void AdminDialog::delete_user(QString userName){
+    if(userName.length()==0){
+        QMessageBox::warning(this,"warning","please choose a user to delete");
+        ui->deleteButton->setEnabled(false);
+        return;
+    }
     json sendPacket=json::parse(fmt::format("{{\"command\":\"delete user\",\"username\":\"{}\"}}",userName.toStdString()));
     if(client->sendToServer(sendPacket)==-1){
         QMessageBox::warning(this,"warning","fail to send to the server");
@@ -90,7 +95,7 @@ void AdminDialog::register_user(QString userName, QString password){
                                         "register user",userName.toStdString(),password.toStdString(),"admin");
     else if(ui->checkBoxRuleMaker)
         rawJson=fmt::format("{{\"command\": \"{}\", \"username\": \"{}\", \"password\": \"{}\",\"identity\":\"{}\"}}",
-                                        "register user",userName.toStdString(),password.toStdString(),"rulemaker");
+                                        "register user",userName.toStdString(),password.toStdString(),"rule maker");
     else
         rawJson=fmt::format("{{\"command\": \"{}\", \"username\": \"{}\", \"password\": \"{}\",\"identity\":\"{}\"}}",
                                         "register user",userName.toStdString(),password.toStdString(),"teacher");
@@ -120,11 +125,30 @@ void AdminDialog::register_user(QString userName, QString password){
 }
 
 void AdminDialog::on_registerButton_clicked(){
+    std::chrono::duration<double,std::milli> dur;
+    auto start=std::chrono::steady_clock::now();
     register_user(ui->userName->text(),ui->password->text());
+    auto end=std::chrono::steady_clock::now();
+    dur=end - start;
+    std::cout<<"register user duration: "<<dur.count()<<" ms"<<std::endl;
 }
 
 void AdminDialog::on_exitButton_clicked()
 {
+    json sendPacket=json::parse(fmt::format("{{\"command\":\"logout\"}}"));
+    if(client->sendToServer(sendPacket)==-1){
+        QMessageBox::warning(this,"warning","fail to send to the server");
+        return;
+    }
+    json recvPacket;
+    if(client->receive(recvPacket)==-1){
+        QMessageBox::warning(this,"warning","fail to receive feedback from the server");
+        return;
+    }
+    if(recvPacket["code"]!=200){
+        QMessageBox::warning(this,"warning","fail to log out from the server");
+        return;
+    }
     emit admin_panel_be_closed();
 }
 

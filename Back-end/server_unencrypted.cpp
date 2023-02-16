@@ -5,6 +5,12 @@
 #include <utility>
 using namespace std;
 
+vector<string>& helper(vector<string>& msg, string&& keyword) {
+    auto formatting = [&](string a) -> string{return (keyword == "code" || keyword == "counts")? fmt::format("{{\""+keyword+"\":{}}}", a): fmt::format("{{\""+keyword+"\":\"{}\"}}", a);};
+    std::transform(msg.begin(), msg.end(), msg.begin(), formatting);
+    return msg;
+}
+
 Server::Server()
 {
     setup(DEFAULT_PORT);
@@ -15,19 +21,19 @@ Server::Server(int port)
     setup(port);
 }
 
-Server::Server(const Server& orig)
-{
-    masterfds = orig.masterfds;
-    tempfds = orig.tempfds;
-    maxfd = orig.maxfd;
-    mastersocket_fd = orig.mastersocket_fd;
-    tempsocket_fd = orig.tempsocket_fd;
+// Server::Server(const Server& orig)
+// {
+//     // masterfds = orig.masterfds;
+//     // tempfds = orig.tempfds;
+//     // maxfd = orig.maxfd;
+//     mastersocket_fd = orig.mastersocket_fd;
+//     tempsocket_fd = orig.tempsocket_fd;
 
-    char input_buffer[INPUT_BUFFER_SIZE];
-    strcpy(input_buffer, orig.input_buffer);
-    char remote_ip[INET6_ADDRSTRLEN];
-    strcpy(remote_ip, orig.remote_ip);
-}
+//     char input_buffer[INPUT_BUFFER_SIZE];
+//     strcpy(input_buffer, orig.input_buffer);
+//     char remote_ip[INET6_ADDRSTRLEN];
+//     strcpy(remote_ip, orig.remote_ip);
+// }
 
 Server::~Server()
 {
@@ -44,8 +50,8 @@ void Server::setup(int port)
         perror("Socket creation failed");
     }
 
-    FD_ZERO(&masterfds);
-    FD_ZERO(&tempfds);
+    // FD_ZERO(&masterfds);
+    // FD_ZERO(&tempfds);
 
     memset(&servaddr, 0, sizeof (servaddr)); //bzero
     servaddr.sin_family = AF_INET;
@@ -84,8 +90,8 @@ void Server::bindSocket()
 	if (bind_ret < 0) {
 		perror("[SERVER] [ERROR] bind() failed");
 	}
-	FD_SET(mastersocket_fd, &masterfds); //insert the master socket file-descriptor into the master fd-set
-	maxfd = mastersocket_fd; //set the current known maximum file descriptor count
+	// FD_SET(mastersocket_fd, &masterfds); //insert the master socket file-descriptor into the master fd-set
+	// maxfd = mastersocket_fd; //set the current known maximum file descriptor count
 }
 
 void Server::startListen()
@@ -100,7 +106,10 @@ void Server::startListen()
 	if (listen_ret < 0) {
 		perror("[SERVER] [ERROR] listen() failed");
 	}
-
+    eFd = epoll_create(1);
+    epev.events = EPOLLIN;
+    epev.data.fd = mastersocket_fd;
+    epoll_ctl(eFd, EPOLL_CTL_ADD, mastersocket_fd, &epev);
 }
 
 void Server::shutdown()
@@ -122,17 +131,26 @@ void Server::handleNewConnection()
 	if (tempsocket_fd < 0) {
         	perror("[SERVER] [ERROR] accept() failed");
 	} else {
-        	FD_SET(tempsocket_fd, &masterfds);
-		    //increment the maximum known file descriptor (select() needs it)
-        	if (tempsocket_fd > maxfd) {
-            		maxfd = tempsocket_fd;
-			#ifdef SERVER_DEBUG
-            		std::cout << "[SERVER] incrementing maxfd to " << maxfd << std::endl;
-			#endif
-        	}
-        	#ifdef SERVER_DEBUG
-        	printf("[SERVER] [CONNECTION] New connection on socket fd '%d'.\n",tempsocket_fd);
-		#endif
+        	// FD_SET(tempsocket_fd, &masterfds);
+            epev.events = EPOLLIN | EPOLLET;
+            epev.data.fd = tempsocket_fd;
+            int flags = fcntl(tempsocket_fd, F_GETFL, 0);
+            if(flags < 0 || fcntl(tempsocket_fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+                cout<<"Set non-blocking error, fd: "<<tempsocket_fd<<endl;
+                return;
+            } 
+
+            epoll_ctl(eFd, EPOLL_CTL_ADD, tempsocket_fd, &epev);
+		//     //increment the maximum known file descriptor (select() needs it)
+        // 	if (tempsocket_fd > maxfd) {
+        //     		maxfd = tempsocket_fd;
+		// 	#ifdef SERVER_DEBUG
+        //     		std::cout << "[SERVER] incrementing maxfd to " << maxfd << std::endl;
+		// 	#endif
+        // 	}
+        // 	#ifdef SERVER_DEBUG
+        // 	printf("[SERVER] [CONNECTION] New connection on socket fd '%d'.\n",tempsocket_fd);
+		// #endif
     }
     cout<<"Successfully connected!"<<endl;
     // // newConnectionCallback(tempsocket_fd); //call the callback
@@ -140,17 +158,41 @@ void Server::handleNewConnection()
     // struct Connector connect_fd = Connector();
     // connect_fd.source_fd = tempsocket_fd;
     // sendMessage(connect_fd, message.c_str());
+    resendMsgToExisting(connect_fd); // It is advised to send once connected
+    // on the client, should be non-blocked receive
 }
 
 void Server::sendMsgToExisting(Connector& connect_fd, vector<string>& messages){
     for(int i=0; i<messages.size(); i++){
         int bytes = sendMessage(connect_fd, messages[i].c_str());
-        while(bytes < 0){
+        int retry = 5;
+        while(bytes < 0 && retry-- >= 0){
             bytes = sendMessage(connect_fd, messages[i].c_str());
+        }
+        // If still failed to send, archive the msg and send again afterwards
+        if(bytes < 0) {
+            archived_msg[connect_fd.source_fd].push_back(messages[i]);
+            cout<<"Message sent incomplete!"<<endl;
         }
         usleep(100000);
     }
 
+}
+
+void Server::resendMsgToExisting(Connector& connect_fd) {
+    if(archived_msg.find(connect_fd.source_fd) != archived_msg.end() && !archived_msg[connect_fd.source_fd].empty()) {
+        sendMsgToExisting(connect_fd, messages); // If still failed to send, discard the message
+        archived_msg.erase(connect_fd.source_fd);
+    }
+}
+
+int Server::sendMsgRedirect(string&& username, vector<string>& messages) {
+    int user_fd = logined_users[username];
+    Connector connect_fd = Connector();
+    connect_fd.source_fd = user_fd;
+    sendMsgToExisting(connect_fd, messages);
+    if(archived_msg.find(user_fd) != archived_msg.end() && !archived_msg[user_fd].empty()) return -1;
+    return 0;
 }
 
 vector<string> Server::recvInputFromExisting(Connector& connect_fd)
@@ -168,7 +210,7 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
         	//disconnectCallback((uint16_t)fd);
         }
         close(connect_fd.source_fd); //close connection to client
-        FD_CLR(connect_fd.source_fd, &masterfds); //clear the client fd from fd set
+        // FD_CLR(connect_fd.source_fd, &masterfds); //clear the client fd from fd set
         return messages;
     }
     #ifdef SERVER_DEBUG
@@ -255,7 +297,8 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
         #else
         message = fmt::format("{{\"code\": {}}}", 403);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
     } 
     //memset(&input_buffer, 0, INPUT_BUFFER_SIZE); //zero buffer //bzero
     // bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
@@ -296,7 +339,8 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     message = fmt::format("{{\"code\": {}, \"identity\": \"{}\"}}", status_code, identity);
     #endif
     cout<<"checkin message: "<<message<<endl;
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     
     bindIdentity[connect_fd.source_fd] = identity;
     bindUsername[connect_fd.source_fd] = username;
@@ -318,7 +362,8 @@ vector<string> Server::registerUser(Connector& connect_fd, string username, auto
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     usernameSet.insert(username);
     return messages;
 }
@@ -347,7 +392,8 @@ vector<string> Server::logout(Connector& connect_fd){
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -385,16 +431,23 @@ vector<string> Server::getUser(Connector& connect_fd){
     message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, numUsers);
     #endif
 
-    messages.reserve(numUsers+1);
-    messages.push_back(message);
+    // messages.reserve(numUsers+1);
+    messages.resize(numUsers+1);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     if(numUsers < 0) return messages;
     optional<pair<string, string>> constraint;
     usernames = user->getUserAttributes(constraint, "USERNAME");
 
-    for(int i=0; i<usernames.size(); i++){
-        message = fmt::format("{{\"username\": \"{}\"}}", usernames[i]);
-        messages.push_back(message);
-    }
+    // experimental
+    usernames = helper(usernames, "username");
+    messages.insert(messages.end(), make_move_iterator(usernames.begin()), make_move_iterator(usernames.end()));
+
+    // for(int i=0; i<usernames.size(); i++){
+    //     message = fmt::format("{{\"username\": \"{}\"}}", usernames[i]);
+    //     // messages.push_back(message);
+    //     messages.push_back(std::move(message));
+    // }
     return messages;
 }
 
@@ -423,7 +476,8 @@ vector<string> Server::deleteUser(Connector& connect_fd, string username){
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -466,7 +520,8 @@ vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password){
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -485,15 +540,17 @@ vector<string> Server::getTeachers(){
     message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, teachers.size());
     #endif
 
-    messages.reserve(teachers.size()+1);
-    messages.push_back(message);
+    messages.resize(teachers.size()+1);
+    // messages.reserve(teachers.size()+1);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
 
     //experimental
-    #pragma omp parallel for num_threads(4)
-    for(int i=0; i<teachers.size(); i++) {
-        #pragma omp critical
-        messages.push_back(fmt::format("{{\"username\": \"{}\"}}", teachers[i]));
-    }
+    teachers = helper(teachers, "username");
+    // for(int i=0; i<teachers.size(); i++) {
+    //     messages.push_back(fmt::format("{{\"username\": \"{}\"}}", teachers[i]));
+    // }
+    messages.insert(messages.end(), make_move_iterator(teachers.begin()), make_move_iterator(teachers.end()));
     return messages;
 }
 
@@ -510,7 +567,8 @@ vector<string> Server::getSubjects(){
         #else
         message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, subject_num);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
         return messages;
     }
     else status_code = 200;
@@ -522,17 +580,23 @@ vector<string> Server::getSubjects(){
     message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, subjects.size());
     #endif
 
-    messages.reserve(subjects.size()+1);
-    messages.push_back(message);
+    messages.resize(subjects.size()+1);
+    // messages.reserve(subjects.size()+1);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
 
-    for(int i=0; i<subject_num; i++){
-        #ifdef __cpp_lib_format
-        message = std::format("{\"subject name\": \"{}\"}", subjects[i]);
-        #else
-        message = fmt::format("{{\"subject name\": \"{}\"}}", subjects[i]);
-        #endif
-        messages.push_back(message);
-    }
+    // experimental
+    subjects = helper(subjects, "subject name");
+    messages.insert(messages.end(), make_move_iterator(subjects.begin()), make_move_iterator(subjects.end()));
+    // for(int i=0; i<subject_num; i++){
+    //     #ifdef __cpp_lib_format
+    //     message = std::format("{\"subject name\": \"{}\"}", subjects[i]);
+    //     #else
+    //     message = fmt::format("{{\"subject name\": \"{}\"}}", subjects[i]);
+    //     #endif
+    //     // messages.push_back(message);
+    //     messages.push_back(std::move(message));
+    // }
     return messages;
 }
 
@@ -550,7 +614,8 @@ vector<string> Server::getChapters(string subject){
         #else
         message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, chapter_num);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
         return messages;
     }
     else status_code = 200;
@@ -563,17 +628,23 @@ vector<string> Server::getChapters(string subject){
     message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, chapter_num);
     #endif
 
-    messages.reserve(chapter_num+1);
-    messages.push_back(message);
+    messages.resize(chapter_num+1);
+    // messages.reserve(chapter_num+1);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
 
-    for(int i=0; i<chapter_num; i++){
-        #ifdef __cpp_lib_format
-        message = std::format("{\"chapter name\": \"{}\"}", chapters[i]);
-        #else
-        message = fmt::format("{{\"chapter name\": \"{}\"}}", chapters[i]);
-        #endif
-        messages.push_back(message);
-    }
+    // vectorization transform on chapters
+    chapters = helper(chapters, "chapter name");
+    messages.insert(messages.end(), make_move_iterator(chapters.begin()), make_move_iterator(chapters.end()));
+    // for(int i=0; i<chapter_num; i++){
+    //     #ifdef __cpp_lib_format
+    //     message = std::format("{\"chapter name\": \"{}\"}", chapters[i]);
+    //     #else
+    //     message = fmt::format("{{\"chapter name\": \"{}\"}}", chapters[i]);
+    //     #endif
+    //     // messages.push_back(message);
+    //     messages.push_back(std::move(message));
+    // }
     return messages;
 }
 
@@ -603,7 +674,8 @@ vector<string> Server::addSubject(string subject) {
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -641,7 +713,8 @@ vector<string> Server::addChapter(string subject, string chapter) {
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -658,7 +731,8 @@ vector<string> Server::getQuestions(string subject, string chapter){
         #else
         message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, question_num);
         #endif
-        messages.push_back(message);
+        // messages.push_back(message);
+        messages.push_back(std::move(message));
         return messages;
     }
     else status_code = 200;
@@ -672,19 +746,26 @@ vector<string> Server::getQuestions(string subject, string chapter){
     message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, question_ids.size());
     #endif
 
-    messages.reserve(question_ids.size()+1);
-    messages.push_back(message);
+    messages.resize(question_ids.size()+1);
+    // messages.reserve(question_ids.size()+1);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
 
-    for(int i=0; i<question_num; i++){
+    //experimental
+    question_ids = helper(question_ids, "question name");
+    messages.insert(messages.end(), make_move_iterator(question_ids.begin()), make_move_iterator(question_ids.end()));
+
+    // for(int i=0; i<question_num; i++){
         
-        #ifdef __cpp_lib_format
-        message = std::format("{\"question name\": \"{}\"}", question_ids[i]);
-        #else
-        message = fmt::format("{{\"question name\": \"{}\"}}", question_ids[i]);
-        #endif
-        messages.push_back(message);
+    //     #ifdef __cpp_lib_format
+    //     message = std::format("{\"question name\": \"{}\"}", question_ids[i]);
+    //     #else
+    //     message = fmt::format("{{\"question name\": \"{}\"}}", question_ids[i]);
+    //     #endif
+    //     // messages.push_back(message);
+    //     messages.push_back(std::move(message));
         
-    }
+    // }
     return messages;
 }
 
@@ -703,7 +784,8 @@ vector<string> Server::getQuestions(string subject, string chapter, string quest
     message = fmt::format("{{\"code\": {}, \"question text\": \"{}\"}}", status_code, question_content);
     #endif
 
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -751,7 +833,8 @@ vector<string> Server::writeQuestion(string subject, string chapter, string ques
     #else
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
@@ -768,37 +851,53 @@ vector<string> Server::deleteQuestion(string subject, string chapter, string que
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
 
-    messages.push_back(message);
+    // messages.push_back(message);
+    messages.push_back(std::move(message));
     return messages;
 }
 
 void Server::loop()
 {
-    tempfds = masterfds; //copy fd_set for select()
-    #ifdef SERVER_DEBUG
-    printf("[SERVER] [MISC] max fd = '%hu' \n", maxfd);
-    std::cout << "[SERVER] [MISC] calling select()\n";
-    #endif
-    int sel = select(maxfd + 1, &tempfds, NULL, NULL, NULL); //blocks until activity
-    //printf("[SERVER] [MISC] select() ret %d, processing...\n", sel);
-    if (sel < 0) {
-        perror("[SERVER] [ERROR] select() failed");
-        shutdown();
-    }
-    cout<<"sel: "<<sel<<endl;
+    // tempfds = masterfds; //copy fd_set for select()
+    // #ifdef SERVER_DEBUG
+    // printf("[SERVER] [MISC] max fd = '%hu' \n", maxfd);
+    // std::cout << "[SERVER] [MISC] calling select()\n";
+    // #endif
+    // int sel = select(maxfd + 1, &tempfds, NULL, NULL, NULL); //blocks until activity
+    // //printf("[SERVER] [MISC] select() ret %d, processing...\n", sel);
+    // if (sel < 0) {
+    //     perror("[SERVER] [ERROR] select() failed");
+    //     shutdown();
+    // }
+    // cout<<"sel: "<<sel<<endl;
 
     //no problems, we're all set
+    int eNum = epoll_wait(eFd, events, EVENTS_SIZE, -1);
+    if(eNum == -1) {cout<<"epoll wait"<<endl; return;}
 
     //loop the fd_set and check which socket has interactions available
-    for (int i = 0; i <= maxfd; i++) {
-        if (FD_ISSET(i, &tempfds)) { //if the socket has activity pending
-            if (mastersocket_fd == i) {
+    // experimental
+    #pragma omp parallel for num_threads(4)
+    for (int i = 0; i <= eNum; i++) {
+        //if (FD_ISSET(i, &tempfds)) { //if the socket has activity pending
+        if(events[i].data.fd == mastersocket_fd) {
+            //if (mastersocket_fd == i) {
+            if(events[i].events & EPOLLIN) {
                 //new connection on master socket
                 handleNewConnection();
-            } else {
+            }
+        }
+        else {
+            // check if there is a potential disconnection
+            if(events[i].events & EPOLLERR || events[i].events & EPOLLHUP) {
+                epoll_ctl(eFd, EPOLL_CTL_DEL, events[i].data.fd, nullptr);
+                close(events[i].data.fd);
+            } else if (events[i].events & EPOLLIN) {
                 //exisiting connection has new data
                 Connector connect_fd = Connector();
-                connect_fd.source_fd = i;
+                // connect_fd.source_fd = i;
+                connect_fd.source_fd = events[i].data.fd;
+                
                 vector<string> messages = recvInputFromExisting(connect_fd);
                 if(!messages.empty()){
                     messages.shrink_to_fit();
@@ -806,6 +905,7 @@ void Server::loop()
                     bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
                 }
             }
+                
         } //loop on to see if there is more
     }
 }
@@ -847,15 +947,54 @@ uint16_t Server::recvMessage(Connector conn, char *messageBuffer){
     return recv(conn.source_fd, messageBuffer, INPUT_BUFFER_SIZE, 0);
 }
 
+shared_ptr<Server> Server::server_ = nullptr;
+std::mutex Server::mutex_;
+
+shared_ptr<Server> Server::getInstance(int port) {
+    // double checked locking
+    if(server_ == nullptr) {
+        // std::lock_guard<std::mutex> lock(mutex_);
+        std::scoped_lock lock(mutex_);
+        if(server_ == nullptr) server_ = shared_ptr<Server>(new Server(port));
+    }
+    return server_;
+}
+
+shared_ptr<Server> Server::getInstance() {
+    // double checked locking
+    if(server_ == nullptr) {
+        // std::lock_guard<std::mutex> lock(mutex_);
+        std::scoped_lock lock(mutex_);
+        if(server_ == nullptr) server_ = shared_ptr<Server>(new Server());
+    }
+    return server_;
+}
 
 
 int main(int argc, char* argv[]){
-    Server server_object = Server();
-    // db_user user = db_user();
-    // user.create(false);
-    server_object.init();
-    while(true){
-        server_object.loop();
+    // activate signal handling
+    struct sigaction sigIntHandler;
+    sigIntHandler.sa_handler = sig_to_exception;
+    sigemptyset(&sigIntHandler.sa_mask);
+    sigIntHandler.sa_flags = 0;
+    sigaction(SIGINT, &sigIntHandler, NULL);
+
+    // Server server_object = Server();
+    shared_ptr<Server> server_object = Server::getInstance();
+    server_object->init();
+    try {
+        while(true){
+            server_object->loop();
+        }
+    } catch (const InterruptException& e1) {
+        server_object->shutdown();
+        return -1;
     }
+    
+    catch (std::exception& e2) {
+        server_object->shutdown();
+        return 1;
+    }
+    
     return 0;
 }

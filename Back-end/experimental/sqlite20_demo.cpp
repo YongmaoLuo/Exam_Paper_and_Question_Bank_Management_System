@@ -20,4 +20,5 @@ int main() {
         else cout << s.error();
         cout << endl;
     }
+    return 0;
 }
