@@ -134,18 +134,20 @@ string db_user::checkType(string target_attribute){
    return res;
 }
 
-
-string db_user::getUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute)
+template<typename...Args>
+string db_user::getUserAttribute(string& primary_val, string& target_attribute, Args const& ...constraints)
 {
-   if(constraint){
-         auto constraint_val = constraint.value();
-         string key = constraint_val.first;
-         auto value = constraint_val.second;
-         sql = fmt::format("SELECT {} FROM USER "  \
-                     "WHERE USERNAME = '{}' AND {} = '{}' LIMIT 1; ", target_attribute, primary_val, key, custom_to_string(value));
-   }
-   else sql = fmt::format("SELECT {} FROM USER " \
-                     "WHERE USERNAME = '{}' LIMIT 1; ", target_attribute, primary_val);
+   // if(constraint){
+   //       auto constraint_val = constraint.value();
+   //       string key = constraint_val.first;
+   //       auto value = constraint_val.second;
+   //       sql = fmt::format("SELECT {} FROM USER "  \
+   //                   "WHERE USERNAME = '{}' AND {} = '{}' LIMIT 1; ", target_attribute, primary_val, key, custom_to_string(value));
+   // }
+   // else sql = fmt::format("SELECT {} FROM USER " \
+   //                   "WHERE USERNAME = '{}' LIMIT 1; ", target_attribute, primary_val);
+   const string base = fmt::format("SELECT {} FROM USER WHERE USERNAME = '{}' " , target_attribute, primary_val);
+   sql = concat(base, constraints...) + " LIMIT 1;";
 
    // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);

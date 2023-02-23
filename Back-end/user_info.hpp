@@ -47,7 +47,8 @@ class db_user: public database{
         int insert(std::shared_ptr<UserInfo<string>> user);
         int update(const string& primary_val, vector<pair<string, variant<string, int, double>>> changelist);
         
-        string getUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute);
+        template<typename...Args>
+        string getUserAttribute(string& primary_val, string& target_attribute, Args const&...params);
         
         // vector<string> getUserAttributes(string target_attributes, string constraint_key, string constraint_val);
         template<hashable T = string, hashable T_input = string>

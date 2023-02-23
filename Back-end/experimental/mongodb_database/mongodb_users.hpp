@@ -83,9 +83,11 @@ namespace defaultsetting {
                 return false;
             }
 
-            json::JSON GetAllDocuments() {
+            json::JSON GetAllDocuments(const string& key, auto val) {
                 mongocxx::collection coll = db[collectionName];
-                mongocxx::cursor cursor = coll.find({});
+                mongocxx::cursor cursor;
+                if(key.empty()) cursor = coll.find({});
+                else cursor = coll.find(document{} << key << val << bsoncxx::builder::stream::finalize);
                 json::JSON result;
                 result["users"] = json::Array();
 
@@ -95,6 +97,25 @@ namespace defaultsetting {
                     }
                 }
                 return result;
+            }
+
+            json::JSON GetOneDocument(const string& key, auto val) {
+                mongocxx::collection coll = db[collectionName];
+                bsoncxx::stdx::optional<bsoncxx::document::value> maybe_result;
+                if(key.empty()) maybe_result = collection.find_one({});
+                else maybe_result = collection.find_one(document{} << key << val << bsoncxx::builder::stream::finalize);
+                json::JSON result;
+                if(maybe_result) result["users"] = bsoncxx::to_json(maybe_result);
+                return result;
+            }
+
+            void CreateIndex(string field, bool asc = true) {
+                mongocxx::collection coll = db[collectionName];
+                int i = 1;
+                if(!asc) i = -1;
+                auto index_specification = document{} << field << i << bsoncxx::builder::stream::finalize;
+                coll.create_index(std::move(index_specification));
+                return;
             }
 
     };

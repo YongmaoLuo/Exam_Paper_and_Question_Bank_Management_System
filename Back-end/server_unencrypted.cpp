@@ -308,14 +308,14 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
 vector<string> Server::authenticateUser(Connector& connect_fd, string username, auto password){
     int status_code;
     // with database logic
-    optional<pair<string, variant<string, int, double>>> constraint;
+    // optional<pair<string, variant<string, int, double>>> constraint;
     string key = "password";
     string target_attribute = "identity";
-    constraint = std::make_pair(key, password);
-    string identity = user->getUserAttribute(constraint, username, target_attribute);
+    pair<string, variant<string, int, double>> constraint = std::make_pair(key, password);
+    string identity = user->getUserAttribute(username, target_attribute, constraint);
     if(!identity.empty()){
         target_attribute = "activity";
-        int activity = stoi(user->getUserAttribute(constraint, username, target_attribute));
+        int activity = stoi(user->getUserAttribute(username, target_attribute, constraint));
         if(activity){
             cout<<"User already login! Logout from previous device and re-login!"<<endl;
             int logout_status = logout(username);
