@@ -37,7 +37,7 @@ class question_bank: public database{
         int insert(std::shared_ptr<QuestionInfo<string>>);
         int update(vector<pair<string, string>>, vector<pair<string, variant<string, int, double>>> changelist);
 
-        string getQuestionAttribute(optional<pair<string, variant<string, int, double>>> constraint, vector<pair<string, string>> primary_pairs, string target_attribute);
+        string getQuestionAttribute(optional<pair<string, variant<string, int, double>>> constraint, std::array<pair<string, string>, 3> primary_pairs, const string& target_attribute);
 
         // vector<string> getQuestionAttributes(string target_attributes, string constraint_key, string constraint_val);
         template<hashable T = string, hashable T_input = string>

@@ -772,9 +772,9 @@ vector<string> Server::getQuestions(string subject, string chapter){
 vector<string> Server::getQuestions(string subject, string chapter, string question_id){
     int status_code;
     vector<string> messages;
-    string target_attribute = "content";
+    const string target_attribute = "content";
     optional<pair<string, variant<string, int, double>>> constraint;
-    vector<pair<string, string>> primary_pairs{std::make_pair("subject", subject), std::make_pair("chapter", chapter), std::make_pair("path", question_id)};
+    std::array<pair<string, string>, 3> primary_pairs{std::make_pair("subject", subject), std::make_pair("chapter", chapter), std::make_pair("path", question_id)};
     string question_content = question->getQuestionAttribute(constraint, primary_pairs, target_attribute);
 
     status_code = 200;
