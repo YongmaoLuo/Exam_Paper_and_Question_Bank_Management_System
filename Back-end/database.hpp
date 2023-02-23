@@ -22,6 +22,7 @@
 #include <cctype>
 #include <cassert>
 #include <type_traits>
+#include <utility>
 
 using namespace std;
 
@@ -33,6 +34,28 @@ inline string custom_to_string(variant<string, int, double> const& value) {
     return std::to_string(*pval);
     
     return std::get<string>(value);
+}
+
+string concat(pair<string, variant<string, int, double>> s) {return s.first + "=" + custom_to_string(s.second);}
+
+template <typename...Args>
+string concat(pair<string, string> s, Args const& ...params) {
+    return s.first + "=" + s.second + " AND " + concat(params...);
+}
+
+template <typename...Args>
+string concat(string const& base, Args const& ...params) {
+    if(base.find("where") != std::string::npos || base.find("WHERE") != std::string::npos)
+        return base + " AND " + concat(params...);
+    else return base + " WHERE " + concat(params...);
+}
+
+string concat(string const& base) {return base;}
+
+string concat() {return {};}
+
+string concat(string const& base, pair<string, variant<string, int, double>> s) {
+    return base + " AND " + concat(s);
 }
 
 template<typename T>
