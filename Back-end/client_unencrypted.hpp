@@ -1,5 +1,4 @@
-#ifndef CLIENT_HPP
-#define CLIENT_HPP
+#pragma once
 
 #include <iostream>
 #include <stdio.h>
@@ -103,4 +102,3 @@ class Client{
         // uint16_t recvMessageSSL(SSL *ssl, char *messageBuffer);
 
 };
-#endif /* CLIENT_HPP */

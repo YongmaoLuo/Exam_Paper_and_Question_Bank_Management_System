@@ -1,5 +1,4 @@
-#ifndef SERVER_HPP
-#define SERVER_HPP
+#pragma once
 
 
 #include <set>
@@ -194,5 +193,3 @@ private:
     vector<string> deleteQuestion(string, string, string);
     //void *getInetAddr(struct sockaddr *saddr);
 };
-
-#endif /* SERVER_HPP */

@@ -1,5 +1,5 @@
-#ifndef QUESTION_BANK_HPP
-#define QUESTION_BANK_HPP
+#pragma once
+
 #include "database.hpp"
 using namespace std;
 
@@ -97,4 +97,3 @@ class question_bank: public database{
             }
         }
 };
-#endif
