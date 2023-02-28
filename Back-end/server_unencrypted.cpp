@@ -298,7 +298,8 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
         message = fmt::format("{{\"code\": {}}}", 403);
         #endif
         // messages.push_back(message);
-        messages.push_back(std::move(message));
+        // messages.push_back(std::move(message));
+        messages.emplace_back(std::forward<string>(message));
     } 
     //memset(&input_buffer, 0, INPUT_BUFFER_SIZE); //zero buffer //bzero
     // bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
@@ -340,7 +341,8 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     #endif
     cout<<"checkin message: "<<message<<endl;
     // messages.push_back(message);
-    messages.push_back(std::move(message));
+    // messages.push_back(std::move(message));
+    messages.emplace_back(std::forward<string>(message));
     
     bindIdentity[connect_fd.source_fd] = identity;
     bindUsername[connect_fd.source_fd] = username;
@@ -363,7 +365,8 @@ vector<string> Server::registerUser(Connector& connect_fd, string username, auto
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
     // messages.push_back(message);
-    messages.push_back(std::move(message));
+    // messages.push_back(std::move(message));
+    messages.emplace_back(std::forward<string>(message));
     usernameSet.insert(username);
     return messages;
 }
@@ -393,7 +396,8 @@ vector<string> Server::logout(Connector& connect_fd){
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
     // messages.push_back(message);
-    messages.push_back(std::move(message));
+    // messages.push_back(std::move(message));
+    messages.emplace_back(std::forward<string>(message));
     return messages;
 }
 
@@ -434,7 +438,8 @@ vector<string> Server::getUser(Connector& connect_fd){
     // messages.reserve(numUsers+1);
     messages.resize(numUsers+1);
     // messages.push_back(message);
-    messages.push_back(std::move(message));
+    // messages.push_back(std::move(message));
+    messages.emplace_back(std::forward<string>(message));
     if(numUsers < 0) return messages;
     optional<pair<string, string>> constraint;
     usernames = user->getUserAttributes(constraint, "USERNAME");
@@ -477,7 +482,8 @@ vector<string> Server::deleteUser(Connector& connect_fd, string username){
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
     // messages.push_back(message);
-    messages.push_back(std::move(message));
+    // messages.push_back(std::move(message));
+    messages.emplace_back(std::forward<string>(message));
     return messages;
 }
 
@@ -521,7 +527,8 @@ vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password){
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
     // messages.push_back(message);
-    messages.push_back(std::move(message));
+    // messages.push_back(std::move(message));
+    messages.emplace_back(std::forward<string>(message));
     return messages;
 }
 
@@ -543,7 +550,8 @@ vector<string> Server::getTeachers(){
     messages.resize(teachers.size()+1);
     // messages.reserve(teachers.size()+1);
     // messages.push_back(message);
-    messages.push_back(std::move(message));
+    // messages.push_back(std::move(message));
+    messages.emplace_back(std::forward<string>(message));
 
     //experimental
     teachers = helper(teachers, "username");
@@ -568,7 +576,8 @@ vector<string> Server::getSubjects(){
         message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, subject_num);
         #endif
         // messages.push_back(message);
-        messages.push_back(std::move(message));
+        // messages.push_back(std::move(message));
+        messages.emplace_back(std::forward<string>(message));
         return messages;
     }
     else status_code = 200;
@@ -583,7 +592,8 @@ vector<string> Server::getSubjects(){
     messages.resize(subjects.size()+1);
     // messages.reserve(subjects.size()+1);
     // messages.push_back(message);
-    messages.push_back(std::move(message));
+    // messages.push_back(std::move(message));
+    messages.emplace_back(std::forward<string>(message));
 
     // experimental
     subjects = helper(subjects, "subject name");
@@ -615,7 +625,8 @@ vector<string> Server::getChapters(string subject){
         message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, chapter_num);
         #endif
         // messages.push_back(message);
-        messages.push_back(std::move(message));
+        // messages.push_back(std::move(message));
+        messages.emplace_back(std::forward<string>(message));
         return messages;
     }
     else status_code = 200;
@@ -631,7 +642,8 @@ vector<string> Server::getChapters(string subject){
     messages.resize(chapter_num+1);
     // messages.reserve(chapter_num+1);
     // messages.push_back(message);
-    messages.push_back(std::move(message));
+    // messages.push_back(std::move(message));
+    messages.emplace_back(std::forward<string>(message));
 
     // vectorization transform on chapters
     chapters = helper(chapters, "chapter name");
@@ -675,7 +687,8 @@ vector<string> Server::addSubject(string subject) {
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
     // messages.push_back(message);
-    messages.push_back(std::move(message));
+    // messages.push_back(std::move(message));
+    messages.emplace_back(std::forward<string>(message));
     return messages;
 }
 
@@ -714,7 +727,8 @@ vector<string> Server::addChapter(string subject, string chapter) {
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
     // messages.push_back(message);
-    messages.push_back(std::move(message));
+    // messages.push_back(std::move(message));
+    messages.emplace_back(std::forward<string>(message));
     return messages;
 }
 
@@ -732,7 +746,8 @@ vector<string> Server::getQuestions(string subject, string chapter){
         message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, question_num);
         #endif
         // messages.push_back(message);
-        messages.push_back(std::move(message));
+        // messages.push_back(std::move(message));
+        messages.emplace_back(std::forward<string>(message));
         return messages;
     }
     else status_code = 200;
@@ -749,7 +764,8 @@ vector<string> Server::getQuestions(string subject, string chapter){
     messages.resize(question_ids.size()+1);
     // messages.reserve(question_ids.size()+1);
     // messages.push_back(message);
-    messages.push_back(std::move(message));
+    // messages.push_back(std::move(message));
+    messages.emplace_back(std::forward<string>(message));
 
     //experimental
     question_ids = helper(question_ids, "question name");
@@ -772,9 +788,9 @@ vector<string> Server::getQuestions(string subject, string chapter){
 vector<string> Server::getQuestions(string subject, string chapter, string question_id){
     int status_code;
     vector<string> messages;
-    string target_attribute = "content";
+    const string target_attribute = "content";
     optional<pair<string, variant<string, int, double>>> constraint;
-    vector<pair<string, string>> primary_pairs{std::make_pair("subject", subject), std::make_pair("chapter", chapter), std::make_pair("path", question_id)};
+    std::array<pair<string, string>, 3> primary_pairs{std::make_pair("subject", subject), std::make_pair("chapter", chapter), std::make_pair("path", question_id)};
     string question_content = question->getQuestionAttribute(constraint, primary_pairs, target_attribute);
 
     status_code = 200;
@@ -785,7 +801,8 @@ vector<string> Server::getQuestions(string subject, string chapter, string quest
     #endif
 
     // messages.push_back(message);
-    messages.push_back(std::move(message));
+    // messages.push_back(std::move(message));
+    messages.emplace_back(std::forward<string>(message));
     return messages;
 }
 
@@ -834,7 +851,8 @@ vector<string> Server::writeQuestion(string subject, string chapter, string ques
     message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
     // messages.push_back(message);
-    messages.push_back(std::move(message));
+    // messages.push_back(std::move(message));
+    messages.emplace_back(std::forward<string>(message));
     return messages;
 }
 
@@ -852,7 +870,8 @@ vector<string> Server::deleteQuestion(string subject, string chapter, string que
     #endif
 
     // messages.push_back(message);
-    messages.push_back(std::move(message));
+    // messages.push_back(std::move(message));
+    messages.emplace_back(std::forward<string>(message));
     return messages;
 }
 

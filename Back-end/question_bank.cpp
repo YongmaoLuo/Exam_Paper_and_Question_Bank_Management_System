@@ -130,23 +130,18 @@ string question_bank::getQuestion(optional<pair<string, variant<string, int, dou
    return {};
 }
 
-string question_bank::getQuestionAttribute(optional<pair<string, variant<string, int, double>>> constraint, vector<pair<string, string>> primary_pairs, string target_attribute)
+string question_bank::getQuestionAttribute(optional<pair<string, variant<string, int, double>>> constraint, std::array<pair<string, string>, 3> primary_pairs, const string& target_attribute)
 {
+   sql = fmt::format("SELECT {} FROM QUESTIONS WHERE ", target_attribute);
+   for(int i=0; i<primary_pairs.size(); i++) {
+      if(i<primary_pairs.size()-1) sql += fmt::format("{} = '{}' AND ", primary_pairs[i].first, primary_pairs[i].second);
+      else sql += fmt::format("{} = '{}' ", primary_pairs[i].first, primary_pairs[i].second);
+   }
    if(constraint){
          auto constraint_val = constraint.value();
          string key = constraint_val.first;
          auto value = constraint_val.second;
-         sql = fmt::format("SELECT {} FROM QUESTIONS WHERE {} = '{}' ", target_attribute, key, custom_to_string(value));
-         for(int i=0; i<primary_pairs.size(); i++){
-            sql += fmt::format("AND {} = '{}' ", primary_pairs[i].first, primary_pairs[i].second);
-         }
-   }
-   else {
-      sql = fmt::format("SELECT {} FROM QUESTIONS WHERE ", target_attribute);
-      for(int i=0; i<primary_pairs.size(); i++) {
-         if(i<primary_pairs.size()-1) sql += fmt::format("{} = '{}' AND ", primary_pairs[i].first, primary_pairs[i].second);
-         else sql += fmt::format("{} = '{}' ", primary_pairs[i].first, primary_pairs[i].second);
-      }
+         sql += fmt::format("AND {} = '{}' ", key, custom_to_string(value));
    }
    sql += "LIMIT 1; ";
    cout<<sql<<endl;
@@ -176,19 +171,18 @@ int question_bank::count(){
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
    sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
-   vector<int> output;
+   int output = -1;
    while(sqlite3_step(stmt) != SQLITE_DONE){
-      vector<int> row;
+      int row;
       num_cols = sqlite3_column_count(stmt);
       for(int i = 0; i < num_cols; i++){
          assert(sqlite3_column_type(stmt, i) == SQLITE_INTEGER);
-         row.push_back(sqlite3_column_int(stmt, i));
+         row = sqlite3_column_int(stmt, i);
       }
-      output.insert(output.end(), row.begin(), row.end());
+      output = row;
    }
    sqlite3_finalize(stmt);
-   if(output.empty()) return -1;
-   return output[0];
+   return output;
 }
 
 int question_bank::countDistinct(const string target_attribute, vector<pair<string, string>> count_info) {

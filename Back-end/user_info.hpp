@@ -1,5 +1,4 @@
-#ifndef DB_HPP
-#define DB_HPP
+#pragma once
 #include "database.hpp"
 #pragma comment(lib, "sqlite3.lib")
 using namespace std;
@@ -105,4 +104,3 @@ class db_user: public database{
             }
         }
 };
-#endif

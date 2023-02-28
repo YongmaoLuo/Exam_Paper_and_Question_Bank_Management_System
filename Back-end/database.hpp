@@ -1,5 +1,4 @@
-#ifndef DATABASE_HPP
-#define DATABASE_HPP
+#pragma once
 #include <stdio.h>
 #include <stdlib.h>
 #ifndef SQLITE_HAS_CODEC
@@ -168,4 +167,3 @@ class database{
             return output;
         }
 };
-#endif
