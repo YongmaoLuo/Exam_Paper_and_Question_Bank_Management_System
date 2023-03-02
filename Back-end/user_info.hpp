@@ -1,5 +1,4 @@
-#ifndef DB_HPP
-#define DB_HPP
+#pragma once
 #include "database.hpp"
 #pragma comment(lib, "sqlite3.lib")
 using namespace std;
@@ -16,9 +15,12 @@ struct UserInfo final {
             T status;
             int activity = 0; // no boolean inside sqlite
         public:
+            UserInfo<T>() {}
             UserInfo<T>(string username_, string password_, T identity_, T status_): username(username_), password(password_), identity(identity_), status(status_), activity(0) {};
             UserInfo<T>(string username_, string password_, T identity_, T status_, int activity_): username(username_), password(password_), identity(identity_), status(status_), activity(activity_) {};
-            UserInfo<T> operator=(UserInfo<T> newuser){
+            UserInfo<T>(const UserInfo<T>& newuser): username(newuser->username), password(newuser->password), identity(newuser->identity), status(newuser->status), activity(newuser->activity) {};
+            UserInfo<T>(UserInfo<T>&& newuser): username(std::move(newuser->username)), password(std::move(newuser->password)), identity(std::forward<T>(newuser->identity)), status(std::forward<T>(newuser->status)), activity(std::exchange(newuser->activity, 0)) {};
+            UserInfo<T>& operator=(const UserInfo<T>& newuser) noexcept{
                 username = newuser.username;
                 password = newuser.password;
                 identity = newuser.identity;
@@ -33,7 +35,7 @@ class db_user: public database{
     private:
         // sqlite3 *db;
         // sqlite3_stmt *stmt;
-        char *zErrMsg;
+        // char *zErrMsg;
         int rc;
         string sql;
         string checkType(string target_attribute);
@@ -44,14 +46,15 @@ class db_user: public database{
         virtual ~db_user(); //drop the table?
 
         void create(bool = false, const char* = "userinfo.db");
-        int insert(std::shared_ptr<UserInfo<string>> user);
-        int update(const string primary_val, vector<pair<string, variant<string, int, double>>> changelist);
+        int insert(const std::shared_ptr<UserInfo<string>>& user);
+        int update(const string& primary_val, vector<pair<string, variant<string, int, double>>> changelist);
         
-        string getUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute);
+        template<typename...Args>
+        string getUserAttribute(string& primary_val, string& target_attribute, Args const&...params);
         
         // vector<string> getUserAttributes(string target_attributes, string constraint_key, string constraint_val);
         template<hashable T = string, hashable T_input = string>
-        vector<T> getUserAttributes(optional<pair<string, T_input>> constraint, string target_attribute){
+        vector<T> getUserAttributes(optional<pair<string, T_input>> constraint, string&& target_attribute){
             if(constraint){
                 string constraint_key = constraint->first;
                 // auto constraint_val = constraint->second;
@@ -63,35 +66,11 @@ class db_user: public database{
                      "WHERE {} = '{}'; ", target_attribute, constraint_key, constraint_val_str);
             } else sql = fmt::format("SELECT {} FROM USER ;", target_attribute);
             
-            sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-            sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
-            int num_cols;
-            vector<T> output;
-            while(sqlite3_step(stmt) != SQLITE_DONE){
-                vector<T> row;
-                num_cols = sqlite3_column_count(stmt);
-                for(int i = 0; i < num_cols; i++){
-                    switch(sqlite3_column_type(stmt, i)){
-                        case(SQLITE3_TEXT):
-                        if constexpr(std::is_same_v<T, std::string>) row.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, i))));
-                        break;
-                        case(SQLITE_INTEGER):
-                        if constexpr(std::is_same_v<T, int>) row.push_back(sqlite3_column_int(stmt, i));
-                        break;
-                        case(SQLITE_FLOAT):
-                        if constexpr(std::is_same_v<T, double>) row.push_back(sqlite3_column_double(stmt, i));
-                        break;
-                        default:
-                        break;
-                    }
-                }
-                output.insert(output.end(), row.begin(), row.end());
-            }
-            return output;
+            return sqlexec<T>(sql);
         }
 
         template<hashable T = string, hashable T_input = string>
-        vector<T> getUserAttributes(vector<pair<string, T_input>> constraints, string target_attribute){
+        vector<T> getUserAttributes(vector<pair<string, T_input>> constraints, string&& target_attribute){
             if(!constraints.empty()){
                 sql = fmt::format("SELECT {} FROM USER WHERE ", target_attribute);
                 int cnt = 0;
@@ -110,36 +89,21 @@ class db_user: public database{
                 sql += ";";
             } else sql = fmt::format("SELECT {} FROM USER ;", target_attribute);
             
-            sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-            sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
-            int num_cols;
-            vector<T> output;
-            while(sqlite3_step(stmt) != SQLITE_DONE){
-                vector<T> row;
-                num_cols = sqlite3_column_count(stmt);
-                for(int i = 0; i < num_cols; i++){
-                    switch(sqlite3_column_type(stmt, i)){
-                        case(SQLITE3_TEXT):
-                        if constexpr(std::is_same_v<T, std::string>) row.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, i))));
-                        break;
-                        case(SQLITE_INTEGER):
-                        if constexpr(std::is_same_v<T, int>) row.push_back(sqlite3_column_int(stmt, i));
-                        break;
-                        case(SQLITE_FLOAT):
-                        if constexpr(std::is_same_v<T, double>) row.push_back(sqlite3_column_double(stmt, i));
-                        break;
-                        default:
-                        break;
-                    }
-                }
-                output.insert(output.end(), row.begin(), row.end());
-            }
-            return output;
+            return sqlexec<T>(sql);
         }
 
         int count();
-        int countDistinct(const string target_attribute, pair<string, variant<string, int, double>> count_info);
-        int delet(const string primary_val, pair<string, variant<string, int, double>> deleted_info);
+        int countDistinct(const string& target_attribute, pair<string, variant<string, int, double>> count_info);
+        int delet(const string& primary_val, pair<string, variant<string, int, double>> deleted_info);
         void clean();
+        void reorganize() {
+            sql = "DELETE FROM USER IF EXISTS;";
+            rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
+            if (rc != SQLITE_OK) {
+                fprintf(stderr, "SQL error: %s\n", zErrMsg);
+                sqlite3_free(zErrMsg);
+            } else {
+                fprintf(stdout, "Table truncated successfully\n");
+            }
+        }
 };
-#endif

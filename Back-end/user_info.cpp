@@ -43,7 +43,7 @@ void db_user::create(bool clear/*= false*/, const char* database_name/*= "userin
             ) WITHOUT ROWID;" ;
 
    /* Execute SQL statement */
-   rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
 
    if(rc != SQLITE_OK){
       fprintf(stderr, "SQL dropped: %s\n", zErrMsg);
@@ -62,7 +62,7 @@ void db_user::create(bool clear/*= false*/, const char* database_name/*= "userin
    
 }
 
-int db_user::insert(std::shared_ptr<UserInfo<string>> user){
+int db_user::insert(const std::shared_ptr<UserInfo<string>>& user){
    // string identity = user->identity;
    // string username = user->username;
    // string password = user->password;
@@ -72,9 +72,9 @@ int db_user::insert(std::shared_ptr<UserInfo<string>> user){
    auto [username, password, identity, status, activity] = user->getElements();
    if(status.empty()) status = "valid";
    sql = fmt::format("INSERT INTO USER (USERNAME, PASSWORD, IDENTITY, STATUS, ACTIVITY) "  \
-            "VALUES ('{}', '{}', '{}', '{}', '{}'); SELECT * FROM USER", username, password, identity, status, activity);
-   cout<<sql<<endl;
-   rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+            "VALUES ('{}', '{}', '{}', '{}', '{}'); COMMIT;", username, password, identity, status, activity);
+
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
          fprintf(stderr, "SQL error: %s\n", zErrMsg);
          sqlite3_free(zErrMsg);
@@ -85,7 +85,7 @@ int db_user::insert(std::shared_ptr<UserInfo<string>> user){
    return rc;
 }
 
-int db_user::update(const string primary_val, vector<pair<string, variant<string, int, double>>> changelist){
+int db_user::update(const string& primary_val, vector<pair<string, variant<string, int, double>>> changelist){
    std::set<string> keys;
    string key;
    while(!changelist.empty()){
@@ -99,9 +99,9 @@ int db_user::update(const string primary_val, vector<pair<string, variant<string
       keys.insert(key);
       
       if(key == "USERNAME") return -1;
-      sql = fmt::format("UPDATE USER set {} = '{}' where USERNAME = '{}'; SELECT * FROM USER", key, custom_to_string(value), primary_val);
+      sql = fmt::format("UPDATE USER set {} = '{}' where USERNAME = '{}'; COMMIT;", key, custom_to_string(value), primary_val);
 
-      rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+      rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
       if (rc != SQLITE_OK) {
             fprintf(stderr, "SQL error: %s\n", zErrMsg);
             sqlite3_free(zErrMsg);
@@ -116,7 +116,7 @@ int db_user::update(const string primary_val, vector<pair<string, variant<string
 string db_user::checkType(string target_attribute){
    sql = fmt::format("SELECT typeof({}) FROM USER LIMIT 1;", target_attribute);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
    int bytes;
    char* row_content_raw;
@@ -130,25 +130,28 @@ string db_user::checkType(string target_attribute){
          }
    }
    transform(res.begin(), res.end(), res.begin(), ::toupper);
+   sqlite3_finalize(stmt);
    return res;
 }
 
-
-string db_user::getUserAttribute(optional<pair<string, variant<string, int, double>>> constraint, string primary_val, string target_attribute)
+template<typename...Args>
+string db_user::getUserAttribute(string& primary_val, string& target_attribute, Args const& ...constraints)
 {
-   if(constraint){
-         auto constraint_val = constraint.value();
-         string key = constraint_val.first;
-         auto value = constraint_val.second;
-         sql = fmt::format("SELECT {} FROM USER "  \
-                     "WHERE USERNAME = '{}' AND {} = '{}' LIMIT 1; ", target_attribute, primary_val, key, custom_to_string(value));
-   }
-   else sql = fmt::format("SELECT {} FROM USER " \
-                     "WHERE USERNAME = '{}' LIMIT 1; ", target_attribute, primary_val);
-   cout<<sql<<endl;
+   // if(constraint){
+   //       auto constraint_val = constraint.value();
+   //       string key = constraint_val.first;
+   //       auto value = constraint_val.second;
+   //       sql = fmt::format("SELECT {} FROM USER "  \
+   //                   "WHERE USERNAME = '{}' AND {} = '{}' LIMIT 1; ", target_attribute, primary_val, key, custom_to_string(value));
+   // }
+   // else sql = fmt::format("SELECT {} FROM USER " \
+   //                   "WHERE USERNAME = '{}' LIMIT 1; ", target_attribute, primary_val);
+   const string base = fmt::format("SELECT {} FROM USER WHERE USERNAME = '{}' " , target_attribute, primary_val);
+   sql = concat(base, constraints...) + " LIMIT 1;";
+
    // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
    int bytes = 0;
    char* row_content_raw;
@@ -162,6 +165,7 @@ string db_user::getUserAttribute(optional<pair<string, variant<string, int, doub
             res = string(row_content_raw, bytes);
          }
    }
+   sqlite3_finalize(stmt);
    if(bytes) return res;
    else return {};
 }
@@ -205,7 +209,7 @@ string db_user::getUserAttribute(optional<pair<string, variant<string, int, doub
 int db_user::count(){
    sql = "SELECT COUNT (*) from USER LIMIT 1;"; 
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
    vector<int> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){
@@ -217,16 +221,17 @@ int db_user::count(){
       }
       output.insert(output.end(), row.begin(), row.end());
    }
+   sqlite3_finalize(stmt);
    if(output.empty()) return -1;
    return output[0];
 }
 
-int db_user::countDistinct(const string target_attribute, pair<string, variant<string, int, double>> count_info) {
+int db_user::countDistinct(const string& target_attribute, pair<string, variant<string, int, double>> count_info) {
    string countKey = count_info.first;
    auto countValue =  count_info.second;
    sql = fmt::format("SELECT COUNT(DISTINCT {}) from USER WHERE {}='{}' LIMIT 1;", target_attribute, countKey, custom_to_string(countValue));
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
    vector<int> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){
@@ -238,16 +243,16 @@ int db_user::countDistinct(const string target_attribute, pair<string, variant<s
       }
       output.insert(output.end(), row.begin(), row.end());
    }
+   sqlite3_finalize(stmt);
    if(output.empty()) return -1;
    return output[0];
 }
 
-int db_user::delet(const string primary_val, pair<string, variant<string, int, double>> authenticated_info){
+int db_user::delet(const string& primary_val, pair<string, variant<string, int, double>> authenticated_info){
    string key = authenticated_info.first;
    auto value = authenticated_info.second;
-   sql = fmt::format("DELETE from USER where USERNAME = '{}' AND {} = '{}'; \
-                SELECT * from USER", primary_val, key, custom_to_string(value));
-   rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+   sql = fmt::format("DELETE from USER where USERNAME = '{}' AND {} = '{}'; COMMIT;", primary_val, key, custom_to_string(value));
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);
@@ -260,7 +265,7 @@ int db_user::delet(const string primary_val, pair<string, variant<string, int, d
 
 void db_user::clean(){
    sql = "DROP TABLE IF EXISTS USER;";
-   rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);

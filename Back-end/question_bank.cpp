@@ -44,7 +44,7 @@ void question_bank::create(bool clear/*= false*/, const char* database_name/*= "
             ) WITHOUT ROWID" ; // without rowid means using clustered index
 
    /* Execute SQL statement */
-   rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
 
    if(rc != SQLITE_OK){
       fprintf(stderr, "SQL dropped: %s\n", zErrMsg);
@@ -54,7 +54,7 @@ void question_bank::create(bool clear/*= false*/, const char* database_name/*= "
    }
 }
 
-int question_bank::insert(std::shared_ptr<QuestionInfo<string>> question){
+int question_bank::insert(const std::shared_ptr<QuestionInfo<string>>& question){
    // string path = question->path;
    // string content = question->content;
    // string chapter = question->chapter;
@@ -63,8 +63,8 @@ int question_bank::insert(std::shared_ptr<QuestionInfo<string>> question){
    auto [path, content, chapter, category, rubric] = question->getElements();
    if(category.empty()) category = "undefined";
    sql = fmt::format("INSERT INTO QUESTIONS (PATH, CONTENT, CHAPTER, SUBJECT, RUBRIC) "  \
-            "VALUES ('{}', '{}', '{}', '{}', '{}'); SELECT * FROM QUESTIONS", path, content, chapter, category, rubric);
-   rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+            "VALUES ('{}', '{}', '{}', '{}', '{}'); COMMIT;", path, content, chapter, category, rubric);
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
          fprintf(stderr, "SQL error: %s\n", zErrMsg);
          sqlite3_free(zErrMsg);
@@ -97,8 +97,10 @@ int question_bank::update(vector<pair<string, string>> primary_pairs, vector<pai
       sql = fmt::format("UPDATE QUESTIONS set {} = '{}' where ", key, custom_to_string(value));
       for(int i=0; i<primary_pairs.size()-1; i++) sql += fmt::format("{} = '{}' AND ", primary_pairs[i].first, primary_pairs[i].second);
       sql += fmt::format("{} = '{}';", primary_pairs[primary_pairs.size()-1].first, primary_pairs[primary_pairs.size()-1].second);
+      // DML needs commit
+      sql += "commit;";
 
-      rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+      rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
       if (rc != SQLITE_OK) {
             fprintf(stderr, "SQL error: %s\n", zErrMsg);
             sqlite3_free(zErrMsg);
@@ -120,64 +122,32 @@ string question_bank::getQuestion(optional<pair<string, variant<string, int, dou
    }
    else sql = fmt::format("SELECT CONTENT FROM QUESTIONS " \
                   "WHERE PATH = '{}'; ", primary_val);
-   // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
-   sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
-   // if(sqlite3_step(stmt) != SQLITE_DONE){
-   //    fprintf(stderr, "SQL error");
-   //    return false;
-   // }
-   int num_cols;
-   vector<string> output;
-   while(sqlite3_step(stmt) != SQLITE_DONE){
-      vector<string> row;
-      num_cols = sqlite3_column_count(stmt);
-      for(int i = 0; i < num_cols; i++){
-         switch(sqlite3_column_type(stmt, i)){
-            case(SQLITE3_TEXT):
-               row.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, i))));
-               break;
-            case(SQLITE_INTEGER):
-               row.push_back(to_string(sqlite3_column_int(stmt, i)));
-               break;
-            case(SQLITE_FLOAT):
-               row.push_back(to_string(sqlite3_column_double(stmt, i)));
-               break;
-            default:
-               break;
-         }
-      }
-      output.insert(output.end(), row.begin(), row.end());
-   }
+
+   vector<string> output = sqlexec<string>(sql);
    
    if(!output.empty()) return output[0];
    cout<<"question not found"<<endl;
    return {};
 }
 
-string question_bank::getQuestionAttribute(optional<pair<string, variant<string, int, double>>> constraint, vector<pair<string, string>> primary_pairs, string target_attribute)
+string question_bank::getQuestionAttribute(optional<pair<string, variant<string, int, double>>> constraint, std::array<pair<string, string>, 3> primary_pairs, const string& target_attribute)
 {
+   sql = fmt::format("SELECT {} FROM QUESTIONS WHERE ", target_attribute);
+   for(int i=0; i<primary_pairs.size(); i++) {
+      if(i<primary_pairs.size()-1) sql += fmt::format("{} = '{}' AND ", primary_pairs[i].first, primary_pairs[i].second);
+      else sql += fmt::format("{} = '{}' ", primary_pairs[i].first, primary_pairs[i].second);
+   }
    if(constraint){
          auto constraint_val = constraint.value();
          string key = constraint_val.first;
          auto value = constraint_val.second;
-         sql = fmt::format("SELECT {} FROM QUESTIONS WHERE {} = '{}' ", target_attribute, key, custom_to_string(value));
-         for(int i=0; i<primary_pairs.size(); i++){
-            sql += fmt::format("AND {} = '{}' ", primary_pairs[i].first, primary_pairs[i].second);
-         }
-   }
-   else {
-      sql = fmt::format("SELECT {} FROM QUESTIONS WHERE ", target_attribute);
-      for(int i=0; i<primary_pairs.size(); i++) {
-         if(i<primary_pairs.size()-1) sql += fmt::format("{} = '{}' AND ", primary_pairs[i].first, primary_pairs[i].second);
-         else sql += fmt::format("{} = '{}' ", primary_pairs[i].first, primary_pairs[i].second);
-      }
+         sql += fmt::format("AND {} = '{}' ", key, custom_to_string(value));
    }
    sql += "LIMIT 1; ";
    cout<<sql<<endl;
    // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
    int bytes = 0;
    char* row_content_raw;
@@ -191,6 +161,7 @@ string question_bank::getQuestionAttribute(optional<pair<string, variant<string,
             res = string(row_content_raw, bytes);
          }
    }
+   sqlite3_finalize(stmt);
    if(bytes) return res;
    else return {};
 }
@@ -198,20 +169,20 @@ string question_bank::getQuestionAttribute(optional<pair<string, variant<string,
 int question_bank::count(){
    sql = "SELECT COUNT (*) from QUESTIONS LIMIT 1;"; 
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
-   vector<int> output;
+   int output = -1;
    while(sqlite3_step(stmt) != SQLITE_DONE){
-      vector<int> row;
+      int row;
       num_cols = sqlite3_column_count(stmt);
       for(int i = 0; i < num_cols; i++){
          assert(sqlite3_column_type(stmt, i) == SQLITE_INTEGER);
-         row.push_back(sqlite3_column_int(stmt, i));
+         row = sqlite3_column_int(stmt, i);
       }
-      output.insert(output.end(), row.begin(), row.end());
+      output = row;
    }
-   if(output.empty()) return -1;
-   return output[0];
+   sqlite3_finalize(stmt);
+   return output;
 }
 
 int question_bank::countDistinct(const string target_attribute, vector<pair<string, string>> count_info) {
@@ -225,7 +196,7 @@ int question_bank::countDistinct(const string target_attribute, vector<pair<stri
    }
    sql += fmt::format("{} != 'placeholder' LIMIT 1;", target_attribute);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
    vector<int> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){
@@ -237,6 +208,7 @@ int question_bank::countDistinct(const string target_attribute, vector<pair<stri
       }
       output.insert(output.end(), row.begin(), row.end());
    }
+   sqlite3_finalize(stmt);
    if(output.empty()) return -1;
    return output[0];
 }
@@ -252,7 +224,7 @@ int question_bank::countDistinct(const string target_attribute, optional<pair<st
       sql = fmt::format("select count(DISTINCT {}) from QUESTIONS where {} != 'placeholder' LIMIT 1;", target_attribute, target_attribute);
    }
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
    vector<int> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){
@@ -264,6 +236,7 @@ int question_bank::countDistinct(const string target_attribute, optional<pair<st
       }
       output.insert(output.end(), row.begin(), row.end());
    }
+   sqlite3_finalize(stmt);
    if(output.empty()) return -1;
    return output[0];
 }
@@ -271,29 +244,19 @@ int question_bank::countDistinct(const string target_attribute, optional<pair<st
 vector<string> question_bank::getQuestionPaths(){
    sql = "SELECT PATH from QUESTIONS;";
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
    int num_cols;
    vector<string> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){
       vector<string> row;
       num_cols = sqlite3_column_count(stmt);
       for(int i = 0; i < num_cols; i++){
-         switch(sqlite3_column_type(stmt, i)){
-            case(SQLITE3_TEXT):
-               row.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, i))));
-               break;
-            case(SQLITE_INTEGER):
-               row.push_back(to_string(sqlite3_column_int(stmt, i)));
-               break;
-            case(SQLITE_FLOAT):
-               row.push_back(to_string(sqlite3_column_double(stmt, i)));
-               break;
-            default:
-               break;
-         }
+         assert(sqlite3_column_type(stmt, i) == SQLITE_TEXT);
+         row.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, i))));    
       }
       output.insert(output.end(), row.begin(), row.end());
    }
+   sqlite3_finalize(stmt);
    return output;
 }
 
@@ -303,8 +266,10 @@ int question_bank::delet(vector<pair<string, string>> primary_pairs){
       if(i < primary_pairs.size()-1)  sql += fmt::format("{} = '{}' AND ", primary_pairs[i].first, primary_pairs[i].second);
       else sql += fmt::format("{} = '{}' ;", primary_pairs[i].first, primary_pairs[i].second);
    }
+   // DML needs commit
+   sql += "commit;";
     
-   rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);
@@ -317,7 +282,7 @@ int question_bank::delet(vector<pair<string, string>> primary_pairs){
 
 void question_bank::clean(){
    sql = "DROP TABLE IF EXISTS QUESTIONS;";
-   rc = sqlite3_exec(db, sql.c_str(), callback, 0, &zErrMsg);
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
    if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);
