@@ -610,7 +610,7 @@ vector<string> Server::getSubjects(){
     return messages;
 }
 
-vector<string> Server::getChapters(string subject){
+vector<string> Server::getChapters(string& subject){
     int status_code;
     vector<string> messages;
     const string target_attribute = "chapter";
@@ -660,7 +660,7 @@ vector<string> Server::getChapters(string subject){
     return messages;
 }
 
-vector<string> Server::addSubject(string subject) {
+vector<string> Server::addSubject(string& subject) {
     int status_code;
     vector<string> messages;
     optional<pair<string, variant<string, int, double>>> count_info;
@@ -692,7 +692,7 @@ vector<string> Server::addSubject(string subject) {
     return messages;
 }
 
-vector<string> Server::addChapter(string subject, string chapter) {
+vector<string> Server::addChapter(string& subject, string& chapter) {
     int status_code;
     vector<string> messages;
     const string target_attribute = "chapter";
@@ -732,7 +732,7 @@ vector<string> Server::addChapter(string subject, string chapter) {
     return messages;
 }
 
-vector<string> Server::getQuestions(string subject, string chapter){
+vector<string> Server::getQuestions(string& subject, string& chapter){
     int status_code;
     vector<string> messages;
     const string target_attribute = "path";
@@ -785,7 +785,7 @@ vector<string> Server::getQuestions(string subject, string chapter){
     return messages;
 }
 
-vector<string> Server::getQuestions(string subject, string chapter, string question_id){
+vector<string> Server::getQuestions(string& subject, string& chapter, string& question_id){
     int status_code;
     vector<string> messages;
     const string target_attribute = "content";
@@ -806,7 +806,7 @@ vector<string> Server::getQuestions(string subject, string chapter, string quest
     return messages;
 }
 
-vector<string> Server::writeQuestion(string subject, string chapter, string question_id, auto content){
+vector<string> Server::writeQuestion(string& subject, string& chapter, string& question_id, auto content){
     int status_code;
     vector<string> messages;
     // check if the path exists
@@ -839,7 +839,7 @@ vector<string> Server::writeQuestion(string subject, string chapter, string ques
     else {
         cout<<"Update an existing question!"<<endl;
         vector<pair<string, variant<string, int, double>>> changelist;
-        changelist.push_back(std::make_pair("content", content));
+        changelist.emplace_back(std::make_pair("content", content));
         rc = question->update(count_infos, changelist);
         if(rc < 0) status_code = 403;
         else status_code = 200;
@@ -856,7 +856,7 @@ vector<string> Server::writeQuestion(string subject, string chapter, string ques
     return messages;
 }
 
-vector<string> Server::deleteQuestion(string subject, string chapter, string question_id){
+vector<string> Server::deleteQuestion(string& subject, string& chapter, string& question_id){
     int status_code;
     vector<string> messages;
     vector<pair<string, string>> primary_pairs{std::make_pair("subject", subject), std::make_pair("chapter", chapter), std::make_pair("path", question_id)};

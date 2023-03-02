@@ -187,12 +187,12 @@ private:
     vector<string> getTeachers();
 
     vector<string> getSubjects();
-    vector<string> getChapters(string subject);
-    vector<string> addSubject(string);
-    vector<string> addChapter(string subject, string);
-    vector<string> getQuestions(string, string);
-    vector<string> getQuestions(string, string, string);
-    vector<string> writeQuestion(string, string, string, auto);
-    vector<string> deleteQuestion(string, string, string);
+    vector<string> getChapters(string& subject);
+    vector<string> addSubject(string&);
+    vector<string> addChapter(string& subject, string&);
+    vector<string> getQuestions(string&, string&);
+    vector<string> getQuestions(string&, string&, string&);
+    vector<string> writeQuestion(string&, string&, string&, auto);
+    vector<string> deleteQuestion(string&, string&, string&);
     //void *getInetAddr(struct sockaddr *saddr);
 };
