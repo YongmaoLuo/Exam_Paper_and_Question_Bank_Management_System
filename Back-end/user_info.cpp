@@ -62,7 +62,7 @@ void db_user::create(bool clear/*= false*/, const char* database_name/*= "userin
    
 }
 
-int db_user::insert(std::shared_ptr<UserInfo<string>> user){
+int db_user::insert(const std::shared_ptr<UserInfo<string>>& user){
    // string identity = user->identity;
    // string username = user->username;
    // string password = user->password;

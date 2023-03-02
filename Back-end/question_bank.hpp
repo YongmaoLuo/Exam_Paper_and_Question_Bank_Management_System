@@ -15,8 +15,10 @@ struct QuestionInfo final {
             T category;
             int rubric;
         public:
+            QuestionInfo<T>() {}
             QuestionInfo<T>(string path_, string content_, string chapter_, T category_): path(path_), content(content_), chapter(chapter_), category(category_), rubric(0) {};
             QuestionInfo<T>(string path_, string content_, string chapter_, T category_, int rubric_): path(path_), content(content_), chapter(chapter_), category(category_), rubric(rubric_) {};
+            QuestionInfo<T>(const QuestionInfo<T>& newquestion): path(newquestion->path), content(newquestion->content), chapter(newquestion->chapter), category(newquestion->category), rubric(newquestion->rubric) {};
             std::tuple<string, string, string, T, int> getElements() const {return std::make_tuple(path, content, chapter, category, rubric);};
         };
 
@@ -34,7 +36,7 @@ class question_bank: public database{
         virtual ~question_bank(); //drop the table?
 
         void create(bool = false, const char* = "questions.db");
-        int insert(std::shared_ptr<QuestionInfo<string>>);
+        int insert(const std::shared_ptr<QuestionInfo<string>>&);
         int update(vector<pair<string, string>>, vector<pair<string, variant<string, int, double>>> changelist);
 
         string getQuestionAttribute(optional<pair<string, variant<string, int, double>>> constraint, std::array<pair<string, string>, 3> primary_pairs, const string& target_attribute);

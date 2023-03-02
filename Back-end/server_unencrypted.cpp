@@ -158,7 +158,7 @@ void Server::handleNewConnection()
     // struct Connector connect_fd = Connector();
     // connect_fd.source_fd = tempsocket_fd;
     // sendMessage(connect_fd, message.c_str());
-    resendMsgToExisting(connect_fd); // It is advised to send once connected
+    resendMsgToExisting(tempsocket_fd); // It is advised to send once connected
     // on the client, should be non-blocked receive
 }
 
@@ -179,17 +179,17 @@ void Server::sendMsgToExisting(Connector& connect_fd, vector<string>& messages){
 
 }
 
-void Server::resendMsgToExisting(Connector& connect_fd) {
-    if(archived_msg.find(connect_fd.source_fd) != archived_msg.end() && !archived_msg[connect_fd.source_fd].empty()) {
-        sendMsgToExisting(connect_fd, messages); // If still failed to send, discard the message
-        archived_msg.erase(connect_fd.source_fd);
+void Server::resendMsgToExisting(int source_fd) {
+    Connector connect_fd = Connector(source_fd);
+    if(archived_msg.find(source_fd) != archived_msg.end() && !archived_msg[source_fd].empty()) {
+        sendMsgToExisting(connect_fd, archived_msg[source_fd]); // If still failed to send, discard the message
+        archived_msg.erase(source_fd);
     }
 }
 
 int Server::sendMsgRedirect(string&& username, vector<string>& messages) {
     int user_fd = logined_users[username];
-    Connector connect_fd = Connector();
-    connect_fd.source_fd = user_fd;
+    Connector connect_fd = Connector(user_fd);
     sendMsgToExisting(connect_fd, messages);
     if(archived_msg.find(user_fd) != archived_msg.end() && !archived_msg[user_fd].empty()) return -1;
     return 0;
@@ -353,7 +353,7 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
 vector<string> Server::registerUser(Connector& connect_fd, string username, auto password, string identity){
     int status_code;
     // with database logic
-    std::shared_ptr<UserInfo<string>> new_user = std::make_shared<UserInfo<string>>(username, static_cast<std::string>(password), identity, "valid");
+    const std::shared_ptr<UserInfo<string>> new_user = std::make_shared<UserInfo<string>>(username, static_cast<std::string>(password), identity, "valid");
     int result = user->insert(new_user);
     // delete new_user;
     if(result == -1) status_code = 403;
@@ -610,7 +610,7 @@ vector<string> Server::getSubjects(){
     return messages;
 }
 
-vector<string> Server::getChapters(string subject){
+vector<string> Server::getChapters(string& subject){
     int status_code;
     vector<string> messages;
     const string target_attribute = "chapter";
@@ -660,7 +660,7 @@ vector<string> Server::getChapters(string subject){
     return messages;
 }
 
-vector<string> Server::addSubject(string subject) {
+vector<string> Server::addSubject(string& subject) {
     int status_code;
     vector<string> messages;
     optional<pair<string, variant<string, int, double>>> count_info;
@@ -672,7 +672,7 @@ vector<string> Server::addSubject(string subject) {
     if(existence < 0) status_code = 404;
     else if(existence == 0) {
         cout<<"Add a new subject to the question bank."<<endl;
-        std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>("placeholder", "placeholder", "placeholder", subject);
+        const std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>("placeholder", "placeholder", "placeholder", subject);
         rc = question->insert(new_question);
         // delete new_question;
         if(rc < 0) status_code = 403;
@@ -692,7 +692,7 @@ vector<string> Server::addSubject(string subject) {
     return messages;
 }
 
-vector<string> Server::addChapter(string subject, string chapter) {
+vector<string> Server::addChapter(string& subject, string& chapter) {
     int status_code;
     vector<string> messages;
     const string target_attribute = "chapter";
@@ -707,7 +707,7 @@ vector<string> Server::addChapter(string subject, string chapter) {
         if(existence < 0) status_code = 404;
         else if(existence == 0) {
             cout<<"Add a new chapter to the question bank."<<endl;
-            std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>("placeholder", "placeholder", chapter, subject);
+            const std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>("placeholder", "placeholder", chapter, subject);
             rc = question->insert(new_question);
             // delete new_question;
             if(rc < 0) status_code = 403;
@@ -732,7 +732,7 @@ vector<string> Server::addChapter(string subject, string chapter) {
     return messages;
 }
 
-vector<string> Server::getQuestions(string subject, string chapter){
+vector<string> Server::getQuestions(string& subject, string& chapter){
     int status_code;
     vector<string> messages;
     const string target_attribute = "path";
@@ -785,7 +785,7 @@ vector<string> Server::getQuestions(string subject, string chapter){
     return messages;
 }
 
-vector<string> Server::getQuestions(string subject, string chapter, string question_id){
+vector<string> Server::getQuestions(string& subject, string& chapter, string& question_id){
     int status_code;
     vector<string> messages;
     const string target_attribute = "content";
@@ -806,7 +806,7 @@ vector<string> Server::getQuestions(string subject, string chapter, string quest
     return messages;
 }
 
-vector<string> Server::writeQuestion(string subject, string chapter, string question_id, auto content){
+vector<string> Server::writeQuestion(string& subject, string& chapter, string& question_id, auto content){
     int status_code;
     vector<string> messages;
     // check if the path exists
@@ -826,7 +826,7 @@ vector<string> Server::writeQuestion(string subject, string chapter, string ques
         existence = question->countDistinct(target_attribute, count_infos);
         if(existence > 0) {
             cout<<"Write a new question into the question bank!"<<endl;
-            std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>(question_id, content, chapter, subject);
+            const std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>(question_id, content, chapter, subject);
             rc = question->insert(new_question);
             // delete new_question;
             if(rc < 0) status_code = 403;
@@ -839,7 +839,7 @@ vector<string> Server::writeQuestion(string subject, string chapter, string ques
     else {
         cout<<"Update an existing question!"<<endl;
         vector<pair<string, variant<string, int, double>>> changelist;
-        changelist.push_back(std::make_pair("content", content));
+        changelist.emplace_back(std::make_pair("content", content));
         rc = question->update(count_infos, changelist);
         if(rc < 0) status_code = 403;
         else status_code = 200;
@@ -856,7 +856,7 @@ vector<string> Server::writeQuestion(string subject, string chapter, string ques
     return messages;
 }
 
-vector<string> Server::deleteQuestion(string subject, string chapter, string question_id){
+vector<string> Server::deleteQuestion(string& subject, string& chapter, string& question_id){
     int status_code;
     vector<string> messages;
     vector<pair<string, string>> primary_pairs{std::make_pair("subject", subject), std::make_pair("chapter", chapter), std::make_pair("path", question_id)};
@@ -913,9 +913,8 @@ void Server::loop()
                 close(events[i].data.fd);
             } else if (events[i].events & EPOLLIN) {
                 //exisiting connection has new data
-                Connector connect_fd = Connector();
+                Connector connect_fd = Connector(events[i].data.fd);
                 // connect_fd.source_fd = i;
-                connect_fd.source_fd = events[i].data.fd;
                 
                 vector<string> messages = recvInputFromExisting(connect_fd);
                 if(!messages.empty()){
