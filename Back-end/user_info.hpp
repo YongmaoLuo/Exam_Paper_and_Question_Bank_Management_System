@@ -15,9 +15,12 @@ struct UserInfo final {
             T status;
             int activity = 0; // no boolean inside sqlite
         public:
+            UserInfo<T>() {}
             UserInfo<T>(string username_, string password_, T identity_, T status_): username(username_), password(password_), identity(identity_), status(status_), activity(0) {};
             UserInfo<T>(string username_, string password_, T identity_, T status_, int activity_): username(username_), password(password_), identity(identity_), status(status_), activity(activity_) {};
-            UserInfo<T> operator=(UserInfo<T> newuser){
+            UserInfo<T>(const UserInfo<T>& newuser): username(newuser->username), password(newuser->password), identity(newuser->identity), status(newuser->status), activity(newuser->activity) {};
+            UserInfo<T>(UserInfo<T>&& newuser): username(std::move(newuser->username)), password(std::move(newuser->password)), identity(std::forward<T>(newuser->identity)), status(std::forward<T>(newuser->status)), activity(std::exchange(newuser->activity, 0)) {};
+            UserInfo<T>& operator=(const UserInfo<T>& newuser) noexcept{
                 username = newuser.username;
                 password = newuser.password;
                 identity = newuser.identity;
@@ -43,7 +46,7 @@ class db_user: public database{
         virtual ~db_user(); //drop the table?
 
         void create(bool = false, const char* = "userinfo.db");
-        int insert(std::shared_ptr<UserInfo<string>> user);
+        int insert(const std::shared_ptr<UserInfo<string>>& user);
         int update(const string& primary_val, vector<pair<string, variant<string, int, double>>> changelist);
         
         template<typename...Args>

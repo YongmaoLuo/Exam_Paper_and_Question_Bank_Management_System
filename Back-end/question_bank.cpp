@@ -54,7 +54,7 @@ void question_bank::create(bool clear/*= false*/, const char* database_name/*= "
    }
 }
 
-int question_bank::insert(std::shared_ptr<QuestionInfo<string>> question){
+int question_bank::insert(const std::shared_ptr<QuestionInfo<string>>& question){
    // string path = question->path;
    // string content = question->content;
    // string chapter = question->chapter;

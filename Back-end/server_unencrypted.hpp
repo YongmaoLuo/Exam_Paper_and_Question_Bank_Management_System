@@ -92,7 +92,10 @@ public:
     virtual ~Server();
     
     struct Connector {
-        uint16_t source_fd;
+        public:
+            uint16_t source_fd;
+            Connector() {}
+            Connector(uint16_t fd): source_fd(fd) {};
     };
     
     void shutdown();
@@ -172,7 +175,7 @@ private:
 
     vector<string> recvInputFromExisting(Connector&);
     void sendMsgToExisting(Connector&, vector<string>&);
-    void resendMsgToExisting(Connector&);
+    void resendMsgToExisting(int);
     int sendMsgRedirect(string&&, vector<string>&);
     vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity);
     vector<string> authenticateUser(Connector& conn, string username, auto password);
