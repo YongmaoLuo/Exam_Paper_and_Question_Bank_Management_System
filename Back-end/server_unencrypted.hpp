@@ -74,6 +74,13 @@ void sig_to_exception(int s)
 
 // #include "user_info.hpp"
 
+struct Connector {
+    public:
+        uint16_t source_fd;
+        Connector() {}
+        Connector(uint16_t fd): source_fd(fd) {};
+};
+
 class db_user;
 class question_bank;
 class Server
@@ -90,13 +97,6 @@ public:
     static shared_ptr<Server> getInstance(); 
 
     virtual ~Server();
-    
-    struct Connector {
-        public:
-            uint16_t source_fd;
-            Connector() {}
-            Connector(uint16_t fd): source_fd(fd) {};
-    };
     
     void shutdown();
     void init();
@@ -173,9 +173,8 @@ private:
     // vector<string> getUser(Connector& connect_fd, db_user&);
     // vector<string> getTeachers(Connector&, db_user&);
 
-    vector<string> recvInputFromExisting(Connector&);
-    void sendMsgToExisting(Connector&, vector<string>&);
-    void resendMsgToExisting(int);
+    tuple<vector<string>, Connector> recvInputFromExisting(Connector&);
+    void sendMsgToExisting(Connector&, vector<string> = vector<string>());
     int sendMsgRedirect(string&&, vector<string>&);
     vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity);
     vector<string> authenticateUser(Connector& conn, string username, auto password);
@@ -195,4 +194,7 @@ private:
     vector<string> writeQuestion(string&, string&, string&, auto);
     vector<string> deleteQuestion(string&, string&, string&);
     //void *getInetAddr(struct sockaddr *saddr);
+    vector<string> readBulletin(string&);
+    vector<string> writeBulletin(string&, string&, string&);
+    vector<string> deleteBulletin(string&);
 };
