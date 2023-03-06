@@ -99,7 +99,7 @@ int db_user::update(const string& primary_val, vector<pair<string, variant<strin
       keys.insert(key);
       
       if(key == "USERNAME") return -1;
-      sql = fmt::format("UPDATE USER set {} = '{}' where USERNAME = '{}'; COMMIT;", key, custom_to_string(value), primary_val);
+      sql = fmt::format("UPDATE USER set {} = '{}' where USERNAME = '{}';", key, custom_to_string(value), primary_val);
 
       rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
       if (rc != SQLITE_OK) {

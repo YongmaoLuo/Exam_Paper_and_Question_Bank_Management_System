@@ -164,7 +164,7 @@ private:
     void setup(int port);
     void initializeSocket();
     void bindSocket();
-    void startListen();
+    void startListen(int = 8);
     void handleNewConnection();
 
     tuple<vector<string>, Connector> recvInputFromExisting(Connector&);
