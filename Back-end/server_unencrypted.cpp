@@ -94,12 +94,12 @@ void Server::bindSocket()
 	// maxfd = mastersocket_fd; //set the current known maximum file descriptor count
 }
 
-void Server::startListen()
+void Server::startListen(int connection)
 {
 	#ifdef SERVER_DEBUG
 	std::cout << "[SERVER] listen starting...\n";
 	#endif
-	int listen_ret = listen(mastersocket_fd, 3);
+	int listen_ret = listen(mastersocket_fd, connection);
 	#ifdef SERVER_DEBUG
 	printf("[SERVER] listen() ret %d\n", listen_ret);
 	#endif
@@ -937,8 +937,12 @@ void Server::loop()
             if(events[i].events & EPOLLERR || events[i].events & EPOLLHUP) {
                 epoll_ctl(eFd, EPOLL_CTL_DEL, events[i].data.fd, nullptr);
                 close(events[i].data.fd);
+                cout<<"Connection "<<events[i].data.fd<<" has been closed."<<endl;
             } else if (events[i].events & EPOLLIN) {
                 //exisiting connection has new data
+
+                // experimental
+                //if((childpid = fork()) == 0) {
                 Connector connect_fd = Connector(events[i].data.fd);
                 // connect_fd.source_fd = i;
                 auto [messages, target_connector] = recvInputFromExisting(connect_fd);
@@ -947,6 +951,9 @@ void Server::loop()
                     sendMsgToExisting(target_connector, messages);
                     bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
                 }
+                //}
+
+                
             }
                 
         } //loop on to see if there is more
@@ -1031,6 +1038,7 @@ int main(int argc, char* argv[]){
         }
     } catch (const InterruptException& e1) {
         server_object->shutdown();
+        cout<<"Ctrl-C terminate."<<endl;
         return -1;
     }
     
