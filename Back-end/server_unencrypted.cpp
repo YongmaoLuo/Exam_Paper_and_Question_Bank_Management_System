@@ -948,6 +948,9 @@ void Server::loop()
                 auto [messages, target_connector] = recvInputFromExisting(connect_fd);
                 if(!messages.empty()){
                     messages.shrink_to_fit();
+                    bool user_safe = user->check_threadsafe();
+                    bool question_safe = question->check_threadsafe();
+                    if(!user_safe || !question_safe) cout<<"Warning: database not thread-safe!"<<endl;
                     sendMsgToExisting(target_connector, messages);
                     bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
                 }
