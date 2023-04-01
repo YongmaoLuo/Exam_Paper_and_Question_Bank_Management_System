@@ -71,6 +71,12 @@ template<typename T> static int c_callback(void *params, int argc, char **argv, 
    return database->callback(argc, argv, azColName);
 }
 
+class database_factory {
+    public:
+        virtual shared_ptr<database> CreateDatabase() = 0;
+        virtual ~database_factory() {}
+};
+
 class database{
     protected:
         sqlite3 *db;
@@ -165,5 +171,9 @@ class database{
             sqlite3_free_table(pResult);
             output.shrink_to_fit();
             return output;
+        }
+
+        bool check_threadsafe() {
+            return (bool)sqlite3_threadsafe();
         }
 };

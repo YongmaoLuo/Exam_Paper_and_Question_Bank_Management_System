@@ -20,6 +20,7 @@ Other than performance, we also take safety into consideration. We had pragma ke
 
 * CMake 3.25
 * g++-10
+* Ninja (Optional)
 
 * String formatting tool: [fmt](https://github.com/fmtlib/fmt)
 * JSON formatting tool: [json](https://github.com/nlohmann/json)
@@ -30,16 +31,25 @@ Other than performance, we also take safety into consideration. We had pragma ke
 
 ## Quick Start
 
-In the front-end part, activate through the executable file.
+In the front-end part, install Qt6 on your local operating system, navigate to front-end directory compile with cmake.
 
 In the back-end part, compile server with CMakeLists.txt.
+
+If you are working with Ninja, execute the following commands:
+
+```bash
+cmake -G Ninja
+ninja
+```
+
+Otherwise,
 
 ```bash
 cmake CMakeLists.txt
 make
 ```
 
-Execute with
+Activate with
 
 ```bash
 cd bin/

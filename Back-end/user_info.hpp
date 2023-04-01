@@ -6,6 +6,16 @@ using namespace std;
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
+class db_user;
+
+class UserInfoProducer: public database_factory
+{
+    public:
+        shared_ptr<database> CreateDatabase() {
+            return make_shared<db_user>();
+        }
+};
+
 template<hashable T>
 struct UserInfo final {
         private:

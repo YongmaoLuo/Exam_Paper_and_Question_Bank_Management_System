@@ -94,12 +94,12 @@ void Server::bindSocket()
 	// maxfd = mastersocket_fd; //set the current known maximum file descriptor count
 }
 
-void Server::startListen()
+void Server::startListen(int connection)
 {
 	#ifdef SERVER_DEBUG
 	std::cout << "[SERVER] listen starting...\n";
 	#endif
-	int listen_ret = listen(mastersocket_fd, 3);
+	int listen_ret = listen(mastersocket_fd, connection);
 	#ifdef SERVER_DEBUG
 	printf("[SERVER] listen() ret %d\n", listen_ret);
 	#endif
@@ -158,11 +158,19 @@ void Server::handleNewConnection()
     // struct Connector connect_fd = Connector();
     // connect_fd.source_fd = tempsocket_fd;
     // sendMessage(connect_fd, message.c_str());
-    resendMsgToExisting(tempsocket_fd); // It is advised to send once connected
+    Connector connect_fd = Connector(tempsocket_fd);
+    sendMsgToExisting(connect_fd); // It is advised to send once connected
     // on the client, should be non-blocked receive
 }
 
-void Server::sendMsgToExisting(Connector& connect_fd, vector<string>& messages){
+void Server::sendMsgToExisting(Connector& connect_fd, vector<string> messages){
+    if(messages.empty()) {
+        // resend
+        if(archived_msg.find(connect_fd.getFd()) != archived_msg.end() && !archived_msg[connect_fd.getFd()].empty()) {
+            messages = archived_msg[connect_fd.getFd()];
+            archived_msg.erase(connect_fd.getFd());
+        }
+    } 
     for(int i=0; i<messages.size(); i++){
         int bytes = sendMessage(connect_fd, messages[i].c_str());
         int retry = 5;
@@ -171,31 +179,15 @@ void Server::sendMsgToExisting(Connector& connect_fd, vector<string>& messages){
         }
         // If still failed to send, archive the msg and send again afterwards
         if(bytes < 0) {
-            archived_msg[connect_fd.source_fd].push_back(messages[i]);
+            archived_msg[connect_fd.getFd()].push_back(messages[i]);
             cout<<"Message sent incomplete!"<<endl;
         }
         usleep(100000);
     }
-
 }
 
-void Server::resendMsgToExisting(int source_fd) {
-    Connector connect_fd = Connector(source_fd);
-    if(archived_msg.find(source_fd) != archived_msg.end() && !archived_msg[source_fd].empty()) {
-        sendMsgToExisting(connect_fd, archived_msg[source_fd]); // If still failed to send, discard the message
-        archived_msg.erase(source_fd);
-    }
-}
 
-int Server::sendMsgRedirect(string&& username, vector<string>& messages) {
-    int user_fd = logined_users[username];
-    Connector connect_fd = Connector(user_fd);
-    sendMsgToExisting(connect_fd, messages);
-    if(archived_msg.find(user_fd) != archived_msg.end() && !archived_msg[user_fd].empty()) return -1;
-    return 0;
-}
-
-vector<string> Server::recvInputFromExisting(Connector& connect_fd)
+tuple<vector<string>, Connector> Server::recvInputFromExisting(Connector& connect_fd)
 {
     vector<string> messages;
     int nbytesrecv = recvMessage(connect_fd, input_buffer);
@@ -209,9 +201,9 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
             perror("[SERVER] [ERROR] recv() failed");
         	//disconnectCallback((uint16_t)fd);
         }
-        close(connect_fd.source_fd); //close connection to client
+        close(connect_fd.getFd()); //close connection to client
         // FD_CLR(connect_fd.source_fd, &masterfds); //clear the client fd from fd set
-        return messages;
+        return make_tuple<vector<string>, Connector>(std::move(messages), std::move(connect_fd));
     }
     #ifdef SERVER_DEBUG
     printf("[SERVER] [RECV] Received '%s' from client!\n", input_buffer);
@@ -219,7 +211,8 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
     // receiveCallback(fd,input_buffer);
     // authenticate the identity of the user
     json message = json::parse(input_buffer);
-    cout<<message.dump()<<endl;
+    
+    // parse information
     auto command = message["command"].get<std::string>();
     string username = "";
     auto password = std::string();
@@ -229,23 +222,26 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
     string chapter_name = "";
     string question_id = "";
     auto question_content = std::string();
+    string bulletin_name = "";
+    string teacher_name = "";
+    string bulletin_text = "";
 
     if(message.contains("username")) username = message["username"].get<std::string>();
-    else cout<<"No account.\n";
-
     if(message.contains("password")) password = message["password"].get<std::string>();
-    else cout<<"No password.\n";
     if(message.contains("subject name")) subject_name = message["subject name"].get<std::string>();
     if(message.contains("chapter name")) chapter_name = message["chapter name"].get<std::string>();
     if(message.contains("question name")) question_id = message["question name"].get<std::string>();
     if(message.contains("question text")) question_content = message["question text"].get<std::string>();
+    if(message.contains("bulletin name")) bulletin_name = message["bulletin name"].get<std::string>();
+    if(message.contains("teacher name")) teacher_name = message["teacher name"].get<std::string>();
+    if(message.contains("bulletin text")) bulletin_text = message["bulletin text"].get<std::string>();
 
     if(command == "login"){
         messages = authenticateUser(connect_fd, username, password);
     }
     else if(command == "get users" && 
-            bindIdentity.find(connect_fd.source_fd) != bindIdentity.end() && 
-            bindIdentity[connect_fd.source_fd] == "admin"){
+            bindIdentity.find(connect_fd.getFd()) != bindIdentity.end() && 
+            bindIdentity[connect_fd.getFd()] == "admin"){
         messages = getUser(connect_fd);
     }
     else if(command == "register user"){
@@ -256,39 +252,48 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
         }
         messages = registerUser(connect_fd, username, password, identity);
     }
-    else if(command == "delete user" && bindIdentity.find(connect_fd.source_fd) != bindIdentity.end()){
-        if(bindIdentity[connect_fd.source_fd] == "admin") messages = deleteUser(connect_fd, username);
+    else if(command == "delete user" && bindIdentity.find(connect_fd.getFd()) != bindIdentity.end()){
+        if(bindIdentity[connect_fd.getFd()] == "admin") messages = deleteUser(connect_fd, username);
         else messages = deleteUserSelf(connect_fd, password);
     }
-    else if(command == "logout" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
+    else if(command == "logout" && bindUsername.find(connect_fd.getFd()) != bindUsername.end()) {
         messages = logout(connect_fd);
     }
-    else if(command == "get teachers" && bindIdentity.find(connect_fd.source_fd) != bindIdentity.end() && bindIdentity[connect_fd.source_fd] == "rule maker") {
+    else if(command == "get teachers" && bindIdentity.find(connect_fd.getFd()) != bindIdentity.end() && bindIdentity[connect_fd.getFd()] == "rule maker") {
         messages = getTeachers();
     }
-    else if(command == "get subjects" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
+    else if(command == "get subjects" && bindUsername.find(connect_fd.getFd()) != bindUsername.end()) {
         messages = getSubjects();
     }
-    else if(command == "get chapters" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
+    else if(command == "get chapters" && bindUsername.find(connect_fd.getFd()) != bindUsername.end()) {
         messages = getChapters(subject_name);
     }
-    else if(command == "get questions" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
+    else if(command == "get questions" && bindUsername.find(connect_fd.getFd()) != bindUsername.end()) {
         messages = getQuestions(subject_name, chapter_name);
     }
-    else if(command == "read question" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
+    else if(command == "read question" && bindUsername.find(connect_fd.getFd()) != bindUsername.end()) {
         messages = getQuestions(subject_name, chapter_name, question_id);
     }
-    else if(command == "write question" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
+    else if(command == "write question" && bindUsername.find(connect_fd.getFd()) != bindUsername.end()) {
         messages = writeQuestion(subject_name, chapter_name, question_id, question_content);
     }
-    else if(command == "delete question" && bindUsername.find(connect_fd.source_fd) != bindUsername.end()) {
+    else if(command == "delete question" && bindUsername.find(connect_fd.getFd()) != bindUsername.end()) {
         messages = deleteQuestion(subject_name, chapter_name, question_id);
     }
-    else if(command == "write subject" && bindIdentity.find(connect_fd.source_fd) != bindIdentity.end() && bindIdentity[connect_fd.source_fd] == "teacher") {
+    else if(command == "write subject" && bindIdentity.find(connect_fd.getFd()) != bindIdentity.end() && bindIdentity[connect_fd.getFd()] == "teacher") {
         messages = addSubject(subject_name);
     }
-    else if(command == "write chapter" && bindIdentity.find(connect_fd.source_fd) != bindIdentity.end() && bindIdentity[connect_fd.source_fd] == "teacher") {
+    else if(command == "write chapter" && bindIdentity.find(connect_fd.getFd()) != bindIdentity.end() && bindIdentity[connect_fd.getFd()] == "teacher") {
         messages = addChapter(subject_name, chapter_name);
+    }
+    else if(command == "read bulletin") {
+        messages = readBulletin(bulletin_name);
+    }
+    else if(command == "write bulletin") {
+        messages = writeBulletin(bulletin_name, bulletin_text, teacher_name);
+    }
+    else if(command == "delete bulletin") {
+        messages = deleteBulletin(bulletin_name);
     }
     else{
         cout<<"Invalid command or not enough permission."<<endl;
@@ -303,6 +308,27 @@ vector<string> Server::recvInputFromExisting(Connector& connect_fd)
     } 
     //memset(&input_buffer, 0, INPUT_BUFFER_SIZE); //zero buffer //bzero
     // bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
+    Connector target_connector;
+    if(command == "write bulletin")   target_connector = Connector(logined_users[teacher_name]);
+    else target_connector = Connector(connect_fd);
+    return make_tuple<vector<string>, Connector>(std::move(messages), std::move(target_connector));
+}
+
+vector<string> Server::readBulletin(string& bulletin_name) {
+    // TODO
+    vector<string> messages;
+    return messages;
+}
+
+vector<string> Server::writeBulletin(string& bulletin_name, string& bulletin_text, string& teacher_name) {
+    // TODO
+    vector<string> messages;
+    return messages;
+}
+
+vector<string> Server::deleteBulletin(string& bulletin_name) {
+    // TODO
+    vector<string> messages;
     return messages;
 }
 
@@ -344,9 +370,9 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     // messages.push_back(std::move(message));
     messages.emplace_back(std::forward<string>(message));
     
-    bindIdentity[connect_fd.source_fd] = identity;
-    bindUsername[connect_fd.source_fd] = username;
-    logined_users[username] = connect_fd.source_fd;
+    bindIdentity[connect_fd.getFd()] = identity;
+    bindUsername[connect_fd.getFd()] = username;
+    logined_users[username] = connect_fd.getFd();
     return messages;
 }
 
@@ -375,7 +401,7 @@ vector<string> Server::registerUser(Connector& connect_fd, string username, auto
 vector<string> Server::logout(Connector& connect_fd){
     int status_code;
     int activity_updated = 0;
-    string username = bindUsername[connect_fd.source_fd];
+    string username = bindUsername[connect_fd.getFd()];
     vector<pair<string, variant<string, int, double>>> constraint;
     constraint.emplace_back("activity", activity_updated);
     int res = user->update(std::as_const(username), constraint);
@@ -384,8 +410,8 @@ vector<string> Server::logout(Connector& connect_fd){
         status_code = 403;
     }
     else {
-        bindUsername.erase(connect_fd.source_fd);
-        bindIdentity.erase(connect_fd.source_fd);
+        bindUsername.erase(connect_fd.getFd());
+        bindIdentity.erase(connect_fd.getFd());
         logined_users.erase(username);
         status_code = 200;
     }
@@ -401,7 +427,7 @@ vector<string> Server::logout(Connector& connect_fd){
     return messages;
 }
 
-int Server::logout(string username){
+int Server::logout(string& username){
     int source_fd = logined_users[username];
     vector<pair<string, variant<string, int, double>>> constraint;
     constraint.emplace_back("activity", 0);
@@ -488,10 +514,10 @@ vector<string> Server::deleteUser(Connector& connect_fd, string username){
 }
 
 vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password){
-    string username = bindUsername[connect_fd.source_fd];
+    string username = bindUsername[connect_fd.getFd()];
     int status_code;
 
-    auto identity_iter = bindIdentity.find(connect_fd.source_fd);
+    auto identity_iter = bindIdentity.find(connect_fd.getFd());
     if(identity_iter == bindIdentity.end()){
         status_code = 403;
         cout<<"Identity not found!"<<endl;
@@ -502,7 +528,7 @@ vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password){
         // bindUsername.erase(it);
     }
 
-    auto username_iter = bindUsername.find(connect_fd.source_fd);
+    auto username_iter = bindUsername.find(connect_fd.getFd());
     if(username_iter == bindUsername.end()){
         status_code = 403;
         cout<<"Username not found!"<<endl;
@@ -911,17 +937,26 @@ void Server::loop()
             if(events[i].events & EPOLLERR || events[i].events & EPOLLHUP) {
                 epoll_ctl(eFd, EPOLL_CTL_DEL, events[i].data.fd, nullptr);
                 close(events[i].data.fd);
+                cout<<"Connection "<<events[i].data.fd<<" has been closed."<<endl;
             } else if (events[i].events & EPOLLIN) {
                 //exisiting connection has new data
+
+                // experimental
+                //if((childpid = fork()) == 0) {
                 Connector connect_fd = Connector(events[i].data.fd);
                 // connect_fd.source_fd = i;
-                
-                vector<string> messages = recvInputFromExisting(connect_fd);
+                auto [messages, target_connector] = recvInputFromExisting(connect_fd);
                 if(!messages.empty()){
                     messages.shrink_to_fit();
-                    sendMsgToExisting(connect_fd, messages);
+                    bool user_safe = user->check_threadsafe();
+                    bool question_safe = question->check_threadsafe();
+                    if(!user_safe || !question_safe) cout<<"Warning: database not thread-safe!"<<endl;
+                    sendMsgToExisting(target_connector, messages);
                     bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
                 }
+                //}
+
+                
             }
                 
         } //loop on to see if there is more
@@ -954,15 +989,15 @@ void Server::onDisconnect(void(*dc)(uint16_t))
 }
 
 uint16_t Server::sendMessage(Connector conn, char *messageBuffer) {
-    return send(conn.source_fd, messageBuffer, strlen(messageBuffer), 0);
+    return send(conn.getFd(), messageBuffer, strlen(messageBuffer), 0);
 }
 
 uint16_t Server::sendMessage(Connector conn, const char *messageBuffer) {
-    return send(conn.source_fd, messageBuffer, strlen(messageBuffer), 0);
+    return send(conn.getFd(), messageBuffer, strlen(messageBuffer), 0);
 }
 
 uint16_t Server::recvMessage(Connector conn, char *messageBuffer){
-    return recv(conn.source_fd, messageBuffer, INPUT_BUFFER_SIZE, 0);
+    return recv(conn.getFd(), messageBuffer, INPUT_BUFFER_SIZE, 0);
 }
 
 shared_ptr<Server> Server::server_ = nullptr;
@@ -1006,6 +1041,7 @@ int main(int argc, char* argv[]){
         }
     } catch (const InterruptException& e1) {
         server_object->shutdown();
+        cout<<"Ctrl-C terminate."<<endl;
         return -1;
     }
     
