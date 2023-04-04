@@ -209,7 +209,7 @@ tuple<vector<string>, Connector> Server::recvInputFromExisting(Connector& connec
     string subject_name = s1.subject_name;
     string chapter_name = s1.chapter_name;
     string question_id = s1.question_id;
-    auto question_content = s1.question_text;
+    auto question_text = s1.question_text;
     string bulletin_name = s1.bulletin_name;
     string teacher_name = s1.teacher_name;
     string bulletin_text = s1.bulletin_text;
@@ -263,7 +263,7 @@ tuple<vector<string>, Connector> Server::recvInputFromExisting(Connector& connec
         messages = getQuestions(subject_name, chapter_name, question_id);
     }
     else if(command == "write question" && bindUsername.find(connect_fd.getFd()) != bindUsername.end()) {
-        messages = writeQuestion(subject_name, chapter_name, question_id, question_content);
+        messages = writeQuestion(subject_name, chapter_name, question_id, question_text);
     }
     else if(command == "delete question" && bindUsername.find(connect_fd.getFd()) != bindUsername.end()) {
         messages = deleteQuestion(subject_name, chapter_name, question_id);

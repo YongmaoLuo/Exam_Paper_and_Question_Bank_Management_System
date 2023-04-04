@@ -144,7 +144,7 @@ private:
         "subject_name", &T::subject_name,
         "chapter_name", &T::chapter_name,
         "question_id", &T::question_id,
-        "question_content", &T::question_text,
+        "question_text", &T::question_text,
         "bulletin_name", &T::bulletin_name,
         "teacher_name", &T::teacher_name,
         "bulletin_text", &T::bulletin_text);
