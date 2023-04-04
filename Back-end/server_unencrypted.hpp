@@ -13,8 +13,10 @@
 #include <netdb.h>
 #include <iostream>
 #include <exception>
-#include <nlohmann/json.hpp>
-using json = nlohmann::json;
+// #include <nlohmann/json.hpp>
+// using json = nlohmann::json;
+#include "glaze/glaze.hpp"
+#include "glaze/core/macros.hpp"
 using namespace std;
 
 #define INPUT_BUFFER_SIZE 1024 //test: 1024 bytes of buffer
@@ -117,6 +119,36 @@ public:
     uint16_t recvMessage(Connector conn, char *messageBuffer);
 
 private:
+
+    struct s1 {
+        string command{};
+        string username{};
+        string password{};
+        string identity{};
+        string subject_name{};
+        string chapter_name{};
+        string question_id{};
+        string question_text{};
+        string bulletin_name{};
+        string teacher_name{};
+        string bulletin_text{};
+    };
+    template <>
+    struct glz::meta<s1>
+    {
+        using T = s1;
+        static constexpr auto value = object("command", &T::command, 
+        "username", &T::username, 
+        "password", &T::password, 
+        "identity", &T::identity,
+        "subject_name", &T::subject_name,
+        "chapter_name", &T::chapter_name,
+        "question_id", &T::question_id,
+        "question_content", &T::question_text,
+        "bulletin_name", &T::bulletin_name,
+        "teacher_name", &T::teacher_name,
+        "bulletin_text", &T::bulletin_text);
+    };
     // make it singleton
     explicit Server();
     explicit Server(int port);

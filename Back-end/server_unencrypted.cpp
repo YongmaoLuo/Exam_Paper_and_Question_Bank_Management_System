@@ -142,22 +142,9 @@ void Server::handleNewConnection()
 
             epoll_ctl(eFd, EPOLL_CTL_ADD, tempsocket_fd, &epev);
 		//     //increment the maximum known file descriptor (select() needs it)
-        // 	if (tempsocket_fd > maxfd) {
-        //     		maxfd = tempsocket_fd;
-		// 	#ifdef SERVER_DEBUG
-        //     		std::cout << "[SERVER] incrementing maxfd to " << maxfd << std::endl;
-		// 	#endif
-        // 	}
-        // 	#ifdef SERVER_DEBUG
-        // 	printf("[SERVER] [CONNECTION] New connection on socket fd '%d'.\n",tempsocket_fd);
-		// #endif
     }
     cout<<"Successfully connected!"<<endl;
     // // newConnectionCallback(tempsocket_fd); //call the callback
-    // string message = "Successfully connected!";
-    // struct Connector connect_fd = Connector();
-    // connect_fd.source_fd = tempsocket_fd;
-    // sendMessage(connect_fd, message.c_str());
     Connector connect_fd = Connector(tempsocket_fd);
     sendMsgToExisting(connect_fd); // It is advised to send once connected
     // on the client, should be non-blocked receive
@@ -210,31 +197,32 @@ tuple<vector<string>, Connector> Server::recvInputFromExisting(Connector& connec
     #endif
     // receiveCallback(fd,input_buffer);
     // authenticate the identity of the user
-    json recv_message = json::parse(input_buffer);
+    // json recv_message = json::parse(input_buffer);
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, input_buffer);
     
     // parse information
-    auto command = recv_message["command"].get<std::string>();
-    string username = "";
-    auto password = std::string();
-    string identity = "";
+    auto command = s1.command;
+    string username = s1.username;
+    auto password = s1.password;
+    string identity = s1.identity;
     // string status = "";
-    string subject_name = "";
-    string chapter_name = "";
-    string question_id = "";
-    auto question_content = std::string();
-    string bulletin_name = "";
-    string teacher_name = "";
-    string bulletin_text = "";
+    string subject_name = s1.subject_name;
+    string chapter_name = s1.chapter_name;
+    string question_id = s1.question_id;
+    auto question_content = s1.question_text;
+    string bulletin_name = s1.bulletin_name;
+    string teacher_name = s1.teacher_name;
+    string bulletin_text = s1.bulletin_text;
 
-    if(recv_message.contains("username")) username = recv_message["username"].get<std::string>();
-    if(recv_message.contains("password")) password = recv_message["password"].get<std::string>();
-    if(recv_message.contains("subject name")) subject_name = recv_message["subject name"].get<std::string>();
-    if(recv_message.contains("chapter name")) chapter_name = recv_message["chapter name"].get<std::string>();
-    if(recv_message.contains("question name")) question_id = recv_message["question name"].get<std::string>();
-    if(recv_message.contains("question text")) question_content = recv_message["question text"].get<std::string>();
-    if(recv_message.contains("bulletin name")) bulletin_name = recv_message["bulletin name"].get<std::string>();
-    if(recv_message.contains("teacher name")) teacher_name = recv_message["teacher name"].get<std::string>();
-    if(recv_message.contains("bulletin text")) bulletin_text = recv_message["bulletin text"].get<std::string>();
+    // if(recv_message.contains("username")) username = recv_message["username"].get<std::string>();
+    // if(recv_message.contains("password")) password = recv_message["password"].get<std::string>();
+    // if(recv_message.contains("subject name")) subject_name = recv_message["subject name"].get<std::string>();
+    // if(recv_message.contains("chapter name")) chapter_name = recv_message["chapter name"].get<std::string>();
+    // if(recv_message.contains("question name")) question_id = recv_message["question name"].get<std::string>();
+    // if(recv_message.contains("question text")) question_content = recv_message["question text"].get<std::string>();
+    // if(recv_message.contains("bulletin name")) bulletin_name = recv_message["bulletin name"].get<std::string>();
+    // if(recv_message.contains("teacher name")) teacher_name = recv_message["teacher name"].get<std::string>();
+    // if(recv_message.contains("bulletin text")) bulletin_text = recv_message["bulletin text"].get<std::string>();
 
     if(command == "login"){
         messages = authenticateUser(connect_fd, username, password);
@@ -245,11 +233,11 @@ tuple<vector<string>, Connector> Server::recvInputFromExisting(Connector& connec
         messages = getUser(connect_fd);
     }
     else if(command == "register user"){
-        if(recv_message.contains("identity")) identity = recv_message["identity"].get<std::string>();
-        else{
-            perror("No identity.\n");
-            // exit(1);
-        }
+        // if(recv_message.contains("identity")) identity = recv_message["identity"].get<std::string>();
+        // else{
+        //     perror("No identity.\n");
+        //     // exit(1);
+        // }
         messages = registerUser(connect_fd, username, password, identity);
     }
     else if(command == "delete user" && bindIdentity.find(connect_fd.getFd()) != bindIdentity.end()){

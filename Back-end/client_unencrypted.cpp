@@ -81,36 +81,6 @@ Client::Client(const Client& orig){
 }
 
 void Client::setup(int port){
-    // SSL_library_init();
-    // OpenSSL_add_all_algorithms();
-    // SSL_load_error_strings();
-    // ctx = SSL_CTX_new(SSLv23_client_method());
-    // if(ctx == NULL){
-    //     ERR_print_errors_fp(stdout);
-    //     exit(1);
-    // }
-    // SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
-
-    // // root certificate location needs to be modified accordingly
-    // if (SSL_CTX_load_verify_locations(ctx, strcat(getenv("HOME"), "/ssl_server_client/ca/ca.crt"), NULL)<=0){
-    //     ERR_print_errors_fp(stdout);
-    //     exit(1);
-    // }
- 
-    // if (SSL_CTX_use_certificate_file(ctx, digital_certificate_path, SSL_FILETYPE_PEM) <= 0) {
-    //     ERR_print_errors_fp(stdout);
-    //     exit(1);
-    // }
-
-    // if (SSL_CTX_use_PrivateKey_file(ctx, privateKey_path, SSL_FILETYPE_PEM) <= 0) {
-    //     ERR_print_errors_fp(stdout);
-    //     exit(1);
-    // }
-
-    // if (!SSL_CTX_check_private_key(ctx)) {
-    //     ERR_print_errors_fp(stdout);
-    //     exit(1);
-    // }
 
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd < 0) 
@@ -201,10 +171,11 @@ void Client::loop(){
     buffer[num_bytes] = '\0';
     cout<<"buffer: "<<buffer<<endl;
 
-    json response = json::parse(buffer);
-    auto response_code = response["code"];
-    auto response_identity = response["identity"];
-    cout<<"Response code: "<<response_code<<"\t"<<"Identity: "<<response_identity<<endl;
+    // json response = json::parse(buffer);
+    // auto response_code = response["code"];
+    // auto response_identity = response["identity"];
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, buffer);
+    cout<<"Response code: "<<s1.code<<"\t"<<"Identity: "<<s1.identity<<endl;
 
 
     msg = fmt::format("{{\"command\": \"login\",\"username\": {},\"password\": {}, \"identity\": {}}}", 
@@ -223,10 +194,12 @@ void Client::loop(){
     buffer[num_bytes] = '\0';
     cout<<"buffer: "<<buffer<<endl;
 
-    response = json::parse(buffer);
-    response_code = response["code"];
-    response_identity = response["identity"];
-    cout<<"Response code: "<<response_code<<"\t"<<"Identity: "<<response_identity<<endl;
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, buffer);
+
+    // response = json::parse(buffer);
+    // response_code = response["code"];
+    // response_identity = response["identity"];
+    cout<<"Response code: "<<s1.code<<"\t"<<"Identity: "<<s1.identity<<endl;
     ///////////////////////////////////////
 
 
@@ -274,9 +247,10 @@ void Client::loop(){
     buffer[num_bytes] = '\0';
     cout<<"buffer: "<<buffer<<endl;
 
-    response = json::parse(buffer);
-    response_code = response["code"];
-    cout<<"Response code: "<<response_code<<endl;
+    // response = json::parse(buffer);
+    // response_code = response["code"];
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, buffer);
+    cout<<"Response code: "<<s1.code<<endl;
     ////////////////////////////
     msg = fmt::format("{{\"command\": \"write chapter\",\"subject name\": {}, \"chapter name\": {} }}", 
     subject_name, chapter_name);
@@ -294,9 +268,11 @@ void Client::loop(){
     buffer[num_bytes] = '\0';
     cout<<"buffer: "<<buffer<<endl;
 
-    response = json::parse(buffer);
-    response_code = response["code"];
-    cout<<"Response code: "<<response_code<<endl;
+    // response = json::parse(buffer);
+    // response_code = response["code"];
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, buffer);
+
+    cout<<"Response code: "<<s1.code<<endl;
     
     msg = fmt::format("{{\"command\": \"write question\",\"question text\": {},\"subject name\": {}, \"chapter name\": {}, \"question name\": {} }}", 
     question_text, subject_name, chapter_name, question_name);
@@ -314,9 +290,11 @@ void Client::loop(){
     buffer[num_bytes] = '\0';
     cout<<"buffer: "<<buffer<<endl;
 
-    response = json::parse(buffer);
-    response_code = response["code"];
-    cout<<"Response code: "<<response_code<<endl;
+    // response = json::parse(buffer);
+    // response_code = response["code"];
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, buffer);
+
+    cout<<"Response code: "<<s1.code<<endl;
     ///////////////////////////
 
     msg = fmt::format("{{\"command\": \"read question\",\"subject name\": {}, \"chapter name\": {}, \"question name\": {} }}", 
@@ -335,10 +313,12 @@ void Client::loop(){
     buffer[num_bytes] = '\0';
     cout<<"buffer: "<<buffer<<endl;
 
-    response = json::parse(buffer);
-    response_code = response["code"];
-    string question_content = response["question text"];
-    cout<<"Response code: "<<response_code<<"\t"<<"Question text: "<<question_content<<endl;
+    // response = json::parse(buffer);
+    // response_code = response["code"];
+    // string question_content = response["question text"];
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, buffer);
+
+    cout<<"Response code: "<<s1.code<<"\t"<<"Question text: "<<s1.question_text<<endl;
     //////////////////////////
     msg = fmt::format("{{\"command\": \"get teachers\" }}");
     cout<<"get teachers msg: "<<msg<<endl;
@@ -355,9 +335,11 @@ void Client::loop(){
     buffer[num_bytes] = '\0';
     cout<<"buffer: "<<buffer<<endl;
 
-    response = json::parse(buffer);
-    response_code = response["code"];
-    int counts = response["counts"];
+    // response = json::parse(buffer);
+    // response_code = response["code"];
+    // int counts = response["counts"];
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, buffer);
+    int counts = s1.counts;
 
     for(int i=0; i<counts; i++){
         bzero(buffer, 256);
@@ -389,9 +371,10 @@ void Client::loop(){
     buffer[num_bytes] = '\0';
     cout<<"buffer: "<<buffer<<endl;
 
-    response = json::parse(buffer);
-    response_code = response["code"];
-    cout<<"Response code: "<<response_code<<endl;    
+    // response = json::parse(buffer);
+    // response_code = response["code"];
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, buffer);
+    cout<<"Response code: "<<s1.code<<endl;    
     
 }
 int main(int argc, char *argv[])
