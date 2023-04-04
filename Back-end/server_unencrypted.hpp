@@ -147,7 +147,6 @@ private:
     std::shared_ptr<db_user> user = std::make_shared<db_user>();
     std::shared_ptr<question_bank> question = std::make_shared<question_bank>();
 
-    string message;
     unordered_map<int, string> bindIdentity;
     unordered_map<int, string> bindUsername;
     unordered_set<string> usernameSet;

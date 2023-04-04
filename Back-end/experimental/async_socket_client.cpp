@@ -15,7 +15,7 @@ int main(int args, char* argv[]) {
         tcp::resolver resolver(io_context);
         tcp::resolver::results_type endpoints = resolver.resolve(argv[1], "exam_paper_bank_management"); //host name + self-defined service name
         tcp::socket socket(io_context);
-        asio::connect(ssocket, endpoints);
+        asio::connect(socket, endpoints);
         for(;;) {
             boost::array<char, 128> buf;
             asio::error_code error;
