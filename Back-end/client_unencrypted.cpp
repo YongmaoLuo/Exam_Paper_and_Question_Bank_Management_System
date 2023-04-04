@@ -174,8 +174,8 @@ void Client::loop(){
     // json response = json::parse(buffer);
     // auto response_code = response["code"];
     // auto response_identity = response["identity"];
-    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, buffer);
-    cout<<"Response code: "<<s1.code<<"\t"<<"Identity: "<<s1.identity<<endl;
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(recv_struct, buffer);
+    cout<<"Response code: "<<recv_struct.code<<"\t"<<"Identity: "<<recv_struct.identity<<endl;
 
 
     msg = fmt::format("{{\"command\": \"login\",\"username\": {},\"password\": {}, \"identity\": {}}}", 
@@ -194,12 +194,12 @@ void Client::loop(){
     buffer[num_bytes] = '\0';
     cout<<"buffer: "<<buffer<<endl;
 
-    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, buffer);
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(recv_struct, buffer);
 
     // response = json::parse(buffer);
     // response_code = response["code"];
     // response_identity = response["identity"];
-    cout<<"Response code: "<<s1.code<<"\t"<<"Identity: "<<s1.identity<<endl;
+    cout<<"Response code: "<<recv_struct.code<<"\t"<<"Identity: "<<recv_struct.identity<<endl;
     ///////////////////////////////////////
 
 
@@ -249,8 +249,8 @@ void Client::loop(){
 
     // response = json::parse(buffer);
     // response_code = response["code"];
-    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, buffer);
-    cout<<"Response code: "<<s1.code<<endl;
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(recv_struct, buffer);
+    cout<<"Response code: "<<recv_struct.code<<endl;
     ////////////////////////////
     msg = fmt::format("{{\"command\": \"write chapter\",\"subject name\": {}, \"chapter name\": {} }}", 
     subject_name, chapter_name);
@@ -270,9 +270,9 @@ void Client::loop(){
 
     // response = json::parse(buffer);
     // response_code = response["code"];
-    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, buffer);
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(recv_struct, buffer);
 
-    cout<<"Response code: "<<s1.code<<endl;
+    cout<<"Response code: "<<recv_struct.code<<endl;
     
     msg = fmt::format("{{\"command\": \"write question\",\"question text\": {},\"subject name\": {}, \"chapter name\": {}, \"question name\": {} }}", 
     question_text, subject_name, chapter_name, question_name);
@@ -292,9 +292,9 @@ void Client::loop(){
 
     // response = json::parse(buffer);
     // response_code = response["code"];
-    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, buffer);
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(recv_struct, buffer);
 
-    cout<<"Response code: "<<s1.code<<endl;
+    cout<<"Response code: "<<recv_struct.code<<endl;
     ///////////////////////////
 
     msg = fmt::format("{{\"command\": \"read question\",\"subject name\": {}, \"chapter name\": {}, \"question name\": {} }}", 
@@ -316,9 +316,9 @@ void Client::loop(){
     // response = json::parse(buffer);
     // response_code = response["code"];
     // string question_content = response["question text"];
-    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, buffer);
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(recv_struct, buffer);
 
-    cout<<"Response code: "<<s1.code<<"\t"<<"Question text: "<<s1.question_text<<endl;
+    cout<<"Response code: "<<recv_struct.code<<"\t"<<"Question text: "<<recv_struct.question_text<<endl;
     //////////////////////////
     msg = fmt::format("{{\"command\": \"get teachers\" }}");
     cout<<"get teachers msg: "<<msg<<endl;
@@ -338,8 +338,8 @@ void Client::loop(){
     // response = json::parse(buffer);
     // response_code = response["code"];
     // int counts = response["counts"];
-    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, buffer);
-    int counts = s1.counts;
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(recv_struct, buffer);
+    int counts = recv_struct.counts;
 
     for(int i=0; i<counts; i++){
         bzero(buffer, 256);
@@ -373,8 +373,8 @@ void Client::loop(){
 
     // response = json::parse(buffer);
     // response_code = response["code"];
-    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, buffer);
-    cout<<"Response code: "<<s1.code<<endl;    
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(recv_struct, buffer);
+    cout<<"Response code: "<<recv_struct.code<<endl;    
     
 }
 int main(int argc, char *argv[])

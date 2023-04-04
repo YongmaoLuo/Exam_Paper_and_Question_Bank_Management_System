@@ -13,25 +13,15 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 
-
 include_directories(.)
-include_directories(./json/include)
-include_directories(./fmt/include)
 include_directories(./usr/local/include)
-include_directories(./SQLite3-Encryption/src)
-
-include(FetchContent)
-FetchContent_Declare(
-    glaze
-    GIT_REPOSITORY https://github.com/stephenberry/glaze.git
-    GIT_TAG main
-    GIT_SHALLOW TRUE
-)
-FetchContent_MakeAvailable(glaze)
 
 
 add_executable(cplusplusproject2022fall
                server_unencrypted.cpp)
 
-target_include_directories(cplusplusproject2022fall PRIVATE include)
-target_link_libraries(cplusplusproject2022fall PRIVATE glaze::glaze -lsqlite3 -lssl -lcrypto -fopenmp -fconcepts)
+target_include_directories(cplusplusproject2022fall PRIVATE ./fmt/include)
+target_include_directories(cplusplusproject2022fall PRIVATE ./SQLite3-Encryption/src)
+target_include_directories(cplusplusproject2022fall PRIVATE ./glaze/include)
+
+target_link_libraries(cplusplusproject2022fall -lsqlite3 -lssl -lcrypto -fopenmp -fconcepts)

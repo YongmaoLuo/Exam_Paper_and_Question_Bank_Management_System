@@ -27,6 +27,21 @@ using namespace std;
 #define INPUT_BUFFER_SIZE 256 //test: 256 bytes of buffer
 #define PORT 9999
 
+
+struct s1 {
+    string code{};
+    string identity{};
+    string question_text{};
+    int counts{0};
+};
+
+template <>
+struct glz::meta<s1>
+{
+    using T = s1;
+    static constexpr auto value = object("code", &T::code, "identity", &T::identity, "question_text", &T::question_text, "counts", &T::counts);
+};
+
 inline std::string escapeJsonString(std::string input){
     for(int i=0;;i++){
         if(i>=input.length())
@@ -58,19 +73,7 @@ class Client{
         int send_iterative(char* otr, int size, int flag);
         void error(const char *msg);
 
-        struct s1 {
-            string code{};
-            string identity{};
-            string question_text{};
-            int counts{0};
-        };
-
-        template <>
-        struct glz::meta<s1>
-        {
-            using T = s1;
-            static constexpr auto value = object("code", &T::code, "identity", &T::identity, "question_text", &T::question_text, "counts", &T::counts);
-        };
+        s1 recv_struct{};
         
     public:
         struct UserInfo{

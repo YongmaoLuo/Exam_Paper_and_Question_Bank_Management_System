@@ -198,21 +198,21 @@ tuple<vector<string>, Connector> Server::recvInputFromExisting(Connector& connec
     // receiveCallback(fd,input_buffer);
     // authenticate the identity of the user
     // json recv_message = json::parse(input_buffer);
-    glz::read<glz::opts{.error_on_unknown_keys = false}>(s1, input_buffer);
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(recv, input_buffer);
     
     // parse information
-    auto command = s1.command;
-    string username = s1.username;
-    auto password = s1.password;
-    string identity = s1.identity;
+    auto command = recv_struct.command;
+    string username = recv_struct.username;
+    auto password = recv_struct.password;
+    string identity = recv_struct.identity;
     // string status = "";
-    string subject_name = s1.subject_name;
-    string chapter_name = s1.chapter_name;
-    string question_id = s1.question_id;
-    auto question_text = s1.question_text;
-    string bulletin_name = s1.bulletin_name;
-    string teacher_name = s1.teacher_name;
-    string bulletin_text = s1.bulletin_text;
+    string subject_name = recv_struct.subject_name;
+    string chapter_name = recv_struct.chapter_name;
+    string question_id = recv_struct.question_id;
+    auto question_text = recv_struct.question_text;
+    string bulletin_name = recv_struct.bulletin_name;
+    string teacher_name = recv_struct.teacher_name;
+    string bulletin_text = recv_struct.bulletin_text;
 
     // if(recv_message.contains("username")) username = recv_message["username"].get<std::string>();
     // if(recv_message.contains("password")) password = recv_message["password"].get<std::string>();
