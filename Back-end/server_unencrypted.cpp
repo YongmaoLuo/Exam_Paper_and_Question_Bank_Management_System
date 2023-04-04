@@ -142,22 +142,9 @@ void Server::handleNewConnection()
 
             epoll_ctl(eFd, EPOLL_CTL_ADD, tempsocket_fd, &epev);
 		//     //increment the maximum known file descriptor (select() needs it)
-        // 	if (tempsocket_fd > maxfd) {
-        //     		maxfd = tempsocket_fd;
-		// 	#ifdef SERVER_DEBUG
-        //     		std::cout << "[SERVER] incrementing maxfd to " << maxfd << std::endl;
-		// 	#endif
-        // 	}
-        // 	#ifdef SERVER_DEBUG
-        // 	printf("[SERVER] [CONNECTION] New connection on socket fd '%d'.\n",tempsocket_fd);
-		// #endif
     }
     cout<<"Successfully connected!"<<endl;
     // // newConnectionCallback(tempsocket_fd); //call the callback
-    // string message = "Successfully connected!";
-    // struct Connector connect_fd = Connector();
-    // connect_fd.source_fd = tempsocket_fd;
-    // sendMessage(connect_fd, message.c_str());
     Connector connect_fd = Connector(tempsocket_fd);
     sendMsgToExisting(connect_fd); // It is advised to send once connected
     // on the client, should be non-blocked receive
@@ -210,31 +197,32 @@ tuple<vector<string>, Connector> Server::recvInputFromExisting(Connector& connec
     #endif
     // receiveCallback(fd,input_buffer);
     // authenticate the identity of the user
-    json message = json::parse(input_buffer);
+    // json recv_message = json::parse(input_buffer);
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(recv, input_buffer);
     
     // parse information
-    auto command = message["command"].get<std::string>();
-    string username = "";
-    auto password = std::string();
-    string identity = "";
+    auto command = recv_struct.command;
+    string username = recv_struct.username;
+    auto password = recv_struct.password;
+    string identity = recv_struct.identity;
     // string status = "";
-    string subject_name = "";
-    string chapter_name = "";
-    string question_id = "";
-    auto question_content = std::string();
-    string bulletin_name = "";
-    string teacher_name = "";
-    string bulletin_text = "";
+    string subject_name = recv_struct.subject_name;
+    string chapter_name = recv_struct.chapter_name;
+    string question_id = recv_struct.question_id;
+    auto question_text = recv_struct.question_text;
+    string bulletin_name = recv_struct.bulletin_name;
+    string teacher_name = recv_struct.teacher_name;
+    string bulletin_text = recv_struct.bulletin_text;
 
-    if(message.contains("username")) username = message["username"].get<std::string>();
-    if(message.contains("password")) password = message["password"].get<std::string>();
-    if(message.contains("subject name")) subject_name = message["subject name"].get<std::string>();
-    if(message.contains("chapter name")) chapter_name = message["chapter name"].get<std::string>();
-    if(message.contains("question name")) question_id = message["question name"].get<std::string>();
-    if(message.contains("question text")) question_content = message["question text"].get<std::string>();
-    if(message.contains("bulletin name")) bulletin_name = message["bulletin name"].get<std::string>();
-    if(message.contains("teacher name")) teacher_name = message["teacher name"].get<std::string>();
-    if(message.contains("bulletin text")) bulletin_text = message["bulletin text"].get<std::string>();
+    // if(recv_message.contains("username")) username = recv_message["username"].get<std::string>();
+    // if(recv_message.contains("password")) password = recv_message["password"].get<std::string>();
+    // if(recv_message.contains("subject name")) subject_name = recv_message["subject name"].get<std::string>();
+    // if(recv_message.contains("chapter name")) chapter_name = recv_message["chapter name"].get<std::string>();
+    // if(recv_message.contains("question name")) question_id = recv_message["question name"].get<std::string>();
+    // if(recv_message.contains("question text")) question_content = recv_message["question text"].get<std::string>();
+    // if(recv_message.contains("bulletin name")) bulletin_name = recv_message["bulletin name"].get<std::string>();
+    // if(recv_message.contains("teacher name")) teacher_name = recv_message["teacher name"].get<std::string>();
+    // if(recv_message.contains("bulletin text")) bulletin_text = recv_message["bulletin text"].get<std::string>();
 
     if(command == "login"){
         messages = authenticateUser(connect_fd, username, password);
@@ -245,11 +233,11 @@ tuple<vector<string>, Connector> Server::recvInputFromExisting(Connector& connec
         messages = getUser(connect_fd);
     }
     else if(command == "register user"){
-        if(message.contains("identity")) identity = message["identity"].get<std::string>();
-        else{
-            perror("No identity.\n");
-            // exit(1);
-        }
+        // if(recv_message.contains("identity")) identity = recv_message["identity"].get<std::string>();
+        // else{
+        //     perror("No identity.\n");
+        //     // exit(1);
+        // }
         messages = registerUser(connect_fd, username, password, identity);
     }
     else if(command == "delete user" && bindIdentity.find(connect_fd.getFd()) != bindIdentity.end()){
@@ -275,7 +263,7 @@ tuple<vector<string>, Connector> Server::recvInputFromExisting(Connector& connec
         messages = getQuestions(subject_name, chapter_name, question_id);
     }
     else if(command == "write question" && bindUsername.find(connect_fd.getFd()) != bindUsername.end()) {
-        messages = writeQuestion(subject_name, chapter_name, question_id, question_content);
+        messages = writeQuestion(subject_name, chapter_name, question_id, question_text);
     }
     else if(command == "delete question" && bindUsername.find(connect_fd.getFd()) != bindUsername.end()) {
         messages = deleteQuestion(subject_name, chapter_name, question_id);
@@ -298,12 +286,10 @@ tuple<vector<string>, Connector> Server::recvInputFromExisting(Connector& connec
     else{
         cout<<"Invalid command or not enough permission."<<endl;
         #ifdef __cpp_lib_format
-        message = std::format("{\"code\": {}}", 403);
+        string message = std::format("{\"code\": {}}", 403);
         #else
-        message = fmt::format("{{\"code\": {}}}", 403);
+        string message = fmt::format("{{\"code\": {}}}", 403);
         #endif
-        // messages.push_back(message);
-        // messages.push_back(std::move(message));
         messages.emplace_back(std::forward<string>(message));
     } 
     //memset(&input_buffer, 0, INPUT_BUFFER_SIZE); //zero buffer //bzero
@@ -361,13 +347,11 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     }
     vector<string> messages;
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}, \"identity\": \"{}\"}", status_code, identity);
+    string message = std::format("{\"code\": {}, \"identity\": \"{}\"}", status_code, identity);
     #else
-    message = fmt::format("{{\"code\": {}, \"identity\": \"{}\"}}", status_code, identity);
+    string message = fmt::format("{{\"code\": {}, \"identity\": \"{}\"}}", status_code, identity);
     #endif
     cout<<"checkin message: "<<message<<endl;
-    // messages.push_back(message);
-    // messages.push_back(std::move(message));
     messages.emplace_back(std::forward<string>(message));
     
     bindIdentity[connect_fd.getFd()] = identity;
@@ -386,9 +370,9 @@ vector<string> Server::registerUser(Connector& connect_fd, string username, auto
     else status_code = 200;
     vector<string> messages;
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}}", status_code);
+    string message = std::format("{\"code\": {}}", status_code);
     #else
-    message = fmt::format("{{\"code\": {}}}", status_code);
+    string message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
     // messages.push_back(message);
     // messages.push_back(std::move(message));
@@ -417,12 +401,11 @@ vector<string> Server::logout(Connector& connect_fd){
     }
     vector<string> messages;
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}}", status_code);
+    string message = std::format("{\"code\": {}}", status_code);
     #else
-    message = fmt::format("{{\"code\": {}}}", status_code);
+    string message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    // messages.push_back(message);
-    // messages.push_back(std::move(message));
+
     messages.emplace_back(std::forward<string>(message));
     return messages;
 }
@@ -456,15 +439,14 @@ vector<string> Server::getUser(Connector& connect_fd){
 
     vector<string> messages;
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, numUsers);
+    string message = std::format("{\"code\": {}, \"counts\": {}}", status_code, numUsers);
     #else
-    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, numUsers);
+    string message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, numUsers);
     #endif
 
     // messages.reserve(numUsers+1);
     messages.resize(numUsers+1);
-    // messages.push_back(message);
-    // messages.push_back(std::move(message));
+
     messages.emplace_back(std::forward<string>(message));
     if(numUsers < 0) return messages;
     optional<pair<string, string>> constraint;
@@ -474,11 +456,6 @@ vector<string> Server::getUser(Connector& connect_fd){
     usernames = helper(usernames, "username");
     messages.insert(messages.end(), make_move_iterator(usernames.begin()), make_move_iterator(usernames.end()));
 
-    // for(int i=0; i<usernames.size(); i++){
-    //     message = fmt::format("{{\"username\": \"{}\"}}", usernames[i]);
-    //     // messages.push_back(message);
-    //     messages.push_back(std::move(message));
-    // }
     return messages;
 }
 
@@ -503,12 +480,11 @@ vector<string> Server::deleteUser(Connector& connect_fd, string username){
 
     vector<string> messages;
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}}", status_code);
+    string message = std::format("{\"code\": {}}", status_code);
     #else
-    message = fmt::format("{{\"code\": {}}}", status_code);
+    string message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    // messages.push_back(message);
-    // messages.push_back(std::move(message));
+
     messages.emplace_back(std::forward<string>(message));
     return messages;
 }
@@ -548,12 +524,11 @@ vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password){
 
     vector<string> messages;
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}}", status_code);
+    string message = std::format("{\"code\": {}}", status_code);
     #else
-    message = fmt::format("{{\"code\": {}}}", status_code);
+    string message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    // messages.push_back(message);
-    // messages.push_back(std::move(message));
+
     messages.emplace_back(std::forward<string>(message));
     return messages;
 }
@@ -568,28 +543,26 @@ vector<string> Server::getTeachers(){
     else status_code = 200; 
     vector<string> messages;
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}, \"counts\": {}}", status_code, teachers.size());
+    string message = std::format("{\"code\": {}, \"counts\": {}}", status_code, teachers.size());
     #else
-    message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, teachers.size());
+    string message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, teachers.size());
     #endif
 
     messages.resize(teachers.size()+1);
     // messages.reserve(teachers.size()+1);
-    // messages.push_back(message);
-    // messages.push_back(std::move(message));
+
     messages.emplace_back(std::forward<string>(message));
 
     //experimental
     teachers = helper(teachers, "username");
-    // for(int i=0; i<teachers.size(); i++) {
-    //     messages.push_back(fmt::format("{{\"username\": \"{}\"}}", teachers[i]));
-    // }
+
     messages.insert(messages.end(), make_move_iterator(teachers.begin()), make_move_iterator(teachers.end()));
     return messages;
 }
 
 vector<string> Server::getSubjects(){
     int status_code;
+    string message;
     vector<string> messages;
     const string target_attribute = "subject";
     optional<pair<string, variant<string, int, double>>> count_info;
@@ -617,27 +590,18 @@ vector<string> Server::getSubjects(){
 
     messages.resize(subjects.size()+1);
     // messages.reserve(subjects.size()+1);
-    // messages.push_back(message);
-    // messages.push_back(std::move(message));
     messages.emplace_back(std::forward<string>(message));
 
     // experimental
     subjects = helper(subjects, "subject name");
     messages.insert(messages.end(), make_move_iterator(subjects.begin()), make_move_iterator(subjects.end()));
-    // for(int i=0; i<subject_num; i++){
-    //     #ifdef __cpp_lib_format
-    //     message = std::format("{\"subject name\": \"{}\"}", subjects[i]);
-    //     #else
-    //     message = fmt::format("{{\"subject name\": \"{}\"}}", subjects[i]);
-    //     #endif
-    //     // messages.push_back(message);
-    //     messages.push_back(std::move(message));
-    // }
+
     return messages;
 }
 
 vector<string> Server::getChapters(string& subject){
     int status_code;
+    string message;
     vector<string> messages;
     const string target_attribute = "chapter";
     optional<pair<string, variant<string, int, double>>> count_info;
@@ -650,8 +614,7 @@ vector<string> Server::getChapters(string& subject){
         #else
         message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, chapter_num);
         #endif
-        // messages.push_back(message);
-        // messages.push_back(std::move(message));
+
         messages.emplace_back(std::forward<string>(message));
         return messages;
     }
@@ -667,22 +630,13 @@ vector<string> Server::getChapters(string& subject){
 
     messages.resize(chapter_num+1);
     // messages.reserve(chapter_num+1);
-    // messages.push_back(message);
-    // messages.push_back(std::move(message));
+
     messages.emplace_back(std::forward<string>(message));
 
     // vectorization transform on chapters
     chapters = helper(chapters, "chapter name");
     messages.insert(messages.end(), make_move_iterator(chapters.begin()), make_move_iterator(chapters.end()));
-    // for(int i=0; i<chapter_num; i++){
-    //     #ifdef __cpp_lib_format
-    //     message = std::format("{\"chapter name\": \"{}\"}", chapters[i]);
-    //     #else
-    //     message = fmt::format("{{\"chapter name\": \"{}\"}}", chapters[i]);
-    //     #endif
-    //     // messages.push_back(message);
-    //     messages.push_back(std::move(message));
-    // }
+
     return messages;
 }
 
@@ -708,12 +662,11 @@ vector<string> Server::addSubject(string& subject) {
         status_code = 403;
     }
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}}", status_code);
+    string message = std::format("{\"code\": {}}", status_code);
     #else
-    message = fmt::format("{{\"code\": {}}}", status_code);
+    string message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    // messages.push_back(message);
-    // messages.push_back(std::move(message));
+
     messages.emplace_back(std::forward<string>(message));
     return messages;
 }
@@ -748,18 +701,18 @@ vector<string> Server::addChapter(string& subject, string& chapter) {
     }
 
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}}", status_code);
+    string message = std::format("{\"code\": {}}", status_code);
     #else
-    message = fmt::format("{{\"code\": {}}}", status_code);
+    string message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    // messages.push_back(message);
-    // messages.push_back(std::move(message));
+
     messages.emplace_back(std::forward<string>(message));
     return messages;
 }
 
 vector<string> Server::getQuestions(string& subject, string& chapter){
     int status_code;
+    string message;
     vector<string> messages;
     const string target_attribute = "path";
     vector<pair<string, string>> count_infos{std::make_pair("subject", subject), std::make_pair("chapter", chapter)};
@@ -771,15 +724,12 @@ vector<string> Server::getQuestions(string& subject, string& chapter){
         #else
         message = fmt::format("{{\"code\": {}, \"counts\": {}}}", status_code, question_num);
         #endif
-        // messages.push_back(message);
-        // messages.push_back(std::move(message));
+
         messages.emplace_back(std::forward<string>(message));
         return messages;
     }
     else status_code = 200;
-    // vector<pair<string, string>> constraints;
-    // constraints.push_back(std::make_pair("subject", subject));
-    // constraints.push_back(std::make_pair("chapter", chapter));
+
     vector<string> question_ids = question->getQuestionAttributes(count_infos, target_attribute);
     #ifdef __cpp_lib_format
     message = std::format("{\"code\": {}, \"counts\": {}}", status_code, question_ids.size());
@@ -789,25 +739,13 @@ vector<string> Server::getQuestions(string& subject, string& chapter){
 
     messages.resize(question_ids.size()+1);
     // messages.reserve(question_ids.size()+1);
-    // messages.push_back(message);
-    // messages.push_back(std::move(message));
+
     messages.emplace_back(std::forward<string>(message));
 
     //experimental
     question_ids = helper(question_ids, "question name");
     messages.insert(messages.end(), make_move_iterator(question_ids.begin()), make_move_iterator(question_ids.end()));
 
-    // for(int i=0; i<question_num; i++){
-        
-    //     #ifdef __cpp_lib_format
-    //     message = std::format("{\"question name\": \"{}\"}", question_ids[i]);
-    //     #else
-    //     message = fmt::format("{{\"question name\": \"{}\"}}", question_ids[i]);
-    //     #endif
-    //     // messages.push_back(message);
-    //     messages.push_back(std::move(message));
-        
-    // }
     return messages;
 }
 
@@ -821,13 +759,11 @@ vector<string> Server::getQuestions(string& subject, string& chapter, string& qu
 
     status_code = 200;
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}, \"question text\": \"{}\"}", status_code, question_content);
+    string message = std::format("{\"code\": {}, \"question text\": \"{}\"}", status_code, question_content);
     #else
-    message = fmt::format("{{\"code\": {}, \"question text\": \"{}\"}}", status_code, question_content);
+    string message = fmt::format("{{\"code\": {}, \"question text\": \"{}\"}}", status_code, question_content);
     #endif
 
-    // messages.push_back(message);
-    // messages.push_back(std::move(message));
     messages.emplace_back(std::forward<string>(message));
     return messages;
 }
@@ -872,12 +808,11 @@ vector<string> Server::writeQuestion(string& subject, string& chapter, string& q
     }
 
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}}", status_code);
+    string message = std::format("{\"code\": {}}", status_code);
     #else
-    message = fmt::format("{{\"code\": {}}}", status_code);
+    string message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
-    // messages.push_back(message);
-    // messages.push_back(std::move(message));
+
     messages.emplace_back(std::forward<string>(message));
     return messages;
 }
@@ -890,39 +825,24 @@ vector<string> Server::deleteQuestion(string& subject, string& chapter, string& 
     if(rc >= 0) status_code = 200;
     else status_code = 404;
     #ifdef __cpp_lib_format
-    message = std::format("{\"code\": {}}", status_code);
+    string message = std::format("{\"code\": {}}", status_code);
     #else
-    message = fmt::format("{{\"code\": {}}}", status_code);
+    string message = fmt::format("{{\"code\": {}}}", status_code);
     #endif
 
-    // messages.push_back(message);
-    // messages.push_back(std::move(message));
     messages.emplace_back(std::forward<string>(message));
     return messages;
 }
 
 void Server::loop()
 {
-    // tempfds = masterfds; //copy fd_set for select()
-    // #ifdef SERVER_DEBUG
-    // printf("[SERVER] [MISC] max fd = '%hu' \n", maxfd);
-    // std::cout << "[SERVER] [MISC] calling select()\n";
-    // #endif
-    // int sel = select(maxfd + 1, &tempfds, NULL, NULL, NULL); //blocks until activity
-    // //printf("[SERVER] [MISC] select() ret %d, processing...\n", sel);
-    // if (sel < 0) {
-    //     perror("[SERVER] [ERROR] select() failed");
-    //     shutdown();
-    // }
-    // cout<<"sel: "<<sel<<endl;
-
     //no problems, we're all set
     int eNum = epoll_wait(eFd, events, EVENTS_SIZE, -1);
     if(eNum == -1) {cout<<"epoll wait"<<endl; return;}
 
     //loop the fd_set and check which socket has interactions available
     // experimental
-    #pragma omp parallel for num_threads(4)
+    #pragma omp parallel for num_threads(eNum) private(input_buffer)
     for (int i = 0; i <= eNum; i++) {
         //if (FD_ISSET(i, &tempfds)) { //if the socket has activity pending
         if(events[i].data.fd == mastersocket_fd) {

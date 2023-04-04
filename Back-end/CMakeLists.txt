@@ -13,15 +13,15 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 
-
 include_directories(.)
-include_directories(./json/include)
-include_directories(./fmt/include)
 include_directories(./usr/local/include)
-include_directories(./SQLite3-Encryption/src)
 
 
 add_executable(cplusplusproject2022fall
                server_unencrypted.cpp)
+
+target_include_directories(cplusplusproject2022fall PRIVATE ./fmt/include)
+target_include_directories(cplusplusproject2022fall PRIVATE ./SQLite3-Encryption/src)
+target_include_directories(cplusplusproject2022fall PRIVATE ./glaze/include)
 
 target_link_libraries(cplusplusproject2022fall -lsqlite3 -lssl -lcrypto -fopenmp -fconcepts)

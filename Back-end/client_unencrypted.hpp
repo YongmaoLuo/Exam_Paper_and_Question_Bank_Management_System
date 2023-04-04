@@ -11,8 +11,10 @@
 #include <netdb.h>
 // #include <openssl/ssl.h>
 // #include <openssl/err.h>
-#include <nlohmann/json.hpp>
-using json = nlohmann::json;
+// #include <nlohmann/json.hpp>
+// using json = nlohmann::json;
+#include "glaze/glaze.hpp"
+#include "glaze/core/macros.hpp"
 using namespace std;
 
 #if __has_include(<format>)
@@ -25,24 +27,20 @@ using namespace std;
 #define INPUT_BUFFER_SIZE 256 //test: 256 bytes of buffer
 #define PORT 9999
 
-// void ShowCerts(SSL *ssl){
-//     X509 *cert;
-//     char* line;
-//     cert = SSL_get_peer_certificate(ssl);
-//     if(SSL_get_verify_result(ssl) == X509_V_OK){
-//         cout<<"Authentication passed."<<endl;
-//     }
-//     if(cert) {
-//         line = X509_NAME_oneline(X509_get_subject_name(cert), 0, 0);
-//         cout<<"Certificate info: "<<line<<endl;
-//         free(line);
-//         line = X509_NAME_oneline(X509_get_issuer_name(cert), 0, 0);
-//         cout<<"Provider: "<<line<<endl;
-//         free(line);
-//         X509_free(cert);
-//     }
-//     else cout<<"No certificate provided."<<endl;
-// }
+
+struct s1 {
+    string code{};
+    string identity{};
+    string question_text{};
+    int counts{0};
+};
+
+template <>
+struct glz::meta<s1>
+{
+    using T = s1;
+    static constexpr auto value = object("code", &T::code, "identity", &T::identity, "question_text", &T::question_text, "counts", &T::counts);
+};
 
 inline std::string escapeJsonString(std::string input){
     for(int i=0;;i++){
@@ -74,6 +72,8 @@ class Client{
         int recv_iterative(char* ptr, int size, int flag);
         int send_iterative(char* otr, int size, int flag);
         void error(const char *msg);
+
+        s1 recv_struct{};
         
     public:
         struct UserInfo{

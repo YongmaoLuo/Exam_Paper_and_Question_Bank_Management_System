@@ -23,8 +23,8 @@ Other than performance, we also take safety into consideration. We had pragma ke
 * Ninja (Optional)
 
 * String formatting tool: [fmt](https://github.com/fmtlib/fmt)
-* JSON formatting tool: [json](https://github.com/nlohmann/json)
-* Database: [SQLite3](https://github.com/SRombauts/SQLiteCpp/tree/master/sqlite3)
+* JSON formatting tool: [json](https://github.com/nlohmann/json), [glaze(faster)](https://github.com/stephenberry/glaze)
+* Database: [SQLite3](https://github.com/rindeal/SQLite3-Encryption), and install with `sudo apt-get install libsqlite3-dev`
 * Parallelism: [openmp](https://www.openmp.org/resources/)
 
 
