@@ -29,9 +29,10 @@ using namespace std;
 
 
 struct s1 {
-    string code{};
+    int code{};
     string identity{};
     string question_text{};
+    string username{};
     int counts{0};
 };
 
