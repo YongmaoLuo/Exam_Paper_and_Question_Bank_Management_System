@@ -252,7 +252,7 @@ void Client::loop(){
     glz::read<glz::opts{.error_on_unknown_keys = false}>(recv_struct, buffer);
     cout<<"Response code: "<<recv_struct.code<<endl;
     ////////////////////////////
-    msg = fmt::format("{{\"command\": \"write chapter\",\"subject name\": {}, \"chapter name\": {} }}", 
+    msg = fmt::format("{{\"command\": \"write chapter\",\"subject_name\": {}, \"chapter_name\": {} }}", 
     subject_name, chapter_name);
     cout<<"write chapter msg: "<<msg<<endl;
     // msg[strlen(msg)] = '\0';
@@ -274,7 +274,7 @@ void Client::loop(){
 
     cout<<"Response code: "<<recv_struct.code<<endl;
     
-    msg = fmt::format("{{\"command\": \"write question\",\"question text\": {},\"subject name\": {}, \"chapter name\": {}, \"question name\": {} }}", 
+    msg = fmt::format("{{\"command\": \"write question\",\"question_text\": {},\"subject_name\": {}, \"chapter_name\": {}, \"question_name\": {} }}", 
     question_text, subject_name, chapter_name, question_name);
     cout<<"write question msg: "<<msg<<endl;
     // msg[strlen(msg)] = '\0';
@@ -297,7 +297,7 @@ void Client::loop(){
     cout<<"Response code: "<<recv_struct.code<<endl;
     ///////////////////////////
 
-    msg = fmt::format("{{\"command\": \"read question\",\"subject name\": {}, \"chapter name\": {}, \"question name\": {} }}", 
+    msg = fmt::format("{{\"command\": \"read question\",\"subject_name\": {}, \"chapter_name\": {}, \"question_name\": {} }}", 
     subject_name, chapter_name, question_name);
     cout<<"read question msg: "<<msg<<endl;
     // msg[strlen(msg)] = '\0';
@@ -348,14 +348,16 @@ void Client::loop(){
         buffer[num_bytes] = '\0';
         cout<<"buffer: "<<buffer<<endl;
 
-        response = json::parse(buffer);
-        string teacher = response["username"];
+        // response = json::parse(buffer);
+        // string teacher = response["username"];
+        glz::read<glz::opts{.error_on_unknown_keys = false}>(recv_struct, buffer);
+        string teacher = recv_struct.username;
         usleep(1000);
     }
 
 
     //////////////////////////
-    msg = fmt::format("{{\"command\": \"delete question\",\"subject name\": {}, \"chapter name\": {}, \"question name\": {} }}", 
+    msg = fmt::format("{{\"command\": \"delete question\",\"subject_name\": {}, \"chapter_name\": {}, \"question_name\": {} }}", 
     subject_name, chapter_name, question_name);
     cout<<"delete question msg: "<<msg<<endl;
     // msg[strlen(msg)] = '\0';

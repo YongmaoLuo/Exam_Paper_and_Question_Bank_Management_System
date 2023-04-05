@@ -198,7 +198,7 @@ tuple<vector<string>, Connector> Server::recvInputFromExisting(Connector& connec
     // receiveCallback(fd,input_buffer);
     // authenticate the identity of the user
     // json recv_message = json::parse(input_buffer);
-    glz::read<glz::opts{.error_on_unknown_keys = false}>(recv, input_buffer);
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(recv_struct, input_buffer);
     
     // parse information
     auto command = recv_struct.command;
