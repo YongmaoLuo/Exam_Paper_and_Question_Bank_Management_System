@@ -12,8 +12,10 @@
 #include <netdb.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-#include <nlohmann/json.hpp>
-using json = nlohmann::json;
+// #include <nlohmann/json.hpp>
+// using json = nlohmann::json;
+#include "glaze/glaze.hpp"
+#include "glaze/core/macros.hpp"
 using namespace std;
 
 #if __has_include(<format>)
@@ -25,6 +27,22 @@ using namespace std;
 
 #define INPUT_BUFFER_SIZE 256 //test: 256 bytes of buffer
 #define PORT 9999
+
+struct s1 {
+    int code{};
+    string identity{};
+    string question_text{};
+    string username{};
+    int counts{0};
+};
+
+template <>
+struct glz::meta<s1>
+{
+    using T = s1;
+    static constexpr auto value = object("code", &T::code, "identity", &T::identity, "question_text", &T::question_text, 
+    "username", &T::username, "counts", &T::counts);
+};
 
 void ShowCerts(SSL *ssl){
     X509 *cert;
@@ -56,8 +74,6 @@ class Client{
 
         int read_iterative(char* ptr, int size);
         int write_iterative(char* ptr, int size);
-        int recv_iterative(char* ptr, int size, int flag);
-        int send_iterative(char* otr, int size, int flag);
         void error(const char *msg);
         
     public:
