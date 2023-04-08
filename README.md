@@ -73,7 +73,7 @@ cd bin/
 On the client side, after compiled with C++20,
 
 ```bash
-./client_unencrypted.cpp SERVER_IP PATH_TO_CA_CERTIFICATE PATH_TO_UNSECURED_PRIVATE_KEY
+./client.cpp SERVER_IP PATH_TO_CA_CERTIFICATE PATH_TO_UNSECURED_PRIVATE_KEY
 ```
 
 
