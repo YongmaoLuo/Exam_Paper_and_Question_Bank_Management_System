@@ -118,6 +118,8 @@ void Server::shutdown()
 	#ifdef SERVER_DEBUG
 	printf("[SERVER] [DEBUG] [SHUTDOWN] closing master fd..  ret '%d'.\n",close_ret);
 	#endif
+    user.reset();
+    question.reset();
 }
 
 void Server::handleNewConnection()
@@ -213,16 +215,6 @@ tuple<vector<string>, Connector> Server::recvInputFromExisting(Connector& connec
     string bulletin_name = recv_struct.bulletin_name;
     string teacher_name = recv_struct.teacher_name;
     string bulletin_text = recv_struct.bulletin_text;
-
-    // if(recv_message.contains("username")) username = recv_message["username"].get<std::string>();
-    // if(recv_message.contains("password")) password = recv_message["password"].get<std::string>();
-    // if(recv_message.contains("subject name")) subject_name = recv_message["subject name"].get<std::string>();
-    // if(recv_message.contains("chapter name")) chapter_name = recv_message["chapter name"].get<std::string>();
-    // if(recv_message.contains("question name")) question_id = recv_message["question name"].get<std::string>();
-    // if(recv_message.contains("question text")) question_content = recv_message["question text"].get<std::string>();
-    // if(recv_message.contains("bulletin name")) bulletin_name = recv_message["bulletin name"].get<std::string>();
-    // if(recv_message.contains("teacher name")) teacher_name = recv_message["teacher name"].get<std::string>();
-    // if(recv_message.contains("bulletin text")) bulletin_text = recv_message["bulletin text"].get<std::string>();
 
     if(command == "login"){
         messages = authenticateUser(connect_fd, username, password);

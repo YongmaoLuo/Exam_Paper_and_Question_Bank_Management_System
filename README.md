@@ -9,11 +9,13 @@ We developed a complicated full stack application with socket-based single-serve
 * API for user customization
 
 
+
 ## Goal & Vision
 
 The aim of this full-stack application is to provide a smooth and robust (high scalability & low latency) user experience while maintaining low memory occupation at the same time. We leveraged unix-domain socket(We don't wish to use asio at this stage as we don't want to have boost library involved.) and epoll connection to achieve faster pseudo-concurrency and lots of move(forward) operations to avoid unnecessary copy and reduce memory cost. We applied vectorization to process messages faster. We explicitly added clustered indexes in our relational database to achieve faster queries.
 
 Other than performance, we also take safety into consideration. We had pragma key credentials in the database to avoid sensitive information leakage. We also had encrypted TCP connection with digital certificate and private key verification. 
+
 
 
 ## Dependencies & Requirements
@@ -77,6 +79,27 @@ On the client side, after compiled with C++20,
 ```
 
 
+
+## Memory Check with Valgrind
+
+To install Valgrind, please follow the steps
+```bash
+wget https://sourceware.org/pub/valgrind/valgrind-3.20.0.tar.bz2
+tar xvf valgrind-3.20.0.tar.bz2
+cd valgrind-3.20.0
+./configure
+make
+sudo make install
+```
+
+For memcheck
+```bash
+cd bin/
+valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./cplusplusproject2022fall
+```
+
+
+
 ## Part of C++ new features
 
 * Concept & Requires & template
@@ -90,6 +113,7 @@ On the client side, after compiled with C++20,
 * Variant
 * Explicit
 * Variadic Template
+
 
 
 ## Acknowledge

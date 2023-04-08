@@ -156,6 +156,8 @@ void Server::shutdown()
 	printf("[SERVER] [DEBUG] [SHUTDOWN] closing master fd..  ret '%d'.\n",close_ret);
 	#endif
     SSL_CTX_free(ctx);
+    user.reset();
+    question.reset();
 }
 
 void Server::handleNewConnection()
