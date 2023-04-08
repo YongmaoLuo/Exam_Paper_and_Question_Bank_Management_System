@@ -4,7 +4,7 @@ int Client::read_iterative(char* ptr, int size){
     int left_bytes, read_bytes;
     left_bytes = size;
     while(left_bytes > 0){
-        read_bytes = read(socket_fd, ptr, left_bytes);
+        read_bytes = SSL_read(socket_fd, ptr, left_bytes);
         if(read_bytes < 0) return (read_bytes);
         if(read_bytes == 0) break;
         left_bytes -= read_bytes;
@@ -18,39 +18,11 @@ int Client::write_iterative(char* ptr, int size){
     int left_bytes, written_bytes;
     left_bytes = size;
     while(left_bytes > 0){
-        written_bytes = write(socket_fd, ptr, left_bytes);
+        written_bytes = SSL_write(socket_fd, ptr, left_bytes);
         if(written_bytes < 0) return (written_bytes);
         if(written_bytes == 0) break;
         left_bytes -= written_bytes;
         ptr += written_bytes;
-    }
-    return (size - left_bytes);
-}
-
-int Client::recv_iterative(char* ptr, int size, int flag){
-    int left_bytes, recv_bytes;
-    left_bytes = size;
-    while(left_bytes > 0){
-        recv_bytes = recv(socket_fd, ptr, left_bytes, flag);
-        if(recv_bytes < 0) return (recv_bytes);
-        if(recv_bytes == 0) break;
-        left_bytes -= recv_bytes;
-        ptr += recv_bytes;
-    }
-    // everything in the buffer zone has been read into the ptr
-    return (size - left_bytes);
-}
-
-int Client::send_iterative(char* ptr, int size, int flag){
-    int left_bytes, sent_bytes;
-    left_bytes = size;
-    while(left_bytes > 0){
-        sent_bytes = send(socket_fd, ptr, left_bytes, flag);
-        printf("in send %s", ptr);
-        if(sent_bytes < 0) return (sent_bytes);
-        if(sent_bytes == 0) break;
-        left_bytes -= sent_bytes;
-        ptr += sent_bytes;
     }
     return (size - left_bytes);
 }
@@ -203,10 +175,8 @@ void Client::loop(){
     buffer[num_bytes] = '\0';
     cout<<"buffer: "<<buffer<<endl;
 
-    json response = json::parse(buffer);
-    auto response_code = response["code"];
-    auto response_identity = response["identity"];
-    cout<<"Response code: "<<response_code<<"\t"<<"Identity: "<<response_identity<<endl;
+    glz::read<glz::opts{.error_on_unknown_keys = false}>(recv_struct, buffer);
+    cout<<"Response code: "<<recv_struct.code<<"\t"<<"Identity: "<<recv_struct.identity<<endl;
     
 }
 int main(int argc, char *argv[])

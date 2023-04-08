@@ -40,7 +40,8 @@ template <>
 struct glz::meta<s1>
 {
     using T = s1;
-    static constexpr auto value = object("code", &T::code, "identity", &T::identity, "question_text", &T::question_text, "counts", &T::counts);
+    static constexpr auto value = object("code", &T::code, "identity", &T::identity, "question_text", &T::question_text, 
+    "username", &T::username, "counts", &T::counts);
 };
 
 inline std::string escapeJsonString(std::string input){

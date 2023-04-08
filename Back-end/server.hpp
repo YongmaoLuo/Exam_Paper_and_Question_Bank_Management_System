@@ -15,8 +15,10 @@
 #include <iostream>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-#include <nlohmann/json.hpp>
-using json = nlohmann::json;
+// #include <nlohmann/json.hpp>
+// using json = nlohmann::json;
+#include "glaze/glaze.hpp"
+#include "glaze/core/macros.hpp"
 using namespace std;
 
 #define INPUT_BUFFER_SIZE 1024 //test: 1024 bytes of buffer
@@ -33,6 +35,38 @@ using namespace std;
 #include <sys/epoll.h>
 #include <fcntl.h>
 #define EVENTS_SIZE 20
+
+struct s1 {
+        string command{};
+        string username{};
+        string password{};
+        string identity{};
+        string subject_name{};
+        string chapter_name{};
+        string question_id{};
+        string question_text{};
+        string bulletin_name{};
+        string teacher_name{};
+        string bulletin_text{};
+};
+// GLZ_META(s1, command, username, password, identity, subject_name, chapter_name, question_id, question_text, bulletin_name, teacher_name, bulletin_text);
+template <>
+struct glz::meta<s1>
+{
+    using T = s1;
+    static constexpr auto value = object("command", &T::command, 
+    "username", &T::username, 
+    "password", &T::password, 
+    "identity", &T::identity,
+    "subject_name", &T::subject_name,
+    "chapter_name", &T::chapter_name,
+    "question_id", &T::question_id,
+    "question_text", &T::question_text,
+    "bulletin_name", &T::bulletin_name,
+    "teacher_name", &T::teacher_name,
+    "bulletin_text", &T::bulletin_text);
+};
+
 
 inline std::string escapeJsonString(std::string input){
     for(int i=0;;i++){
@@ -68,6 +102,17 @@ void ShowCerts(SSL *ssl){
     }
     else cout<<"No certificate provided."<<endl;
 }
+
+struct Connector {
+    private:
+        uint16_t source_fd;
+    public:
+        Connector() {}
+        Connector(uint16_t fd): source_fd(fd) {};
+        void setFd(uint16_t fd_) {source_fd = fd_;}
+        uint16_t getFd() const {return source_fd;}
+        ~Connector() = default;
+};
 
 class db_user;
 class question_bank;
@@ -106,6 +151,7 @@ private:
 
     //unsigned integer to keep track of maximum fd value, required for select()
     // uint16_t maxfd;
+    s1 recv_struct{};
 
     //socket file descriptors
     int mastersocket_fd; //master socket which receives new connections
@@ -168,6 +214,9 @@ private:
     vector<string> deleteQuestion(string, string, string);
 
     //void *getInetAddr(struct sockaddr *saddr);
+    vector<string> readBulletin(string&);
+    vector<string> writeBulletin(string&, string&, string&);
+    vector<string> deleteBulletin(string&);
 };
 
 #endif /* SERVER_HPP */
