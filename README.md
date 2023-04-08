@@ -2,8 +2,8 @@
 
 We developed a complicated full stack application with socket-based single-server-multi-client connection. The front-end of this application is window-based Qt6 and back-end is SQLite3/MongoDB(experimental). Serveral highlights of this application are:
 
-* Modern C++20
-* Multiplexing with epoll (linux only) to achieve pseudo-concurrency
+* Modern **C++20**
+* Multiplexing with epoll (unix-based system only) to achieve pseudo-concurrency
 * Multi-threading & vectorization
 * A variety of database selection
 * API for user customization
@@ -11,7 +11,7 @@ We developed a complicated full stack application with socket-based single-serve
 
 ## Goal & Vision
 
-The aim of this full-stack application is to provide a smooth and robust (high scalability & low latency) user experience while maintaining low memory occupation at the same time. We leveraged epoll connection to achieve faster pseudo-concurrency and lots of move operations to avoid unnecessary copy and reduce memory cost. We applied vectorization to obtain messages faster. We explicitly added clustered indexes in our relational database to achieve faster queries.
+The aim of this full-stack application is to provide a smooth and robust (high scalability & low latency) user experience while maintaining low memory occupation at the same time. We leveraged unix-domain socket(We don't wish to use asio at this stage as we don't want to have boost library involved.) and epoll connection to achieve faster pseudo-concurrency and lots of move(forward) operations to avoid unnecessary copy and reduce memory cost. We applied vectorization to process messages faster. We explicitly added clustered indexes in our relational database to achieve faster queries.
 
 Other than performance, we also take safety into consideration. We had pragma key credentials in the database to avoid sensitive information leakage. We also had encrypted TCP connection with digital certificate and private key verification. 
 
@@ -24,8 +24,9 @@ Other than performance, we also take safety into consideration. We had pragma ke
 
 * String formatting tool: [fmt](https://github.com/fmtlib/fmt)
 * JSON formatting tool: [json](https://github.com/nlohmann/json), [glaze(faster)](https://github.com/stephenberry/glaze)
-* Database: [SQLite3](https://github.com/rindeal/SQLite3-Encryption), and install with `sudo apt-get install libsqlite3-dev`
+* Database: Install with `sudo apt-get install libsqlite3-dev`, and optionally, [SQLite3 Encryption](https://github.com/rindeal/SQLite3-Encryption) (Only accessible on Windows system, MSVC)
 * Parallelism: [openmp](https://www.openmp.org/resources/)
+* Security: Install with `sudo apt install libss-dev`
 
 
 
@@ -49,24 +50,42 @@ cmake CMakeLists.txt
 make
 ```
 
-Activate with
+If activate without openssl, on the server side,
 
 ```bash
 cd bin/
 ./cplusplusproject2022fall
 ```
 
+On the client side, after compiled with C++20,
 
+```bash
+./client_unencrypted.cpp SERVER_IP
+```
+
+If activate with openssl (after quick modification on the CMakeLists.txt), additionally, you need CA certificate and private key,
+
+```bash
+cd bin/
+./cplusplusproject2022fall PATH_TO_CA_CERTIFICATE PATH_TO_UNSECURED_PRIVATE_KEY
+```
+
+On the client side, after compiled with C++20,
+
+```bash
+./client_unencrypted.cpp SERVER_IP PATH_TO_CA_CERTIFICATE PATH_TO_UNSECURED_PRIVATE_KEY
+```
 
 
 ## Part of C++ new features
 
 * Concept & Requires & template
+* Vectorization
 * Structural binding
 * Chrono
-* Constexpr
+* Constexpr & Lambda
 * Smart pointers
-* std::as_const()
+* Const transformation
 * Final
 * Variant
 * Explicit
@@ -75,4 +94,4 @@ cd bin/
 
 ## Acknowledge
 
-We thank the assistance and guidance from Prof. Bjarne Stroustrup.
+We thank the assistance and guidance from Prof. [Bjarne Stroustrup](https://www.stroustrup.com/).

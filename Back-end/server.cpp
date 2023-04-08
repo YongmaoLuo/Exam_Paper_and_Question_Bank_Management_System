@@ -883,7 +883,7 @@ void Server::loop()
 
     //loop the fd_set and check which socket has interactions available
     // experimental
-    #pragma omp parallel for num_threads(eNum) private(input_buffer, ssl)
+    #pragma omp parallel for num_threads(eNum) private(input_buffer, ssl, tempsocket_fd, eFd)
     for (int i = 0; i <= eNum; i++) {
         //if (FD_ISSET(i, &tempfds)) { //if the socket has activity pending
         if(events[i].data.fd == mastersocket_fd) {
