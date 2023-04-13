@@ -70,6 +70,7 @@ int db_user::insert(const std::shared_ptr<UserInfo<string>>& user){
    // int activity = user->activity;
 
    auto [username, password, identity, status, activity] = user->getElements();
+   password = encrypt_password(password);
    if(status.empty()) status = "valid";
    sql = fmt::format("INSERT INTO USER (USERNAME, PASSWORD, IDENTITY, STATUS, ACTIVITY) "  \
             "VALUES ('{}', '{}', '{}', '{}', '{}'); COMMIT;", username, password, identity, status, activity);
@@ -91,6 +92,7 @@ int db_user::update(const string& primary_val, vector<pair<string, variant<strin
    while(!changelist.empty()){
       auto changed = changelist.back();
       key = changed.first;
+      transform(key.begin(), key.end(), key.begin(), ::toupper);
       auto value = changed.second;
       changelist.pop_back();
       if(keys.count(key)){
@@ -99,6 +101,9 @@ int db_user::update(const string& primary_val, vector<pair<string, variant<strin
       keys.insert(key);
       
       if(key == "USERNAME") return -1;
+      if(key == "PASSWORD") {
+         value = encrypt_password(std::get<string>(value));
+      }
       sql = fmt::format("UPDATE USER set {} = '{}' where USERNAME = '{}';", key, custom_to_string(value), primary_val);
 
       rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);

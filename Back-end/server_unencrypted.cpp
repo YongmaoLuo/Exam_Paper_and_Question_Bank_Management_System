@@ -205,7 +205,7 @@ tuple<vector<string>, Connector> Server::recvInputFromExisting(Connector& connec
     // parse information
     auto command = recv_struct.command;
     string username = recv_struct.username;
-    auto password = recv_struct.password;
+    string password = recv_struct.password;
     string identity = recv_struct.identity;
     // string status = "";
     string subject_name = recv_struct.subject_name;
@@ -215,6 +215,8 @@ tuple<vector<string>, Connector> Server::recvInputFromExisting(Connector& connec
     string bulletin_name = recv_struct.bulletin_name;
     string teacher_name = recv_struct.teacher_name;
     string bulletin_text = recv_struct.bulletin_text;
+
+    password = decrypt_password(password);
 
     if(command == "login"){
         messages = authenticateUser(connect_fd, username, password);

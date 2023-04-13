@@ -37,17 +37,17 @@ using namespace std;
 #define EVENTS_SIZE 20
 
 struct s1 {
-        string command{};
-        string username{};
-        string password{};
-        string identity{};
-        string subject_name{};
-        string chapter_name{};
-        string question_id{};
-        string question_text{};
-        string bulletin_name{};
-        string teacher_name{};
-        string bulletin_text{};
+    string command{};
+    string username{};
+    string password{};
+    string identity{};
+    string subject_name{};
+    string chapter_name{};
+    string question_id{};
+    string question_text{};
+    string bulletin_name{};
+    string teacher_name{};
+    string bulletin_text{};
 };
 // GLZ_META(s1, command, username, password, identity, subject_name, chapter_name, question_id, question_text, bulletin_name, teacher_name, bulletin_text);
 template <>

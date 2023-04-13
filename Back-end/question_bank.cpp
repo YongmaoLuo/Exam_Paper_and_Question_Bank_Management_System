@@ -81,14 +81,13 @@ int question_bank::update(vector<pair<string, string>> primary_pairs, vector<pai
    while(!changelist.empty()){
       auto changed = changelist.back();
       key = changed.first;
+      transform(key.begin(), key.end(), key.begin(), ::toupper);
       auto value = changed.second;
       changelist.pop_back();
       if(keys.count(key)){
          continue;
       }
       keys.insert(key);
-
-      transform(key.begin(), key.end(), key.begin(), ::toupper);
 
       // std::array<string, 3> primary_keys({"PATH", "CHAPTER", "SUBJECT"});
       auto primary_keys = std::to_array<string>({"PATH", "CHAPTER", "SUBJECT"});

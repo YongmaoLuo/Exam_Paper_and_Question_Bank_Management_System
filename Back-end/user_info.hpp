@@ -6,6 +6,20 @@ using namespace std;
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
+string encrypt_password(string& password) {
+    for(int i=0; i < password.size(); i++) {
+        password[i] -= 1;
+    }
+    return password;
+}
+
+string decrypt_password(string& password) {
+    for(int i=0; i < password.size(); i++) {
+        password[i] += 1;
+    }
+    return password;
+}
+
 template<hashable T>
 struct UserInfo final {
         private:
