@@ -6,6 +6,24 @@ using namespace std;
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
+string encrypt_password(string& password) {
+    // for(int i=0; i < password.size(); i++) {
+    //     password[i] -= 1;
+    // }
+    auto encrypt = [&](char c) -> char{return c-1;};
+    std::transform(password.begin(), password.end(), password.begin(), encrypt);
+    return password;
+}
+
+string decrypt_password(string& password) {
+    // for(int i=0; i < password.size(); i++) {
+    //     password[i] += 1;
+    // }
+    auto decrypt = [&](char c) -> char{return c+1;};
+    std::transform(password.begin(), password.end(), password.begin(), decrypt);
+    return password;
+}
+
 template<hashable T>
 struct UserInfo final {
         private:
