@@ -21,16 +21,16 @@ Server::Server(string digital_certificate_path, string privateKey_path, int port
     setup(port, digital_certificate_path, privateKey_path);
 }
 
-Server::Server(const Server& orig)
-{
-    mastersocket_fd = orig.mastersocket_fd;
-    tempsocket_fd = orig.tempsocket_fd;
+// Server::Server(const Server& orig)
+// {
+//     mastersocket_fd = orig.mastersocket_fd;
+//     tempsocket_fd = orig.tempsocket_fd;
 
-    char input_buffer[INPUT_BUFFER_SIZE];
-    strcpy(input_buffer, orig.input_buffer);
-    char remote_ip[INET6_ADDRSTRLEN];
-    strcpy(remote_ip, orig.remote_ip);
-}
+//     char input_buffer[INPUT_BUFFER_SIZE];
+//     strcpy(input_buffer, orig.input_buffer);
+//     char remote_ip[INET6_ADDRSTRLEN];
+//     strcpy(remote_ip, orig.remote_ip);
+// }
 
 Server::~Server()
 {
@@ -968,22 +968,22 @@ uint16_t Server::recvMessage(Connector conn, char *messageBuffer){
 shared_ptr<Server> Server::server_ = nullptr;
 std::mutex Server::mutex_;
 
-shared_ptr<Server> Server::getInstance(int port) {
+shared_ptr<Server> Server::getInstance(string ca_certificate, string private_key, int port) {
     // double checked locking
     if(server_ == nullptr) {
         // std::lock_guard<std::mutex> lock(mutex_);
         std::scoped_lock lock(mutex_);
-        if(server_ == nullptr) server_ = shared_ptr<Server>(new Server(port));
+        if(server_ == nullptr) server_ = shared_ptr<Server>(new Server(ca_certificate, private_key, port));
     }
     return server_;
 }
 
-shared_ptr<Server> Server::getInstance() {
+shared_ptr<Server> Server::getInstance(string ca_certificate, string private_key) {
     // double checked locking
     if(server_ == nullptr) {
         // std::lock_guard<std::mutex> lock(mutex_);
         std::scoped_lock lock(mutex_);
-        if(server_ == nullptr) server_ = shared_ptr<Server>(new Server());
+        if(server_ == nullptr) server_ = shared_ptr<Server>(new Server(ca_certificate, private_key));
     }
     return server_;
 }
@@ -998,7 +998,7 @@ int main(int argc, char* argv[]){
     sigaction(SIGINT, &sigIntHandler, NULL);
 
     // Server server_object = Server();
-    shared_ptr<Server> server_object = Server::getInstance();
+    shared_ptr<Server> server_object = Server::getInstance(argv[1], argv[2]);
     server_object->init();
     try {
         while(true){

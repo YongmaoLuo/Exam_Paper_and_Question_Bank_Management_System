@@ -28,7 +28,7 @@ Other than performance, we also take safety into consideration. We had pragma ke
 * JSON formatting tool: [json](https://github.com/nlohmann/json), [glaze(faster)](https://github.com/stephenberry/glaze)
 * Database: Install with `sudo apt-get install libsqlite3-dev`, and optionally, [SQLite3 Encryption](https://github.com/rindeal/SQLite3-Encryption) (Only accessible on Windows system, MSVC)
 * Parallelism: [openmp](https://www.openmp.org/resources/)
-* Security: Install with `sudo apt install libss-dev`
+* Security: Install with `sudo apt install libssl-dev`
 
 
 

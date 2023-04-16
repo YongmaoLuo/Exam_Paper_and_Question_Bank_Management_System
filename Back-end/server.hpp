@@ -36,6 +36,9 @@ using namespace std;
 #include <fcntl.h>
 #define EVENTS_SIZE 20
 
+#include <mutex>
+#include <csignal>
+
 struct s1 {
     string command{};
     string username{};
@@ -103,6 +106,25 @@ void ShowCerts(SSL *ssl){
     else cout<<"No certificate provided."<<endl;
 }
 
+class InterruptException : public std::exception
+  {
+   public:
+    InterruptException(int _s) : signal_(_s) { }
+    int signal() const noexcept
+    {
+      return this->signal_;
+    }
+
+   private:
+    int signal_;
+  };
+
+/// method to throw exception at signal interrupt
+void sig_to_exception(int s)
+{
+    throw InterruptException(s);
+}
+
 struct Connector {
     private:
         uint16_t source_fd;
@@ -118,15 +140,18 @@ class db_user;
 class question_bank;
 class Server
 {
+protected:
+    static shared_ptr<Server> server_;
+    static std::mutex mutex_;
+
 public:
-    Server(string, string);
-    Server(string, string, int port);
-    Server(const Server& orig);
+    void operator=(Server const&) = delete;
+    Server(Server const&) = delete;
+
+    static shared_ptr<Server> getInstance(string, string, int port); 
+    static shared_ptr<Server> getInstance(string, string); 
+
     virtual ~Server();
-    
-    struct Connector {
-        uint16_t source_fd;
-    };
     
     void shutdown();
     void init();
@@ -152,6 +177,9 @@ private:
     //unsigned integer to keep track of maximum fd value, required for select()
     // uint16_t maxfd;
     s1 recv_struct{};
+
+    explicit Server(string, string);
+    explicit Server(string, string, int port);
 
     //socket file descriptors
     int mastersocket_fd; //master socket which receives new connections
@@ -182,6 +210,8 @@ private:
     set<string> usernameSet;
     map<string, int> logined_users;
 
+    unordered_map<int, vector<string>> archived_msg;
+
     void (*newConnectionCallback) (uint16_t fd);
     void (*receiveCallback) (uint16_t fd, char *buffer);
     void (*disconnectCallback) (uint16_t fd);
@@ -193,25 +223,25 @@ private:
     void handleNewConnection();
 
 
-    vector<string> recvInputFromExisting(Connector&);
-    void sendMsgToExisting(Connector&, vector<string>&);
+    tuple<vector<string>, Connector> recvInputFromExisting(Connector&);
+    void sendMsgToExisting(Connector&, vector<string> = vector<string>());
     vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity);
     vector<string> authenticateUser(Connector& conn, string username, auto password);
     vector<string> logout(Connector&);
-    int logout(string); // function overload
+    int logout(string&); // function overload
     vector<string> deleteUser(Connector&, string username);
     vector<string> deleteUserSelf(Connector&, auto password);
     vector<string> getUser(Connector& connect_fd);
     vector<string> getTeachers();
 
     vector<string> getSubjects();
-    vector<string> getChapters(string subject);
-    vector<string> addSubject(string);
-    vector<string> addChapter(string subject, string);
-    vector<string> getQuestions(string, string);
-    vector<string> getQuestions(string, string, string);
-    vector<string> writeQuestion(string, string, string, auto);
-    vector<string> deleteQuestion(string, string, string);
+    vector<string> getChapters(string& subject);
+    vector<string> addSubject(string&);
+    vector<string> addChapter(string& subject, string&);
+    vector<string> getQuestions(string&, string&);
+    vector<string> getQuestions(string&, string&, string&);
+    vector<string> writeQuestion(string&, string&, string&, auto);
+    vector<string> deleteQuestion(string&, string&, string&);
 
     //void *getInetAddr(struct sockaddr *saddr);
     vector<string> readBulletin(string&);
