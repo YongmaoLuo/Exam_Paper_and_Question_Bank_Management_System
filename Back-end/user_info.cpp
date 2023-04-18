@@ -33,6 +33,8 @@ void db_user::create(bool clear/*= false*/, const char* database_name/*= "userin
       fprintf(stdout, "Opened database successfully\n");
    }
    /* Create SQL statement */
+   // experimental
+   sqlite3_exec(db, "pragma journal_mode = WAL", NULL, NULL, NULL);
 
    sql = "CREATE TABLE IF NOT EXISTS USER( \
             USERNAME TEXT NOT NULL PRIMARY KEY,  \

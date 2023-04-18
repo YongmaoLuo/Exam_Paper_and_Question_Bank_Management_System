@@ -34,6 +34,9 @@ void question_bank::create(bool clear/*= false*/, const char* database_name/*= "
    }
    /* Create SQL statement */
 
+   // experimental
+   sqlite3_exec(db, "pragma journal_mode = WAL", NULL, NULL, NULL);
+
    sql = "CREATE TABLE IF NOT EXISTS QUESTIONS( \
             PATH varchar(20) NOT NULL,  \
             CONTENT TEXT, \

@@ -100,6 +100,15 @@ valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose .
 
 
 
+## Benchmark
+
+| System    | CPU    | Round Trip Time (Example data, nano-scale) |
+| --------- | ------ | ------------------------------------------ |
+| Ubuntu 20 | 4-core | 88.16 ms                                   |
+
+
+
+
 ## Part of C++ new features
 
 * Concept & Requires & template
