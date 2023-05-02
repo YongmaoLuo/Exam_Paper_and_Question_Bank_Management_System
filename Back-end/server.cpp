@@ -187,7 +187,7 @@ void Server::handleNewConnection()
     // struct Connector connect_fd = Connector();
     // connect_fd.source_fd = tempsocket_fd;
     // sendMessage(connect_fd, message.c_str());
-    ssl = SSL_new(ctx);
+    SSL* ssl = SSL_new(ctx);
     SSL_set_fd(ssl, tempsocket_fd);
     if (SSL_accept(ssl) == -1) {
         perror("accept");
@@ -887,7 +887,7 @@ void Server::loop()
 
     //loop the fd_set and check which socket has interactions available
     // experimental
-    #pragma omp parallel for num_threads(eNum) private(input_buffer, ssl, tempsocket_fd, eFd)
+    #pragma omp parallel for num_threads(eNum) private(input_buffer, tempsocket_fd, eFd)
     for (int i = 0; i <= eNum; i++) {
         //if (FD_ISSET(i, &tempfds)) { //if the socket has activity pending
         if(events[i].data.fd == mastersocket_fd) {

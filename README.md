@@ -78,6 +78,7 @@ On the client side, after compiled with C++20,
 ./client.cpp SERVER_IP PATH_TO_CA_CERTIFICATE PATH_TO_UNSECURED_PRIVATE_KEY
 ```
 
+OpenSSL sample certificates and private keys [Drive](https://drive.google.com/drive/folders/1Wyv4MbbxnDLL1HnFAtIpSDIo4SmZEaGw?usp=sharing)
 
 
 ## Memory Check with Valgrind
