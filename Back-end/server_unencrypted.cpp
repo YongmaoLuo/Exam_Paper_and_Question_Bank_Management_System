@@ -216,8 +216,6 @@ tuple<vector<string>, Connector> Server::recvInputFromExisting(Connector& connec
     string teacher_name = recv_struct.teacher_name;
     string bulletin_text = recv_struct.bulletin_text;
 
-    password = decrypt_password(password);
-
     if(command == "login"){
         messages = authenticateUser(connect_fd, username, password);
     }
@@ -316,6 +314,7 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     int status_code;
     // with database logic
     // optional<pair<string, variant<string, int, double>>> constraint;
+    password = encrypt_password(password);
     string key = "password";
     string target_attribute = "identity";
     pair<string, variant<string, int, double>> constraint = std::make_pair(key, password);

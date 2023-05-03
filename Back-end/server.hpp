@@ -198,7 +198,6 @@ private:
     char remote_ip[INET6_ADDRSTRLEN];
     //int numbytes;
     SSL_CTX* ctx;
-    SSL* ssl;
     map<int, SSL*> ssl_map;
 
     std::shared_ptr<db_user> user = std::make_shared<db_user>();

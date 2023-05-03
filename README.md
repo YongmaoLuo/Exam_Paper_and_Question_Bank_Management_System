@@ -78,6 +78,7 @@ On the client side, after compiled with C++20,
 ./client.cpp SERVER_IP PATH_TO_CA_CERTIFICATE PATH_TO_UNSECURED_PRIVATE_KEY
 ```
 
+OpenSSL sample certificates and private keys [Drive](https://drive.google.com/drive/folders/1Wyv4MbbxnDLL1HnFAtIpSDIo4SmZEaGw?usp=sharing)
 
 
 ## Memory Check with Valgrind
@@ -97,6 +98,15 @@ For memcheck
 cd bin/
 valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose ./cplusplusproject2022fall
 ```
+
+
+
+## Benchmark
+
+| System    | CPU    | Round Trip Time (Example data, nano-scale) |
+| --------- | ------ | ------------------------------------------ |
+| Ubuntu 20 | 4-core | 88.16 ms                                   |
+
 
 
 
