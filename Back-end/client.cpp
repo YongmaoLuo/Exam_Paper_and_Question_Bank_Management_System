@@ -37,8 +37,8 @@ Client::~Client(){
 	#endif
     SSL_shutdown(ssl);
     SSL_free(ssl);
-	close(socket_fd);
     SSL_CTX_free(ctx);
+    close(socket_fd);
 }
 
 Client::Client(string digital_certificate_path, string privateKey_path, int port){
@@ -56,7 +56,7 @@ void Client::setup(int port, string digital_certificate_path, string privateKey_
     SSL_library_init();
     OpenSSL_add_all_algorithms();
     SSL_load_error_strings();
-    ctx = SSL_CTX_new(SSLv23_client_method());
+    ctx = SSL_CTX_new(TLS_client_method());
     if(ctx == NULL){
         ERR_print_errors_fp(stdout);
         exit(1);
@@ -137,7 +137,11 @@ void Client::initConnect(hostent* server){
         error("ERROR connecting");
     ssl = SSL_new(ctx);
     SSL_set_fd(ssl, socket_fd);
-    ShowCerts(ssl);
+    if(SSL_connect(ssl) == -1) {
+        ERR_print_errors_fp(stderr);
+    } else {
+        ShowCerts(ssl);
+    }
 }
 
 void Client::loop(){

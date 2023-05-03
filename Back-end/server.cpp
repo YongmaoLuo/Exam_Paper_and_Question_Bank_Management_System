@@ -42,8 +42,8 @@ Server::~Server()
         SSL_free(iter->second);
     }
     ssl_map.clear();
-    int close_ret = close(mastersocket_fd);
     SSL_CTX_free(ctx);
+    int close_ret = close(mastersocket_fd);
 }
 
 void Server::setup(int port, string digital_certificate_path, string privateKey_path)
@@ -66,7 +66,7 @@ void Server::setup(int port, string digital_certificate_path, string privateKey_
     SSL_library_init();
     OpenSSL_add_all_algorithms();
     SSL_load_error_strings();
-    ctx = SSL_CTX_new(SSLv23_server_method());
+    ctx = SSL_CTX_new(TLS_server_method());
     if(ctx == NULL){
         ERR_print_errors_fp(stdout);
         exit(1);
@@ -151,13 +151,14 @@ void Server::shutdown()
         close(iter->first); // Is this necessary?
     }
     ssl_map.clear();
+    SSL_CTX_free(ctx);
     int close_ret = close(mastersocket_fd);
 	#ifdef SERVER_DEBUG
 	printf("[SERVER] [DEBUG] [SHUTDOWN] closing master fd..  ret '%d'.\n",close_ret);
 	#endif
-    SSL_CTX_free(ctx);
     user.reset();
     question.reset();
+    exit(EXIT_SUCCESS);
 }
 
 void Server::handleNewConnection()
@@ -189,6 +190,11 @@ void Server::handleNewConnection()
     // sendMessage(connect_fd, message.c_str());
     SSL* ssl = SSL_new(ctx);
     SSL_set_fd(ssl, tempsocket_fd);
+    // disable two-way shutdown
+    if (1 != SSL_set_num_tickets(ssl, 0)) {
+            fprintf(stderr, "SSL_set_num_tickets failed\n");
+            exit(EXIT_FAILURE);
+    }
     if (SSL_accept(ssl) == -1) {
         perror("accept");
         close(tempsocket_fd);
