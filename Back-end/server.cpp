@@ -176,7 +176,7 @@ void Server::handleNewConnection()
 		    epev.events = EPOLLIN | EPOLLET;
             epev.data.fd = tempsocket_fd;
             int flags = fcntl(tempsocket_fd, F_GETFL, 0);
-            if(flags < 0 || fcntl(tempsocket_fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+            if(flags < 0 || fcntl(tempsocket_fd, F_SETFL, flags) < 0) {
                 cout<<"Set non-blocking error, fd: "<<tempsocket_fd<<endl;
                 return;
             } 
@@ -195,15 +195,20 @@ void Server::handleNewConnection()
             fprintf(stderr, "SSL_set_num_tickets failed\n");
             exit(EXIT_FAILURE);
     }
-    if (SSL_accept(ssl) == -1) {
-        perror("accept");
+    // set retry mechanism
+    int retry = 10;
+    while (retry > 0 && SSL_accept(ssl) == -1) {
+        retry --;
+    }
+    if(retry <= 0) {
+        perror("accept"); // epoll not fit for non-blocking connection
         close(tempsocket_fd);
         return;
     }
     ssl_map[tempsocket_fd] = ssl;
     cout<<"Successfully connected!"<<endl;
     Connector connect_fd = Connector(tempsocket_fd);
-    sendMsgToExisting(connect_fd); // It is advised to send once connected
+    // sendMsgToExisting(connect_fd); // It is advised to send once connected
 }
 
 
