@@ -1,10 +1,10 @@
 #include "client.hpp"
 
-int Client::read_iterative(char* ptr, int size){
+int Client::read_iterative(SSL* ssl, char* ptr, int size){
     int left_bytes, read_bytes;
     left_bytes = size;
     while(left_bytes > 0){
-        read_bytes = SSL_read(socket_fd, ptr, left_bytes);
+        read_bytes = SSL_read(ssl, ptr, left_bytes);
         if(read_bytes < 0) return (read_bytes);
         if(read_bytes == 0) break;
         left_bytes -= read_bytes;
@@ -14,11 +14,11 @@ int Client::read_iterative(char* ptr, int size){
     return (size - left_bytes);
 }
 
-int Client::write_iterative(char* ptr, int size){
+int Client::write_iterative(SSL* ssl, char* ptr, int size){
     int left_bytes, written_bytes;
     left_bytes = size;
     while(left_bytes > 0){
-        written_bytes = SSL_write(socket_fd, ptr, left_bytes);
+        written_bytes = SSL_write(ssl, ptr, left_bytes);
         if(written_bytes < 0) return (written_bytes);
         if(written_bytes == 0) break;
         left_bytes -= written_bytes;
@@ -27,7 +27,7 @@ int Client::write_iterative(char* ptr, int size){
     return (size - left_bytes);
 }
 
-Client::Client(string digital_certificate_path, string privateKey_path){
+Client::Client(char* digital_certificate_path, char* privateKey_path){
     setup(PORT, digital_certificate_path, privateKey_path);
 }
 
@@ -41,7 +41,7 @@ Client::~Client(){
     close(socket_fd);
 }
 
-Client::Client(string digital_certificate_path, string privateKey_path, int port){
+Client::Client(char* digital_certificate_path, char* privateKey_path, int port){
     setup(port, digital_certificate_path, privateKey_path);
 }
 
@@ -52,7 +52,7 @@ Client::Client(const Client& orig){
     strcpy(buffer, orig.buffer);
 }
 
-void Client::setup(int port, string digital_certificate_path, string privateKey_path){
+void Client::setup(const int port, const char* digital_certificate_path, const char* privateKey_path){
     SSL_library_init();
     OpenSSL_add_all_algorithms();
     SSL_load_error_strings();
@@ -133,11 +133,13 @@ void Client::initConnect(hostent* server){
         (char *)&serv_addr.sin_addr.s_addr,
         server->h_length);
     serv_addr.sin_port = htons(PORT);
-    if (connect(socket_fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) 
+    int r;
+    if ((r = connect(socket_fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr))) < 0)
         error("ERROR connecting");
     ssl = SSL_new(ctx);
     SSL_set_fd(ssl, socket_fd);
-    if(SSL_connect(ssl) == -1) {
+    SSL_set_connect_state(ssl);
+    if(SSL_do_handshake(ssl) == -1) {
         ERR_print_errors_fp(stderr);
     } else {
         ShowCerts(ssl);
@@ -150,10 +152,10 @@ void Client::loop(){
     connect_fd.source_fd = socket_fd;
     
     // num_bytes = recvMessage(connect_fd, buffer);
-    num_bytes = recvMessageSSL(ssl, buffer);
-    printf("%s \n", buffer);
-    if (num_bytes < 0) 
-         error("ERROR reading from socket");
+    // num_bytes = recvMessageSSL(ssl, buffer);
+    // printf("%s \n", buffer);
+    // if (num_bytes < 0) 
+    //      error("ERROR reading from socket");
     bzero(buffer,256);
 
     string username = "\"admin\"";
@@ -186,8 +188,8 @@ void Client::loop(){
 int main(int argc, char *argv[])
 {   
     struct hostent *server = gethostbyname(argv[1]); // 34.139.226.174
-    string digital_certificate_path = argv[2];
-    string privateKey_path = argv[3];
+    char* digital_certificate_path = argv[2];
+    char* privateKey_path = argv[3];
     Client client = Client(digital_certificate_path, privateKey_path);
     client.initConnect(server);
     client.loop();

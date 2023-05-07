@@ -71,9 +71,10 @@ class Client{
         struct hostent *server;
         SSL_CTX* ctx;
         SSL* ssl;
+        s1 recv_struct{};
 
-        int read_iterative(char* ptr, int size);
-        int write_iterative(char* ptr, int size);
+        int read_iterative(SSL* ssl, char* ptr, int size);
+        int write_iterative(SSL* ssl, char* ptr, int size);
         void error(const char *msg);
         
     public:
@@ -86,11 +87,11 @@ class Client{
         struct Connector{
             uint16_t source_fd;
         };
-        Client(string, string);
-        Client(string, string, int);
+        Client(char*, char*);
+        Client(char*, char*, int);
         Client(const Client& orig);
         virtual ~Client();
-        void setup(int port);
+        void setup(const int, const char*, const char*);
         void loop();
         void initConnect(hostent *server);
 
