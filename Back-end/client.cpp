@@ -133,11 +133,13 @@ void Client::initConnect(hostent* server){
         (char *)&serv_addr.sin_addr.s_addr,
         server->h_length);
     serv_addr.sin_port = htons(PORT);
-    if (connect(socket_fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) 
+    int r;
+    if ((r = connect(socket_fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr))) < 0)
         error("ERROR connecting");
     ssl = SSL_new(ctx);
     SSL_set_fd(ssl, socket_fd);
-    if(SSL_connect(ssl) == -1) {
+    SSL_set_connect_state(ssl);
+    if(SSL_do_handshake(ssl) == -1) {
         ERR_print_errors_fp(stderr);
     } else {
         ShowCerts(ssl);

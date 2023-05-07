@@ -48,7 +48,7 @@ Server::~Server()
 
 void Server::setup(int port, string digital_certificate_path, string privateKey_path)
 {
-    mastersocket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    mastersocket_fd = socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
     if (mastersocket_fd < 0) {
         perror("Socket creation failed");
     }
@@ -167,21 +167,21 @@ void Server::handleNewConnection()
   	std::cout << "[SERVER] [CONNECTION] handling new connection\n";
     #endif
     socklen_t addrlen = sizeof (client_addr);
-    tempsocket_fd = accept(mastersocket_fd, (struct sockaddr*) &client_addr, &addrlen);
+    tempsocket_fd = accept4(mastersocket_fd, (struct sockaddr*) &client_addr, &addrlen, SOCK_CLOEXEC);
     	
 	if (tempsocket_fd < 0) {
-        	perror("[SERVER] [ERROR] accept() failed");
+        perror("[SERVER] [ERROR] accept() failed");
 	} else {
-        	// FD_SET(tempsocket_fd, &masterfds);
-		    epev.events = EPOLLIN | EPOLLET;
-            epev.data.fd = tempsocket_fd;
-            int flags = fcntl(tempsocket_fd, F_GETFL, 0);
-            if(flags < 0 || fcntl(tempsocket_fd, F_SETFL, flags) < 0) {
-                cout<<"Set non-blocking error, fd: "<<tempsocket_fd<<endl;
-                return;
-            } 
+        // FD_SET(tempsocket_fd, &masterfds);
+        epev.events = EPOLLIN | EPOLLOUT | EPOLLET;
+        epev.data.fd = tempsocket_fd;
+        int flags = fcntl(tempsocket_fd, F_GETFL, 0);
+        if(flags < 0 || fcntl(tempsocket_fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+            cout<<"Set non-blocking error, fd: "<<tempsocket_fd<<endl;
+            return;
+        } 
 
-            epoll_ctl(eFd, EPOLL_CTL_ADD, tempsocket_fd, &epev);
+        epoll_ctl(eFd, EPOLL_CTL_ADD, tempsocket_fd, &epev);
     }
     // // newConnectionCallback(tempsocket_fd); //call the callback
     // string message = "Successfully connected!";
@@ -190,20 +190,47 @@ void Server::handleNewConnection()
     // sendMessage(connect_fd, message.c_str());
     SSL* ssl = SSL_new(ctx);
     SSL_set_fd(ssl, tempsocket_fd);
+    SSL_set_accept_state(ssl);
     // disable two-way shutdown
     if (1 != SSL_set_num_tickets(ssl, 0)) {
-            fprintf(stderr, "SSL_set_num_tickets failed\n");
-            exit(EXIT_FAILURE);
+        fprintf(stderr, "SSL_set_num_tickets failed\n");
+        exit(EXIT_FAILURE);
     }
     // set retry mechanism
     int retry = 10;
-    while (retry > 0 && SSL_accept(ssl) == -1) {
+    int accept_status;
+    while (retry > 0 && (accept_status = SSL_do_handshake(ssl)) < 0) {
         retry --;
     }
     if(retry <= 0) {
         perror("accept"); // epoll not fit for non-blocking connection
-        close(tempsocket_fd);
-        return;
+        int accept_err = SSL_get_error(ssl, accept_status);
+        int old_ev = epev.events;
+        if (accept_err == SSL_ERROR_WANT_WRITE) {
+            epev.events |= EPOLLOUT;
+            epev.events &= ~EPOLLIN;
+            if(old_ev == epev.events) {
+                SSL_shutdown(ssl);
+                SSL_free(ssl);
+                close(tempsocket_fd);
+                return;
+            }
+        } else if (accept_err == SSL_ERROR_WANT_READ) {
+            epev.events |= EPOLLIN;
+            epev.events &= ~EPOLLOUT;
+            if(old_ev == epev.events) {
+                SSL_shutdown(ssl);
+                SSL_free(ssl);
+                close(tempsocket_fd);
+                return;
+            }
+        } else {
+            SSL_shutdown(ssl);
+            SSL_free(ssl);
+            close(tempsocket_fd);
+            return;
+        }
+
     }
     ssl_map[tempsocket_fd] = ssl;
     cout<<"Successfully connected!"<<endl;
