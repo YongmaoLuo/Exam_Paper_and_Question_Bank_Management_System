@@ -177,6 +177,8 @@ private:
     //unsigned integer to keep track of maximum fd value, required for select()
     // uint16_t maxfd;
     s1 recv_struct{};
+    unordered_set<string> subject_cache;
+    unordered_map<string, unordered_set<string>> chapter_cache;
 
     explicit Server(string, string);
     explicit Server(string, string, int port);

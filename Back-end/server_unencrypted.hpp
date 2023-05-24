@@ -152,6 +152,8 @@ public:
 private:
 
     s1 recv_struct{};
+    unordered_set<string> subject_cache;
+    unordered_map<string, unordered_set<string>> chapter_cache;
     // make it singleton
     explicit Server();
     explicit Server(int port);

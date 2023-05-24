@@ -636,11 +636,16 @@ vector<string> Server::getChapters(string& subject){
 vector<string> Server::addSubject(string& subject) {
     int status_code;
     vector<string> messages;
-    optional<pair<string, variant<string, int, double>>> count_info;
-    count_info = std::make_pair("subject", subject);
-
-    const string target_attribute = "subject";
-    int existence = question->countDistinct(target_attribute, count_info);
+    int existence;
+    if(subject_cache.contains(subject)) {
+        existence = 1;
+    } else {
+        optional<pair<string, variant<string, int, double>>> count_info;
+        count_info = std::make_pair("subject", subject);
+        const string target_attribute = "subject";
+        existence = question->countDistinct(target_attribute, count_info);
+    }
+    
     int rc;
     if(existence < 0) status_code = 404;
     else if(existence == 0) {
@@ -649,7 +654,10 @@ vector<string> Server::addSubject(string& subject) {
         rc = question->insert(new_question);
         // delete new_question;
         if(rc < 0) status_code = 403;
-        else status_code = 200;
+        else {
+            status_code = 200;
+            subject_cache.insert(subject);
+        } 
     } else {
         cout<<"Subject already exists!"<<endl;
         status_code = 403;
@@ -668,22 +676,33 @@ vector<string> Server::addChapter(string& subject, string& chapter) {
     int status_code;
     vector<string> messages;
     const string target_attribute = "chapter";
+    int existence;
+    if(subject_cache.contains(subject)) {
+        existence = 1;
+    } else {
+        optional<pair<string, variant<string, int, double>>> count_info;
+        count_info = std::make_pair("subject", subject);
+        existence = question->countDistinct(target_attribute, count_info);
+    }
 
-    optional<pair<string, variant<string, int, double>>> count_info;
-    count_info = std::make_pair("subject", subject);
-    int existence = question->countDistinct(target_attribute, count_info);
     if(existence > 0) {
-        vector<pair<string, string>> count_infos{std::make_pair("subject", subject), std::make_pair("chapter", chapter)};
-        existence = question->countDistinct(target_attribute, count_infos);
+        if(chapter_cache.contains(subject) && chapter_cache[subject].contains(chapter)) {
+            existence = 1;
+        } else {
+            vector<pair<string, string>> count_infos{std::make_pair("subject", subject), std::make_pair("chapter", chapter)};
+            existence = question->countDistinct(target_attribute, count_infos);
+        }
         int rc;
         if(existence < 0) status_code = 404;
         else if(existence == 0) {
             cout<<"Add a new chapter to the question bank."<<endl;
             const std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>("placeholder", "placeholder", chapter, subject);
             rc = question->insert(new_question);
-            // delete new_question;
             if(rc < 0) status_code = 403;
-            else status_code = 200;
+            else {
+                status_code = 200;
+                chapter_cache[subject].insert(chapter);
+            }
         } else {
             cout<<"Chapter already exists!"<<endl;
             status_code = 403;

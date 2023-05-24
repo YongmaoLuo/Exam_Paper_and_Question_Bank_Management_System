@@ -108,6 +108,7 @@
         "condition_variable": "cpp",
         "semaphore": "cpp",
         "csignal": "cpp",
-        "future": "cpp"
+        "future": "cpp",
+        "unordered_set": "cpp"
     }
 }
