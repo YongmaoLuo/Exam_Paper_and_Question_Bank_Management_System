@@ -39,6 +39,29 @@ class question_bank: public database{
         int insert(const std::shared_ptr<QuestionInfo<string>>&);
         int update(vector<pair<string, string>>, vector<pair<string, variant<string, int, double>>> changelist);
 
+        template<hashable T_input = string, hashable T = string>
+        bool checkExistence(vector<pair<string, T_input>> constraints) {
+            sql = "SELECT 1 FROM QUESTIONS ";
+            if(!constraints.empty()){
+                sql += "WHERE ";
+                int cnt = 0;
+                for(auto constraint=constraints.begin(); constraint != constraints.end(); constraint++){
+                    string constraint_key = constraint->first;
+                    T constraint_val = constraint->second;
+                    
+                    string constraint_val_str;
+                    if constexpr(std::is_same_v<T_input, int> || std::is_same_v<T_input, double> || std::is_same_v<T_input, float>) constraint_val_str = to_string(constraint_val);
+                    else constraint_val_str = constraint_val;
+
+                    sql += cnt? fmt::format("AND {} = '{}' ", constraint_key, constraint_val_str): fmt::format("{} = '{}' ", constraint_key, constraint_val_str);
+                    cnt ++;
+                }
+            }
+            sql += "limit 1;";
+            vector<T> exec_res = sqlexec<T>(sql);
+            return exec_res.size()? true: false;
+        }
+
         string getQuestionAttribute(optional<pair<string, variant<string, int, double>>> constraint, std::array<pair<string, string>, 3> primary_pairs, const string& target_attribute);
 
         // vector<string> getQuestionAttributes(string target_attributes, string constraint_key, string constraint_val);
