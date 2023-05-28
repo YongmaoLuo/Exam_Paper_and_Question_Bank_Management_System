@@ -81,13 +81,15 @@ class database{
     protected:
         sqlite3 *db;
         sqlite3_stmt *stmt;
+        sqlite3_stmt *stmt_insert;
         char *zErrMsg;
     public:
         virtual void create(bool, const char*) = 0;
         virtual int count() = 0;
         virtual void clean() = 0;
         virtual void close(){
-            sqlite3_finalize(stmt);
+            sqlite3_finalize(stmt); // Is this necessary?
+            sqlite3_finalize(stmt_insert); // Is this necessary?
             sqlite3_close(db);
         }
         virtual void reorganize() = 0;
