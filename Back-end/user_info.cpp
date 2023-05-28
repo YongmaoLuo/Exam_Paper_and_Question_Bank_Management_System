@@ -13,7 +13,8 @@ db_user::db_user(const db_user& database){
 }
 
 db_user::~db_user(){
-   sqlite3_finalize(stmt);
+   sqlite3_finalize(stmt); // Is this necessary?
+   sqlite3_finalize(stmt_insert);
    sqlite3_close(db);
 }
 
@@ -66,6 +67,8 @@ void db_user::create(bool clear/*= false*/, const char* database_name/*= "userin
    // } catch(int response){
    //    if(response < 0) n = sqlite3_rekey(db, encrypted_password, strlen(encrypted_password));
    // }
+   string sql_insert = "INSERT INTO USER VALUES (@UN, @PW, @IT, @ST, @AT)";
+   sqlite3_prepare_v2(db, sql_insert.c_str(), -1, &stmt_insert, NULL);
    
 }
 
@@ -79,23 +82,36 @@ int db_user::insert(const std::shared_ptr<UserInfo<string>>& user){
    auto [username, password, identity, status, activity] = user->getElements();
    password = encrypt_password(password);
    if(status.empty()) status = "valid";
-   sql = fmt::format("INSERT INTO USER (USERNAME, PASSWORD, IDENTITY, STATUS, ACTIVITY) "  \
-            "VALUES ('{}', '{}', '{}', '{}', '{}'); COMMIT;", username, password, identity, status, activity);
+   // sql = fmt::format("INSERT INTO USER (USERNAME, PASSWORD, IDENTITY, STATUS, ACTIVITY) "  \
+   //          "VALUES ('{}', '{}', '{}', '{}', '{}'); COMMIT;", username, password, identity, status, activity);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", NULL, NULL, &zErrMsg);
 
-   rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
-   if (rc != SQLITE_OK) {
+   sqlite3_bind_text(stmt_insert, 1, username.c_str(), -1, SQLITE_TRANSIENT);
+   sqlite3_bind_text(stmt_insert, 2, password.c_str(), -1, SQLITE_TRANSIENT);
+   sqlite3_bind_text(stmt_insert, 3, identity.c_str(), -1, SQLITE_TRANSIENT);
+   sqlite3_bind_text(stmt_insert, 4, status.c_str(), -1, SQLITE_TRANSIENT);
+   sqlite3_bind_int(stmt_insert, 5, activity);
+
+   // rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
+   rc = sqlite3_step(stmt_insert);
+   if (rc != SQLITE_DONE) {
          fprintf(stderr, "SQL error: %s\n", zErrMsg);
          sqlite3_free(zErrMsg);
          return -1;
    } else {
          fprintf(stdout, "Inserted into table successfully\n");
    }
-   return rc;
+   sqlite3_exec(db, "END TRANSACTION", NULL, NULL, &zErrMsg);
+   // sqlite3_clear_bindings(stmt_insert); // This is not necessary
+   sqlite3_reset(stmt_insert);
+   return rc; // 101
 }
 
 int db_user::update(const string& primary_val, vector<pair<string, variant<string, int, double>>> changelist){
    std::set<string> keys;
    string key;
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", NULL, NULL, &zErrMsg);
+   sql.clear();
    while(!changelist.empty()){
       auto changed = changelist.back();
       key = changed.first;
@@ -111,24 +127,24 @@ int db_user::update(const string& primary_val, vector<pair<string, variant<strin
       if(key == "PASSWORD") {
          value = encrypt_password(std::get<string>(value));
       }
-      sql = fmt::format("UPDATE USER set {} = '{}' where USERNAME = '{}';", key, custom_to_string(value), primary_val);
-
-      rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
-      if (rc != SQLITE_OK) {
-            fprintf(stderr, "SQL error: %s\n", zErrMsg);
-            sqlite3_free(zErrMsg);
-            return -1;
-      } else {
-            fprintf(stdout, "Table updated successfully\n");
-      }
+      sql += fmt::format("UPDATE USER set {} = '{}' where USERNAME = '{}';", key, custom_to_string(value), primary_val);
    }
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<db_user>, 0, &zErrMsg);
+   if (rc != SQLITE_OK) {
+         fprintf(stderr, "SQL error: %s\n", zErrMsg);
+         sqlite3_free(zErrMsg);
+         return -1;
+   } else {
+         fprintf(stdout, "Table updated successfully\n");
+   }
+   sqlite3_exec(db, "END TRANSACTION", NULL, NULL, &zErrMsg);
    return rc;
 }
 
 string db_user::checkType(string target_attribute){
    sql = fmt::format("SELECT typeof({}) FROM USER LIMIT 1;", target_attribute);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, &zErrMsg);
    int num_cols;
    int bytes;
    char* row_content_raw;
@@ -163,7 +179,7 @@ string db_user::getUserAttribute(string& primary_val, string& target_attribute, 
 
    // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, &zErrMsg);
    int num_cols;
    int bytes = 0;
    char* row_content_raw;
@@ -221,7 +237,7 @@ string db_user::getUserAttribute(string& primary_val, string& target_attribute, 
 int db_user::count(){
    sql = "SELECT COUNT (*) from USER LIMIT 1;"; 
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, &zErrMsg);
    int num_cols;
    vector<int> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){
@@ -243,7 +259,7 @@ int db_user::countDistinct(const string& target_attribute, pair<string, variant<
    auto countValue =  count_info.second;
    sql = fmt::format("SELECT COUNT(DISTINCT {}) from USER WHERE {}='{}' LIMIT 1;", target_attribute, countKey, custom_to_string(countValue));
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, &zErrMsg);
    int num_cols;
    vector<int> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){

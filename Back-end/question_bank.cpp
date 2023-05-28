@@ -13,7 +13,8 @@ question_bank::question_bank(const question_bank& database){
 }
 
 question_bank::~question_bank(){
-   sqlite3_finalize(stmt);
+   sqlite3_finalize(stmt); // Is it necessary?
+   sqlite3_finalize(stmt_insert);
    sqlite3_close(db);
 }
 
@@ -60,6 +61,8 @@ void question_bank::create(bool clear/*= false*/, const char* database_name/*= "
    } else {
       fprintf(stdout, "Table created successfully\n");
    }
+   string sql_insert = "INSERT INTO QUESTIONS VALUES (@PT, @CT, @CH, @SJ, @RB)";
+   sqlite3_prepare_v2(db, sql_insert.c_str(), -1, &stmt_insert, NULL);
 }
 
 int question_bank::insert(const std::shared_ptr<QuestionInfo<string>>& question){
@@ -70,22 +73,37 @@ int question_bank::insert(const std::shared_ptr<QuestionInfo<string>>& question)
    // int rubric = question->rubric;
    auto [path, content, chapter, category, rubric] = question->getElements();
    if(category.empty()) category = "undefined";
-   sql = fmt::format("INSERT INTO QUESTIONS (PATH, CONTENT, CHAPTER, SUBJECT, RUBRIC) "  \
-            "VALUES ('{}', '{}', '{}', '{}', '{}'); COMMIT;", path, content, chapter, category, rubric);
-   rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
-   if (rc != SQLITE_OK) {
+   // sql = fmt::format("INSERT INTO QUESTIONS (PATH, CONTENT, CHAPTER, SUBJECT, RUBRIC) "  \
+   //          "VALUES ('{}', '{}', '{}', '{}', '{}'); COMMIT;", path, content, chapter, category, rubric);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", NULL, NULL, &zErrMsg);
+
+   sqlite3_bind_text(stmt_insert, 1, path.c_str(), -1, SQLITE_TRANSIENT);
+   sqlite3_bind_text(stmt_insert, 2, content.c_str(), -1, SQLITE_TRANSIENT);
+   sqlite3_bind_text(stmt_insert, 3, chapter.c_str(), -1, SQLITE_TRANSIENT);
+   sqlite3_bind_text(stmt_insert, 4, category.c_str(), -1, SQLITE_TRANSIENT);
+   sqlite3_bind_int(stmt_insert, 5, rubric);
+
+   // rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
+   rc = sqlite3_step(stmt_insert);
+   if (rc != SQLITE_DONE) {
          fprintf(stderr, "SQL error: %s\n", zErrMsg);
          sqlite3_free(zErrMsg);
          return -1;
    } else {
          fprintf(stdout, "Inserted into table successfully\n");
    }
+   sqlite3_exec(db, "END TRANSACTION", NULL, NULL, &zErrMsg);
+   // sqlite3_clear_bindings(stmt_insert); // This is not necessary
+   sqlite3_reset(stmt_insert);
    return rc;
 }
 
 int question_bank::update(vector<pair<string, string>> primary_pairs, vector<pair<string, variant<string, int, double>>> changelist){
    std::set<string> keys;
    string key;
+   sql.clear();
+   string sql_tmp = "";
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", NULL, NULL, &zErrMsg);
    while(!changelist.empty()){
       auto changed = changelist.back();
       key = changed.first;
@@ -101,21 +119,20 @@ int question_bank::update(vector<pair<string, string>> primary_pairs, vector<pai
       auto primary_keys = std::to_array<string>({"PATH", "CHAPTER", "SUBJECT"});
       if(std::find(primary_keys.begin(), primary_keys.end(), key) != primary_keys.end()) return -1;
       
-      sql = fmt::format("UPDATE QUESTIONS set {} = '{}' where ", key, custom_to_string(value));
-      for(int i=0; i<primary_pairs.size()-1; i++) sql += fmt::format("{} = '{}' AND ", primary_pairs[i].first, primary_pairs[i].second);
-      sql += fmt::format("{} = '{}';", primary_pairs[primary_pairs.size()-1].first, primary_pairs[primary_pairs.size()-1].second);
-      // DML needs commit
-      sql += "commit;";
-
-      rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
-      if (rc != SQLITE_OK) {
-            fprintf(stderr, "SQL error: %s\n", zErrMsg);
-            sqlite3_free(zErrMsg);
-            return -1;
-      } else {
-            fprintf(stdout, "Table updated successfully\n");
-      }
+      sql_tmp = fmt::format("UPDATE QUESTIONS set {} = '{}' where ", key, custom_to_string(value));
+      for(int i=0; i<primary_pairs.size()-1; i++) sql_tmp += fmt::format("{} = '{}' AND ", primary_pairs[i].first, primary_pairs[i].second);
+      sql_tmp += fmt::format("{} = '{}';", primary_pairs[primary_pairs.size()-1].first, primary_pairs[primary_pairs.size()-1].second);
+      sql += sql_tmp;
    }
+   rc = sqlite3_exec(db, sql.c_str(), c_callback<question_bank>, 0, &zErrMsg);
+   if (rc != SQLITE_OK) {
+      fprintf(stderr, "SQL error: %s\n", zErrMsg);
+      sqlite3_free(zErrMsg);
+      return -1;
+   } else {
+      fprintf(stdout, "Table updated successfully\n");
+   }
+   sqlite3_exec(db, "END TRANSACTION", NULL, NULL, &zErrMsg);
    return rc;
 }
 
@@ -133,7 +150,7 @@ string question_bank::getQuestion(optional<pair<string, variant<string, int, dou
    vector<string> output = sqlexec<string>(sql);
    
    if(!output.empty()) return output[0];
-   cout<<"question not found"<<endl;
+   cout<<"Question not found!"<<endl;
    return {};
 }
 
@@ -161,12 +178,12 @@ string question_bank::getQuestionAttribute(optional<pair<string, variant<string,
    string res;
    
    while(sqlite3_step(stmt) != SQLITE_DONE){
-         num_cols = sqlite3_column_count(stmt);
-         for(int i = 0; i < num_cols; i++){
-            row_content_raw = const_cast<char*>(static_cast<const char *>(sqlite3_column_blob(stmt, i)));
-            bytes = sqlite3_column_bytes(stmt, i);
-            res = string(row_content_raw, bytes);
-         }
+      num_cols = sqlite3_column_count(stmt);
+      for(int i = 0; i < num_cols; i++){
+         row_content_raw = const_cast<char*>(static_cast<const char *>(sqlite3_column_blob(stmt, i)));
+         bytes = sqlite3_column_bytes(stmt, i);
+         res = string(row_content_raw, bytes);
+      }
    }
    sqlite3_finalize(stmt);
    if(bytes) return res;
@@ -231,7 +248,7 @@ int question_bank::countDistinct(const string target_attribute, optional<pair<st
       sql = fmt::format("select count(DISTINCT {}) from QUESTIONS where {} != 'placeholder' LIMIT 1;", target_attribute, target_attribute);
    }
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, &zErrMsg);
    int num_cols;
    vector<int> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){
@@ -251,7 +268,7 @@ int question_bank::countDistinct(const string target_attribute, optional<pair<st
 vector<string> question_bank::getQuestionPaths(){
    sql = "SELECT PATH from QUESTIONS;";
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
-   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);
+   sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, &zErrMsg);
    int num_cols;
    vector<string> output;
    while(sqlite3_step(stmt) != SQLITE_DONE){
