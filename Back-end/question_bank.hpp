@@ -104,10 +104,10 @@ class question_bank: public database{
             return sqlexec<T>(sql);
         }
 
-        string getQuestion(optional<pair<string, variant<string, int, double>>> constraint, string primary_val);
+        string getQuestion(optional<pair<string, variant<string, int, double>>> constraint, string& primary_val);
         int count();
-        int countDistinct(const string target_attribute, optional<pair<string, variant<string, int, double>>> count_info);
-        int countDistinct(const string target_attribute, vector<pair<string, string>> count_info);
+        int countDistinct(const string& target_attribute, optional<pair<string, variant<string, int, double>>> count_info);
+        int countDistinct(const string& target_attribute, vector<pair<string, string>> count_info);
         vector<string> getQuestionPaths();
         int delet(vector<pair<string, string>>);
         void clean();

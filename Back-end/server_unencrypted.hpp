@@ -154,6 +154,8 @@ private:
     s1 recv_struct{};
     unordered_set<string> subject_cache;
     unordered_map<string, unordered_set<string>> chapter_cache;
+    int user_count_cache = -1;
+    int subject_count_cache = -1;
     // make it singleton
     explicit Server();
     explicit Server(int port);
@@ -205,11 +207,11 @@ private:
 
     tuple<vector<string>, Connector> recvInputFromExisting(Connector&);
     void sendMsgToExisting(Connector&, vector<string> = vector<string>());
-    vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity);
-    vector<string> authenticateUser(Connector& conn, string username, auto password);
+    vector<string> registerUser(Connector& connect_fd, string& username, auto password, string& identity);
+    vector<string> authenticateUser(Connector& conn, string& username, auto password);
     vector<string> logout(Connector&);
     int logout(string&); // function overload
-    vector<string> deleteUser(Connector&, string username);
+    vector<string> deleteUser(Connector&, string& username);
     vector<string> deleteUserSelf(Connector&, auto password);
     vector<string> getUser(Connector& connect_fd);
     vector<string> getTeachers();

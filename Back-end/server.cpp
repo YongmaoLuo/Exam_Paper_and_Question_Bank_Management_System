@@ -399,7 +399,7 @@ vector<string> Server::deleteBulletin(string& bulletin_name) {
     return messages;
 }
 
-vector<string> Server::authenticateUser(Connector& connect_fd, string username, auto password){
+vector<string> Server::authenticateUser(Connector& connect_fd, string& username, auto password){
     int status_code;
     // with database logic
     // optional<pair<string, variant<string, int, double>>> constraint;
@@ -441,14 +441,17 @@ vector<string> Server::authenticateUser(Connector& connect_fd, string username, 
     return messages;
 }
 
-vector<string> Server::registerUser(Connector& connect_fd, string username, auto password, string identity){
+vector<string> Server::registerUser(Connector& connect_fd, string username, auto password, string& identity){
     int status_code;
     // with database logic
     const std::shared_ptr<UserInfo<string>> new_user = std::make_shared<UserInfo<string>>(username, static_cast<std::string>(password), identity, "valid");
     int result = user->insert(new_user);
     // delete new_user;
     if(result == -1) status_code = 403;
-    else status_code = 200;
+    else {
+        status_code = 200;
+        if(user_count_cache >= 0) user_count_cache ++;
+    }
     vector<string> messages;
     #ifdef __cpp_lib_format
     string message = std::format("{\"code\": {}}", status_code);
@@ -515,10 +518,13 @@ int Server::logout(string& username){
 vector<string> Server::getUser(Connector& connect_fd){
     vector<string> usernames;
     int status_code;
+    int numUsers;
     // with database logic
-    int numUsers = user->count();
-    if(numUsers < 0) status_code = 403;
-    else status_code = 200;
+    if(user_count_cache < 0) {
+        numUsers = user_count_cache = user->count();
+    } else {
+        numUsers = user_count_cache;
+    }
 
     vector<string> messages;
     #ifdef __cpp_lib_format
@@ -542,13 +548,14 @@ vector<string> Server::getUser(Connector& connect_fd){
     return messages;
 }
 
-vector<string> Server::deleteUser(Connector& connect_fd, string username){
+vector<string> Server::deleteUser(Connector& connect_fd, string& username){
     int status_code = 200;
 
     auto un = usernameSet.find(username);
     if(un != usernameSet.end()) {
         status_code = 200;
         usernameSet.erase(un);
+        if(user_count_cache > 0) user_count_cache --;
     } else {
         status_code = 403;
     }
@@ -584,6 +591,7 @@ vector<string> Server::deleteUserSelf(Connector& connect_fd, auto password){
         status_code = 200;
         cout<<"Identity found!"<<endl;
         bindIdentity.erase(identity_iter);
+        if(user_count_cache > 0) user_count_cache --;
         // bindUsername.erase(it);
     }
 
@@ -649,7 +657,12 @@ vector<string> Server::getSubjects(){
     vector<string> messages;
     const string target_attribute = "subject";
     optional<pair<string, variant<string, int, double>>> count_info;
-    int subject_num = question->countDistinct(target_attribute, count_info);
+    int subject_num;
+    if(subject_count_cache < 0) {
+        subject_num = subject_count_cache = question->countDistinct(target_attribute, count_info);
+    } else {
+        subject_num = subject_count_cache;
+    }
     if(subject_num < 0){
         status_code = 403;
         #ifdef __cpp_lib_format
@@ -750,6 +763,7 @@ vector<string> Server::addSubject(string& subject) {
         else {
             status_code = 200;
             subject_cache.insert(subject);
+            if(subject_count_cache >= 0) subject_count_cache ++;
         } 
     } else {
         cout<<"Subject already exists!"<<endl;

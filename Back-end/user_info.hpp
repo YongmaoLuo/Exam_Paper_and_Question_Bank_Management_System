@@ -6,7 +6,7 @@ using namespace std;
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
-string encrypt_password(string& password) {
+string& encrypt_password(string& password) {
     // for(int i=0; i < password.size(); i++) {
     //     password[i] -= 1;
     // }
@@ -15,7 +15,7 @@ string encrypt_password(string& password) {
     return password;
 }
 
-string decrypt_password(string& password) {
+string& decrypt_password(string& password) {
     // for(int i=0; i < password.size(); i++) {
     //     password[i] += 1;
     // }

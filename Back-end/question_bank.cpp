@@ -136,7 +136,7 @@ int question_bank::update(vector<pair<string, string>> primary_pairs, vector<pai
    return rc;
 }
 
-string question_bank::getQuestion(optional<pair<string, variant<string, int, double>>> constraint, string primary_val){
+string question_bank::getQuestion(optional<pair<string, variant<string, int, double>>> constraint, string& primary_val){
    if(constraint){
       auto constraint_val = constraint.value();
       string key = constraint_val.first;
@@ -209,7 +209,7 @@ int question_bank::count(){
    return output;
 }
 
-int question_bank::countDistinct(const string target_attribute, vector<pair<string, string>> count_info) {
+int question_bank::countDistinct(const string& target_attribute, vector<pair<string, string>> count_info) {
    sql = fmt::format("select count(DISTINCT {}) from QUESTIONS WHERE ", target_attribute);
    string constraint_key;
    string constraint_val;
@@ -237,7 +237,7 @@ int question_bank::countDistinct(const string target_attribute, vector<pair<stri
    return output[0];
 }
 
-int question_bank::countDistinct(const string target_attribute, optional<pair<string, variant<string, int, double>>> count_info) {
+int question_bank::countDistinct(const string& target_attribute, optional<pair<string, variant<string, int, double>>> count_info) {
    if(count_info){
       auto count_info_detail = count_info.value();
       string countKey = count_info_detail.first;
