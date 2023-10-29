@@ -880,7 +880,7 @@ void Server::loop()
 
     //loop the fd_set and check which socket has interactions available
     // experimental
-    #pragma omp parallel for num_threads(eNum) private(input_buffer, tempsocket_fd, eFd)
+    #pragma omp parallel for num_threads(eNum) private(input_buffer, tempsocket_fd, eFd, user, question)
     for (int i = 0; i <= eNum; i++) {
         //if (FD_ISSET(i, &tempfds)) { //if the socket has activity pending
         if(events[i].data.fd == mastersocket_fd) {
@@ -898,7 +898,9 @@ void Server::loop()
                 cout<<"Connection "<<events[i].data.fd<<" has been closed."<<endl;
             } else if (events[i].events & EPOLLIN) {
                 //exisiting connection has new data
-
+                // create/open databases
+                user->create();
+                question->create();
                 // experimental
                 //if((childpid = fork()) == 0) {
                 Connector connect_fd = Connector(events[i].data.fd);
@@ -923,9 +925,6 @@ void Server::loop()
 
 void Server::init()
 {
-    // create/open databases
-    user->create();
-    question->create();
     initializeSocket();
     bindSocket();
     startListen();
