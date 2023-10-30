@@ -154,8 +154,8 @@ private:
     s1 recv_struct{};
     unordered_set<string> subject_cache;
     unordered_map<string, unordered_set<string>> chapter_cache;
-    int user_count_cache = -1;
-    int subject_count_cache = -1;
+    std::atomic<int> user_count_cache = -1;
+    std::atomic<int> subject_count_cache = -1;
     // make it singleton
     explicit Server();
     explicit Server(int port);
