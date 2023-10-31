@@ -13,6 +13,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <iostream>
+#include <exception>
+#include <atomic>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 // #include <nlohmann/json.hpp>

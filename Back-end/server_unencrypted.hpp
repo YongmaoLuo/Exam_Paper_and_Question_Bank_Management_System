@@ -13,6 +13,7 @@
 #include <netdb.h>
 #include <iostream>
 #include <exception>
+#include <atomic>
 // #include <nlohmann/json.hpp>
 // using json = nlohmann::json;
 #include "glaze/glaze.hpp"
