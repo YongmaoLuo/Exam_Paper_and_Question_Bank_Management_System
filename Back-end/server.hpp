@@ -172,6 +172,7 @@ public:
     uint16_t recvMessageSSL(SSL *ssl, char *messageBuffer);
 
 private:
+    int max_concurrency = 8;
     //fd_set file descriptor sets for use with FD_ macros
     // fd_set masterfds;
     // fd_set tempfds;
@@ -206,8 +207,8 @@ private:
     SSL_CTX* ctx;
     map<int, SSL*> ssl_map;
 
-    std::shared_ptr<db_user> user = std::make_shared<db_user>();
-    std::shared_ptr<question_bank> question = std::make_shared<question_bank>();
+    vector<std::shared_ptr<db_user>> users(max_concurrency, std::make_shared<db_user>());
+    vector<std::shared_ptr<question_bank>> questions(max_concurrency, std::make_shared<question_bank>());
 
     string message;
     map<int, string> bindIdentity;
@@ -228,30 +229,29 @@ private:
     void handleNewConnection();
 
 
-    tuple<vector<string>, Connector> recvInputFromExisting(Connector&);
+    tuple<vector<string>, Connector> recvInputFromExisting(shared_ptr<db_user>, shared_ptr<question_bank>, Connector&);
     void sendMsgToExisting(Connector&, vector<string> = vector<string>());
-    vector<string> registerUser(Connector& connect_fd, string username, auto password, string& identity);
-    vector<string> authenticateUser(Connector& conn, string& username, auto password);
-    vector<string> logout(Connector&);
-    int logout(string&); // function overload
-    vector<string> deleteUser(Connector&, string& username);
-    vector<string> deleteUserSelf(Connector&, auto password);
-    vector<string> getUser(Connector& connect_fd);
-    vector<string> getTeachers();
+    vector<string> registerUser(shared_ptr<db_user>, Connector& connect_fd, string& username, auto password, string& identity);
+    vector<string> authenticateUser(shared_ptr<db_user>, Connector& conn, string& username, auto password);
+    vector<string> logout(shared_ptr<db_user>, Connector&);
+    int logout(shared_ptr<db_user>, string&); // function overload
+    vector<string> deleteUser(shared_ptr<db_user>, Connector&, string& username);
+    vector<string> deleteUserSelf(shared_ptr<db_user>, Connector&, auto password);
+    vector<string> getUser(shared_ptr<db_user>, Connector& connect_fd);
+    vector<string> getTeachers(shared_ptr<db_user>);
 
-    vector<string> getSubjects();
-    vector<string> getChapters(string& subject);
-    vector<string> addSubject(string&);
-    vector<string> addChapter(string& subject, string&);
-    vector<string> getQuestions(string&, string&);
-    vector<string> getQuestions(string&, string&, string&);
-    vector<string> writeQuestion(string&, string&, string&, auto);
-    vector<string> deleteQuestion(string&, string&, string&);
-
+    vector<string> getSubjects(shared_ptr<question_bank>);
+    vector<string> getChapters(shared_ptr<question_bank>, string& subject);
+    vector<string> addSubject(shared_ptr<question_bank>, string&);
+    vector<string> addChapter(shared_ptr<question_bank>, string& subject, string&);
+    vector<string> getQuestions(shared_ptr<question_bank>, string&, string&);
+    vector<string> getQuestions(shared_ptr<question_bank>, string&, string&, string&);
+    vector<string> writeQuestion(shared_ptr<question_bank>, string&, string&, string&, auto);
+    vector<string> deleteQuestion(shared_ptr<question_bank>, string&, string&, string&);
     //void *getInetAddr(struct sockaddr *saddr);
-    vector<string> readBulletin(string&);
-    vector<string> writeBulletin(string&, string&, string&);
-    vector<string> deleteBulletin(string&);
+    vector<string> readBulletin(shared_ptr<question_bank>, string&);
+    vector<string> writeBulletin(shared_ptr<question_bank>, string&, string&, string&);
+    vector<string> deleteBulletin(shared_ptr<question_bank>, string&);
 };
 
 #endif /* SERVER_HPP */
