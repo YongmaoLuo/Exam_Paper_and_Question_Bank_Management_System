@@ -129,7 +129,7 @@ void Server::startListen()
 	#ifdef SERVER_DEBUG
 	std::cout << "[SERVER] listen starting...\n";
 	#endif
-	int listen_ret = listen(mastersocket_fd, 3);
+	int listen_ret = listen(mastersocket_fd, max_concurrency);
 	#ifdef SERVER_DEBUG
 	printf("[SERVER] listen() ret %d\n", listen_ret);
 	#endif
@@ -170,7 +170,7 @@ void Server::handleNewConnection()
   	std::cout << "[SERVER] [CONNECTION] handling new connection\n";
     #endif
     socklen_t addrlen = sizeof (client_addr);
-    tempsocket_fd = accept4(mastersocket_fd, (struct sockaddr*) &client_addr, &addrlen, SOCK_CLOEXEC);
+    int tempsocket_fd = accept4(mastersocket_fd, (struct sockaddr*) &client_addr, &addrlen, SOCK_CLOEXEC);
     	
 	if (tempsocket_fd < 0) {
         perror("[SERVER] [ERROR] accept() failed");
@@ -973,7 +973,7 @@ void Server::loop()
     // experimental
     vector<Connector> target_connectors(eNum, Connector(-1));
     vector<vector<string>> messages_list(eNum, vector<string>());
-    #pragma omp parallel for num_threads(num_threads) private(tempsocket_fd, eFd)
+    #pragma omp parallel for num_threads(num_threads) 
     for (int i = 0; i <= eNum; i++) {
         //if (FD_ISSET(i, &tempfds)) { //if the socket has activity pending
         if(events[i].data.fd == mastersocket_fd) {

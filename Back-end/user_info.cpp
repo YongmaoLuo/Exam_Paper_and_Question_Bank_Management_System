@@ -42,6 +42,13 @@ void db_user::create(bool clear/*= false*/, const char* database_name/*= "userin
       fprintf(stderr, "Journal mode setting successfully\n");
    }
 
+   rc = sqlite3_exec(db, "pragma synchronous = NORMAL", NULL, 0, &zErrMsg);
+   if(rc != SQLITE_OK){
+      fprintf(stderr, "synchronous mode: %s\n", zErrMsg);
+   } else {
+      fprintf(stderr, "synchronous mode setting successfully\n");
+   }
+
    sql = "CREATE TABLE IF NOT EXISTS USER( \
             USERNAME TEXT NOT NULL PRIMARY KEY,  \
             PASSWORD TEXT NOT NULL, \

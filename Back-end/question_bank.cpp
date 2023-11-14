@@ -43,6 +43,13 @@ void question_bank::create(bool clear/*= false*/, const char* database_name/*= "
       fprintf(stderr, "Journal mode setting successfully\n");
    }
 
+   rc = sqlite3_exec(db, "pragma synchronous = NORMAL", NULL, 0, &zErrMsg);
+   if(rc != SQLITE_OK){
+      fprintf(stderr, "synchronous mode: %s\n", zErrMsg);
+   } else {
+      fprintf(stderr, "synchronous mode setting successfully\n");
+   }
+
    sql = "CREATE TABLE IF NOT EXISTS QUESTIONS( \
             PATH varchar(20) NOT NULL,  \
             CONTENT TEXT, \

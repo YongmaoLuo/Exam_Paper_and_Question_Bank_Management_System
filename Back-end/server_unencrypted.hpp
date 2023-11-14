@@ -171,7 +171,6 @@ private:
 
     //socket file descriptors
     int mastersocket_fd; //master socket which receives new connections
-    int tempsocket_fd; //temporary socket file descriptor which holds new clients
     int eFd; // used for epoll
     epoll_event events[EVENTS_SIZE]; // callback array for epoll events
     epoll_event epev{};
