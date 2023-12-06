@@ -172,7 +172,7 @@ public:
     uint16_t recvMessageSSL(SSL *ssl, char *messageBuffer);
 
 private:
-    int max_concurrency = 8;
+    const int max_concurrency = 8;
     //fd_set file descriptor sets for use with FD_ macros
     // fd_set masterfds;
     // fd_set tempfds;
@@ -206,8 +206,8 @@ private:
     SSL_CTX* ctx;
     map<int, SSL*> ssl_map;
 
-    vector<std::shared_ptr<db_user>> users(max_concurrency, std::make_shared<db_user>());
-    vector<std::shared_ptr<question_bank>> questions(max_concurrency, std::make_shared<question_bank>());
+    vector<std::shared_ptr<db_user>> users;
+    vector<std::shared_ptr<question_bank>> questions;
 
     string message;
     map<int, string> bindIdentity;

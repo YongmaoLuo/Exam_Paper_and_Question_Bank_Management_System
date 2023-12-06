@@ -13,11 +13,27 @@ vector<string>& helper(vector<string>& msg, string&& keyword) {
 
 Server::Server()
 {
+    users.reserve(max_concurrency);
+    std::for_each(users.begin(), users.end(), [](std::shared_ptr<db_user> &ptr)
+        {ptr = std::make_shared<db_user>();}
+    );
+    questions.reserve(max_concurrency);
+    std::for_each(questions.begin(), questions.end(), [](std::shared_ptr<question_bank> &ptr)
+        {ptr = std::make_shared<question_bank>();}
+    );
     setup(DEFAULT_PORT);
 }
 
 Server::Server(int port)
 {   
+    users.reserve(max_concurrency);
+    std::for_each(users.begin(), users.end(), [](std::shared_ptr<db_user> &ptr)
+        {ptr = std::make_shared<db_user>();}
+    );
+    questions.reserve(max_concurrency);
+    std::for_each(questions.begin(), questions.end(), [](std::shared_ptr<question_bank> &ptr)
+        {ptr = std::make_shared<question_bank>();}
+    );
     setup(port);
 }
 
@@ -236,7 +252,7 @@ tuple<vector<string>, Connector> Server::recvInputFromExisting(std::shared_ptr<d
         messages = registerUser(cur_user, connect_fd, username, password, identity);
     }
     else if(command == "delete user" && bindIdentity.find(connect_fd.getFd()) != bindIdentity.end()){
-        if(bindIdentity[connect_fd.getFd()] == "admin") messages = deleteUser(connect_fd, username);
+        if(bindIdentity[connect_fd.getFd()] == "admin") messages = deleteUser(cur_user, connect_fd, username);
         else messages = deleteUserSelf(cur_user, connect_fd, password);
     }
     else if(command == "logout" && bindUsername.find(connect_fd.getFd()) != bindUsername.end()) {
@@ -327,7 +343,7 @@ vector<string> Server::authenticateUser(std::shared_ptr<db_user> cur_user, Conne
         int activity = stoi(cur_user->getUserAttribute(username, target_attribute, constraint));
         if(activity){
             cout<<"User already login! Logout from previous device and re-login!"<<endl;
-            int logout_status = logout(username);
+            int logout_status = logout(cur_user, username);
         }
         status_code = 200;
         activity = 1;

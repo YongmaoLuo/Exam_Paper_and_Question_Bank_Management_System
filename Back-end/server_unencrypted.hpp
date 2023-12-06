@@ -14,6 +14,9 @@
 #include <iostream>
 #include <exception>
 #include <atomic>
+#include <vector>
+#include <algorithm>
+#include <iterator>
 // #include <nlohmann/json.hpp>
 // using json = nlohmann::json;
 #include "glaze/glaze.hpp"
@@ -38,6 +41,8 @@ using namespace std;
 #include <mutex>
 #include <csignal>
 
+const int max_concurrency = 8;
+
 struct s1 {
     string command{};
     string username{};
@@ -56,17 +61,17 @@ template <>
 struct glz::meta<s1>
 {
     using T = s1;
-    static constexpr auto value = object("command", &T::command, 
-    "username", &T::username, 
-    "password", &T::password, 
-    "identity", &T::identity,
-    "subject_name", &T::subject_name,
-    "chapter_name", &T::chapter_name,
-    "question_id", &T::question_id,
-    "question_text", &T::question_text,
-    "bulletin_name", &T::bulletin_name,
-    "teacher_name", &T::teacher_name,
-    "bulletin_text", &T::bulletin_text);
+    static constexpr auto value = object(&T::command, 
+    &T::username, 
+    &T::password, 
+    &T::identity,
+    &T::subject_name,
+    &T::chapter_name,
+    &T::question_id,
+    &T::question_text,
+    &T::bulletin_name,
+    &T::teacher_name,
+    &T::bulletin_text);
 };
 
 
@@ -152,8 +157,6 @@ public:
 
 private:
 
-    int max_concurrency = 8;
-
     s1 recv_struct{};
     unordered_set<string> subject_cache;
     unordered_map<string, unordered_set<string>> chapter_cache;
@@ -185,8 +188,8 @@ private:
     char remote_ip[INET6_ADDRSTRLEN];
     //int numbytes;
 
-    vector<std::shared_ptr<db_user>> users(max_concurrency, std::make_shared<db_user>());
-    vector<std::shared_ptr<question_bank>> questions(max_concurrency, std::make_shared<question_bank>());
+    vector<std::shared_ptr<db_user>> users;
+    vector<std::shared_ptr<question_bank>> questions;
 
     unordered_map<int, string> bindIdentity;
     unordered_map<int, string> bindUsername;

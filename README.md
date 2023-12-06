@@ -21,7 +21,7 @@ Other than performance, we also take safety into consideration. We had pragma ke
 ## Dependencies & Requirements
 
 * CMake 3.25
-* g++-10
+* g++-11! [Installation](https://stackoverflow.com/questions/67298443/when-gcc-11-will-appear-in-ubuntu-repositories)
 * Ninja (Optional)
 
 * String formatting tool: [fmt](https://github.com/fmtlib/fmt)

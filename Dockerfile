@@ -8,9 +8,10 @@ RUN apt-get update && \
 WORKDIR /home/mh4116/CPlusPlus_General_Management_System/Back-end
 
 RUN git clone https://github.com/fmtlib/fmt.git
-RUN git clone https://github.com/nlohmann/json.git
+RUN git clone https://github.com/stephenberry/glaze
 RUN git clone https://github.com/rindeal/SQLite3-Encryption.git
 
+COPY glaze/include/glaze/ ./
 COPY CMakeLists.txt server_unencrypted.cpp ./
 RUN cmake . && make
 

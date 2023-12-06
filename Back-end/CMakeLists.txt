@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-set(CMAKE_CXX_COMPILER /usr/bin/g++-10)
+set(CMAKE_CXX_COMPILER /usr/bin/g++-11)
 option(OPTIMISER "Optimiser level 3" ON)
 project(cplusplusproject2022fall CXX)
 
