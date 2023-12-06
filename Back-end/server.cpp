@@ -6,7 +6,7 @@
 using namespace std;
 
 vector<string>& helper(vector<string>& msg, string&& keyword) {
-    auto formatting = [&](string a) -> string{return (keyword == "code" || keyword == "counts")? fmt::format("\"{}\":{}", keyword, a): fmt::format("\"{}\":\"{}\"", keyword, a);};
+    auto formatting = [&](string a) -> string{return (keyword == "code" || keyword == "counts")? fmt::format("{{\"{}\":{}}}", keyword, a): fmt::format("{{\"{}\":\"{}\"}}", keyword, a);};
     std::transform(msg.begin(), msg.end(), msg.begin(), formatting);
     return msg;
 }
