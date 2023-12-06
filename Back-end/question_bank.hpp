@@ -15,10 +15,10 @@ struct QuestionInfo final {
             T category;
             int rubric;
         public:
-            QuestionInfo<T>() {}
-            QuestionInfo<T>(string path_, string content_, string chapter_, T category_): path(path_), content(content_), chapter(chapter_), category(category_), rubric(0) {};
-            QuestionInfo<T>(string path_, string content_, string chapter_, T category_, int rubric_): path(path_), content(content_), chapter(chapter_), category(category_), rubric(rubric_) {};
-            QuestionInfo<T>(const QuestionInfo<T>& newquestion): path(newquestion->path), content(newquestion->content), chapter(newquestion->chapter), category(newquestion->category), rubric(newquestion->rubric) {};
+            QuestionInfo() {}
+            QuestionInfo(string path_, string content_, string chapter_, T category_): path(path_), content(content_), chapter(chapter_), category(category_), rubric(0) {};
+            QuestionInfo(string path_, string content_, string chapter_, T category_, int rubric_): path(path_), content(content_), chapter(chapter_), category(category_), rubric(rubric_) {};
+            QuestionInfo(const QuestionInfo<T>& newquestion): path(newquestion->path), content(newquestion->content), chapter(newquestion->chapter), category(newquestion->category), rubric(newquestion->rubric) {};
             std::tuple<string, string, string, T, int> getElements() const {return std::make_tuple(path, content, chapter, category, rubric);};
         };
 
@@ -99,15 +99,15 @@ class question_bank: public database{
                 }
                 
                 sql += fmt::format(" AND {} != 'placeholder';", target_attribute);
-            } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS where {} != 'placeholder';", target_attribute);
+            } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS where {} != 'placeholder';", target_attribute, target_attribute);
             
             return sqlexec<T>(sql);
         }
 
-        string getQuestion(optional<pair<string, variant<string, int, double>>> constraint, string primary_val);
+        string getQuestion(optional<pair<string, variant<string, int, double>>> constraint, string& primary_val);
         int count();
-        int countDistinct(const string target_attribute, optional<pair<string, variant<string, int, double>>> count_info);
-        int countDistinct(const string target_attribute, vector<pair<string, string>> count_info);
+        int countDistinct(const string& target_attribute, optional<pair<string, variant<string, int, double>>> count_info);
+        int countDistinct(const string& target_attribute, vector<pair<string, string>> count_info);
         vector<string> getQuestionPaths();
         int delet(vector<pair<string, string>>);
         void clean();

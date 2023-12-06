@@ -6,7 +6,7 @@ using namespace std;
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
-string encrypt_password(string& password) {
+string& encrypt_password(string& password) {
     // for(int i=0; i < password.size(); i++) {
     //     password[i] -= 1;
     // }
@@ -15,7 +15,7 @@ string encrypt_password(string& password) {
     return password;
 }
 
-string decrypt_password(string& password) {
+string& decrypt_password(string& password) {
     // for(int i=0; i < password.size(); i++) {
     //     password[i] += 1;
     // }
@@ -33,12 +33,12 @@ struct UserInfo final {
             T status;
             int activity = 0; // no boolean inside sqlite
         public:
-            UserInfo<T>() {}
-            UserInfo<T>(string username_, string password_, T identity_, T status_): username(username_), password(password_), identity(identity_), status(status_), activity(0) {};
-            UserInfo<T>(string username_, string password_, T identity_, T status_, int activity_): username(username_), password(password_), identity(identity_), status(status_), activity(activity_) {};
-            UserInfo<T>(const UserInfo<T>& newuser): username(newuser->username), password(newuser->password), identity(newuser->identity), status(newuser->status), activity(newuser->activity) {};
-            UserInfo<T>(UserInfo<T>&& newuser): username(std::move(newuser->username)), password(std::move(newuser->password)), identity(std::forward<T>(newuser->identity)), status(std::forward<T>(newuser->status)), activity(std::exchange(newuser->activity, 0)) {};
-            UserInfo<T>& operator=(const UserInfo<T>& newuser) noexcept{
+            UserInfo() {};
+            UserInfo(string username_, string password_, T identity_, T status_): username(username_), password(password_), identity(identity_), status(status_), activity(0) {};
+            UserInfo(string username_, string password_, T identity_, T status_, int activity_): username(username_), password(password_), identity(identity_), status(status_), activity(activity_) {};
+            UserInfo(const UserInfo<T>& newuser): username(newuser->username), password(newuser->password), identity(newuser->identity), status(newuser->status), activity(newuser->activity) {};
+            UserInfo(UserInfo<T>&& newuser): username(std::move(newuser->username)), password(std::move(newuser->password)), identity(std::forward<T>(newuser->identity)), status(std::forward<T>(newuser->status)), activity(std::exchange(newuser->activity, 0)) {};
+            UserInfo& operator=(const UserInfo<T>& newuser) noexcept{
                 username = newuser.username;
                 password = newuser.password;
                 identity = newuser.identity;

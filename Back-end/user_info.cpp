@@ -21,13 +21,13 @@ db_user::~db_user(){
 void db_user::create(bool clear/*= false*/, const char* database_name/*= "userinfo.db"*/){
    // rc = sqlite3_open(database_name, &db);
    // CREATE/OPEN
-   rc = sqlite3_open_v2(database_name, &db, SQLITE_OPEN_READWRITE, 
+   rc = sqlite3_open_v2(database_name, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX, 
                         NULL);
    
    if(rc != SQLITE_OK) {
       fprintf(stderr, "No such database, creating a new one: %s\n", sqlite3_errmsg(db));
-      rc = sqlite3_open_v2(database_name, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, 
-                     NULL);
+      rc = sqlite3_open_v2(database_name, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX, 
+                     NULL); // open in multi-threading mode
 
    } else {
       if(clear) clean();
@@ -40,6 +40,13 @@ void db_user::create(bool clear/*= false*/, const char* database_name/*= "userin
       fprintf(stderr, "Journal mode: %s\n", zErrMsg);
    } else {
       fprintf(stderr, "Journal mode setting successfully\n");
+   }
+
+   rc = sqlite3_exec(db, "pragma synchronous = NORMAL", NULL, 0, &zErrMsg);
+   if(rc != SQLITE_OK){
+      fprintf(stderr, "synchronous mode: %s\n", zErrMsg);
+   } else {
+      fprintf(stderr, "synchronous mode setting successfully\n");
    }
 
    sql = "CREATE TABLE IF NOT EXISTS USER( \

@@ -21,12 +21,12 @@ question_bank::~question_bank(){
 void question_bank::create(bool clear/*= false*/, const char* database_name/*= "questions.db"*/){
    // rc = sqlite3_open(database_name, &db);
    // CREATE/OPEN
-   rc = sqlite3_open_v2(database_name, &db, SQLITE_OPEN_READWRITE, 
+   rc = sqlite3_open_v2(database_name, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX, 
                         NULL);
    
    if(rc != SQLITE_OK) {
       fprintf(stderr, "No such database, creating a new one: %s\n", sqlite3_errmsg(db));
-      rc = sqlite3_open_v2(database_name, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, 
+      rc = sqlite3_open_v2(database_name, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX, 
                      NULL);
 
    } else {
@@ -41,6 +41,13 @@ void question_bank::create(bool clear/*= false*/, const char* database_name/*= "
       fprintf(stderr, "Journal mode: %s\n", zErrMsg);
    } else {
       fprintf(stderr, "Journal mode setting successfully\n");
+   }
+
+   rc = sqlite3_exec(db, "pragma synchronous = NORMAL", NULL, 0, &zErrMsg);
+   if(rc != SQLITE_OK){
+      fprintf(stderr, "synchronous mode: %s\n", zErrMsg);
+   } else {
+      fprintf(stderr, "synchronous mode setting successfully\n");
    }
 
    sql = "CREATE TABLE IF NOT EXISTS QUESTIONS( \
@@ -136,7 +143,7 @@ int question_bank::update(vector<pair<string, string>> primary_pairs, vector<pai
    return rc;
 }
 
-string question_bank::getQuestion(optional<pair<string, variant<string, int, double>>> constraint, string primary_val){
+string question_bank::getQuestion(optional<pair<string, variant<string, int, double>>> constraint, string& primary_val){
    if(constraint){
       auto constraint_val = constraint.value();
       string key = constraint_val.first;
@@ -209,7 +216,7 @@ int question_bank::count(){
    return output;
 }
 
-int question_bank::countDistinct(const string target_attribute, vector<pair<string, string>> count_info) {
+int question_bank::countDistinct(const string& target_attribute, vector<pair<string, string>> count_info) {
    sql = fmt::format("select count(DISTINCT {}) from QUESTIONS WHERE ", target_attribute);
    string constraint_key;
    string constraint_val;
@@ -237,7 +244,7 @@ int question_bank::countDistinct(const string target_attribute, vector<pair<stri
    return output[0];
 }
 
-int question_bank::countDistinct(const string target_attribute, optional<pair<string, variant<string, int, double>>> count_info) {
+int question_bank::countDistinct(const string& target_attribute, optional<pair<string, variant<string, int, double>>> count_info) {
    if(count_info){
       auto count_info_detail = count_info.value();
       string countKey = count_info_detail.first;

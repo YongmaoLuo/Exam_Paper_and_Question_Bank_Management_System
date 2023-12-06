@@ -13,6 +13,10 @@
 #include <netdb.h>
 #include <iostream>
 #include <exception>
+#include <atomic>
+#include <vector>
+#include <algorithm>
+#include <iterator>
 // #include <nlohmann/json.hpp>
 // using json = nlohmann::json;
 #include "glaze/glaze.hpp"
@@ -37,6 +41,8 @@ using namespace std;
 #include <mutex>
 #include <csignal>
 
+const int max_concurrency = 8;
+
 struct s1 {
     string command{};
     string username{};
@@ -55,17 +61,17 @@ template <>
 struct glz::meta<s1>
 {
     using T = s1;
-    static constexpr auto value = object("command", &T::command, 
-    "username", &T::username, 
-    "password", &T::password, 
-    "identity", &T::identity,
-    "subject_name", &T::subject_name,
-    "chapter_name", &T::chapter_name,
-    "question_id", &T::question_id,
-    "question_text", &T::question_text,
-    "bulletin_name", &T::bulletin_name,
-    "teacher_name", &T::teacher_name,
-    "bulletin_text", &T::bulletin_text);
+    static constexpr auto value = object(&T::command, 
+    &T::username, 
+    &T::password, 
+    &T::identity,
+    &T::subject_name,
+    &T::chapter_name,
+    &T::question_id,
+    &T::question_text,
+    &T::bulletin_name,
+    &T::teacher_name,
+    &T::bulletin_text);
 };
 
 
@@ -111,7 +117,7 @@ struct Connector {
     private:
         uint16_t source_fd;
     public:
-        Connector() {}
+        Connector() {source_fd = 0;}
         Connector(uint16_t fd): source_fd(fd) {};
         void setFd(uint16_t fd_) {source_fd = fd_;}
         uint16_t getFd() const {return source_fd;}
@@ -154,6 +160,8 @@ private:
     s1 recv_struct{};
     unordered_set<string> subject_cache;
     unordered_map<string, unordered_set<string>> chapter_cache;
+    std::atomic<int> user_count_cache = -1;
+    std::atomic<int> subject_count_cache = -1;
     // make it singleton
     explicit Server();
     explicit Server(int port);
@@ -166,7 +174,6 @@ private:
 
     //socket file descriptors
     int mastersocket_fd; //master socket which receives new connections
-    int tempsocket_fd; //temporary socket file descriptor which holds new clients
     int eFd; // used for epoll
     epoll_event events[EVENTS_SIZE]; // callback array for epoll events
     epoll_event epev{};
@@ -181,8 +188,8 @@ private:
     char remote_ip[INET6_ADDRSTRLEN];
     //int numbytes;
 
-    std::shared_ptr<db_user> user = std::make_shared<db_user>();
-    std::shared_ptr<question_bank> question = std::make_shared<question_bank>();
+    vector<std::shared_ptr<db_user>> users;
+    vector<std::shared_ptr<question_bank>> questions;
 
     unordered_map<int, string> bindIdentity;
     unordered_map<int, string> bindUsername;
@@ -203,27 +210,27 @@ private:
     void startListen(int = 8);
     void handleNewConnection();
 
-    tuple<vector<string>, Connector> recvInputFromExisting(Connector&);
+    tuple<vector<string>, Connector> recvInputFromExisting(shared_ptr<db_user>, shared_ptr<question_bank>, Connector&);
     void sendMsgToExisting(Connector&, vector<string> = vector<string>());
-    vector<string> registerUser(Connector& connect_fd, string username, auto password, string identity);
-    vector<string> authenticateUser(Connector& conn, string username, auto password);
-    vector<string> logout(Connector&);
-    int logout(string&); // function overload
-    vector<string> deleteUser(Connector&, string username);
-    vector<string> deleteUserSelf(Connector&, auto password);
-    vector<string> getUser(Connector& connect_fd);
-    vector<string> getTeachers();
+    vector<string> registerUser(shared_ptr<db_user>, Connector& connect_fd, string& username, auto password, string& identity);
+    vector<string> authenticateUser(shared_ptr<db_user>, Connector& conn, string& username, auto password);
+    vector<string> logout(shared_ptr<db_user>, Connector&);
+    int logout(shared_ptr<db_user>, string&); // function overload
+    vector<string> deleteUser(shared_ptr<db_user>, Connector&, string& username);
+    vector<string> deleteUserSelf(shared_ptr<db_user>, Connector&, auto password);
+    vector<string> getUser(shared_ptr<db_user>, Connector& connect_fd);
+    vector<string> getTeachers(shared_ptr<db_user>);
 
-    vector<string> getSubjects();
-    vector<string> getChapters(string& subject);
-    vector<string> addSubject(string&);
-    vector<string> addChapter(string& subject, string&);
-    vector<string> getQuestions(string&, string&);
-    vector<string> getQuestions(string&, string&, string&);
-    vector<string> writeQuestion(string&, string&, string&, auto);
-    vector<string> deleteQuestion(string&, string&, string&);
+    vector<string> getSubjects(shared_ptr<question_bank>);
+    vector<string> getChapters(shared_ptr<question_bank>, string& subject);
+    vector<string> addSubject(shared_ptr<question_bank>, string&);
+    vector<string> addChapter(shared_ptr<question_bank>, string& subject, string&);
+    vector<string> getQuestions(shared_ptr<question_bank>, string&, string&);
+    vector<string> getQuestions(shared_ptr<question_bank>, string&, string&, string&);
+    vector<string> writeQuestion(shared_ptr<question_bank>, string&, string&, string&, auto);
+    vector<string> deleteQuestion(shared_ptr<question_bank>, string&, string&, string&);
     //void *getInetAddr(struct sockaddr *saddr);
-    vector<string> readBulletin(string&);
-    vector<string> writeBulletin(string&, string&, string&);
-    vector<string> deleteBulletin(string&);
+    vector<string> readBulletin(shared_ptr<question_bank>, string&);
+    vector<string> writeBulletin(shared_ptr<question_bank>, string&, string&, string&);
+    vector<string> deleteBulletin(shared_ptr<question_bank>, string&);
 };
