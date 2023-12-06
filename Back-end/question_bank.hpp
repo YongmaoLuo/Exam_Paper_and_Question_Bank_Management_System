@@ -99,7 +99,7 @@ class question_bank: public database{
                 }
                 
                 sql += fmt::format(" AND {} != 'placeholder';", target_attribute);
-            } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS where {} != 'placeholder';", target_attribute);
+            } else sql = fmt::format("SELECT DISTINCT {} FROM QUESTIONS where {} != 'placeholder';", target_attribute, target_attribute);
             
             return sqlexec<T>(sql);
         }
