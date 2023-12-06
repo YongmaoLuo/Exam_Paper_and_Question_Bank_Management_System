@@ -428,7 +428,7 @@ vector<string> Server::authenticateUser(std::shared_ptr<db_user> cur_user, Conne
     string identity = cur_user->getUserAttribute(username, target_attribute, constraint);
     if(!identity.empty()){
         target_attribute = "activity";
-        int activity = stoi(user->getUserAttribute(username, target_attribute, constraint));
+        int activity = stoi(cur_user->getUserAttribute(username, target_attribute, constraint));
         if(activity){
             cout<<"User already login! Logout from previous device and re-login!"<<endl;
             int logout_status = logout(cur_user, username);
@@ -460,7 +460,7 @@ vector<string> Server::authenticateUser(std::shared_ptr<db_user> cur_user, Conne
     return messages;
 }
 
-vector<string> Server::registerUser(std::shared_ptr<db_user> cur_user, Connector& connect_fd, string username, auto password, string& identity){
+vector<string> Server::registerUser(std::shared_ptr<db_user> cur_user, Connector& connect_fd, string& username, auto password, string& identity){
     int status_code;
     // with database logic
     const std::shared_ptr<UserInfo<string>> new_user = std::make_shared<UserInfo<string>>(username, static_cast<std::string>(password), identity, "valid");
@@ -1016,7 +1016,7 @@ void Server::loop()
                 if(!messages.empty()){
                     messages.shrink_to_fit();
                     bool user_safe = users[thread_idx]->check_threadsafe();
-                    bool question_safe = questions[threads_idx]->check_threadsafe();
+                    bool question_safe = questions[thread_idx]->check_threadsafe();
                     if(!user_safe || !question_safe) cout<<"Warning: database not thread-safe!"<<endl;
                     //sendMsgToExisting(target_connector, messages);
                     //bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
@@ -1048,8 +1048,8 @@ void Server::init()
     bindSocket();
     startListen();
     for(int i=0; i<max_concurrency; i++) {
-        users[i].create();
-        questions[i].create();
+        users[i]->create();
+        questions[i]->create();
     }
 }
 

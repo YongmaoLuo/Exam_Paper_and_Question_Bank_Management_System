@@ -2,6 +2,7 @@
 #define SERVER_HPP
 
 
+#include <unordered_set>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
