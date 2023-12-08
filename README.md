@@ -52,6 +52,12 @@ cmake CMakeLists.txt
 make
 ```
 
+You can also make it work in docker environment:
+
+```bash
+docker build .
+```
+
 If activate without openssl, on the server side,
 
 ```bash
