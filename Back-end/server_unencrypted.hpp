@@ -20,7 +20,7 @@
 // #include <nlohmann/json.hpp>
 // using json = nlohmann::json;
 #include "glaze/glaze.hpp"
-#include "glaze/core/macros.hpp"
+
 using namespace std;
 
 #define INPUT_BUFFER_SIZE 1024 //test: 1024 bytes of buffer

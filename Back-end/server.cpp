@@ -13,11 +13,11 @@ vector<string>& helper(vector<string>& msg, string&& keyword) {
 
 Server::Server(string digital_certificate_path, string privateKey_path)
 {
-    users.reserve(max_concurrency);
+    users.resize(max_concurrency);
     std::for_each(users.begin(), users.end(), [](std::shared_ptr<db_user> &ptr)
         {ptr = std::make_shared<db_user>();}
     );
-    questions.reserve(max_concurrency);
+    questions.resize(max_concurrency);
     std::for_each(questions.begin(), questions.end(), [](std::shared_ptr<question_bank> &ptr)
         {ptr = std::make_shared<question_bank>();}
     );
@@ -1032,7 +1032,7 @@ void Server::loop()
                 epoll_ctl(eFd, EPOLL_CTL_DEL, events[i].data.fd, nullptr);
                 close(events[i].data.fd);
                 // cout<<"Connection "<<events[i].data.fd<<" has been closed."<<endl;
-                fmt::print("Connection {} has been closed.\n", events[i].data.fd);
+                fmt::print("Connection {} has been closed.\n", static_cast<int>(events[i].data.fd));
             } else if (events[i].events & EPOLLIN) {
                 //exisiting connection has new data
                 int thread_idx = omp_get_thread_num();
