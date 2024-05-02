@@ -118,7 +118,8 @@ class question_bank: public database{
                 fprintf(stderr, "SQL error: %s\n", zErrMsg);
                 sqlite3_free(zErrMsg);
             } else {
-                fprintf(stdout, "Table truncated successfully\n");
+                // fprintf(stdout, "Table truncated successfully\n");
+                fmt::print("Table truncated successfully\n");
             }
         }
 };

@@ -137,7 +137,8 @@ int question_bank::update(vector<pair<string, string>> primary_pairs, vector<pai
       sqlite3_free(zErrMsg);
       return -1;
    } else {
-      fprintf(stdout, "Table updated successfully\n");
+      // fprintf(stdout, "Table updated successfully\n");
+      fmt::print("Table updated successfully\n");
    }
    sqlite3_exec(db, "END TRANSACTION", NULL, NULL, &zErrMsg);
    return rc;
@@ -157,7 +158,8 @@ string question_bank::getQuestion(optional<pair<string, variant<string, int, dou
    vector<string> output = sqlexec<string>(sql);
    
    if(!output.empty()) return output[0];
-   cout<<"Question not found!"<<endl;
+   // cout<<"Question not found!"<<endl;
+   fmt::print("Question not found!\n");
    return {};
 }
 
@@ -175,7 +177,8 @@ string question_bank::getQuestionAttribute(optional<pair<string, variant<string,
          sql += fmt::format("AND {} = '{}' ", key, custom_to_string(value));
    }
    sql += "LIMIT 1; ";
-   cout<<sql<<endl;
+   // cout<<sql<<endl;
+   fmt::print("{}", sql);
    // rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL);
    sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", 0, 0, 0);

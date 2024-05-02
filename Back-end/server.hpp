@@ -95,18 +95,21 @@ void ShowCerts(SSL *ssl){
     char* line;
     cert = SSL_get_peer_certificate(ssl);
     if(SSL_get_verify_result(ssl) == X509_V_OK){
-        cout<<"Authentication passed."<<endl;
+        // cout<<"Authentication passed."<<endl;
+        fmt::print("Authentication passed.\n");
     }
     if(cert) {
         line = X509_NAME_oneline(X509_get_subject_name(cert), 0, 0);
-        cout<<"Certificate info: "<<line<<endl;
+        // cout<<"Certificate info: "<<line<<endl;
+        fmt::print("Certificate info: {}\n", line);
         free(line);
         line = X509_NAME_oneline(X509_get_issuer_name(cert), 0, 0);
-        cout<<"Provider: "<<line<<endl;
+        // cout<<"Provider: "<<line<<endl;
+        fmt::print("Provider: {}\n", line);
         free(line);
         X509_free(cert);
     }
-    else cout<<"No certificate provided."<<endl;
+    else fmt::print("No certificate provided.\n");//cout<<"No certificate provided."<<endl;
 }
 
 class InterruptException : public std::exception
