@@ -6,23 +6,23 @@ using namespace std;
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
+#include <openssl/md5.h>
+
 string& encrypt_password(string& password) {
-    // for(int i=0; i < password.size(); i++) {
-    //     password[i] -= 1;
-    // }
-    auto encrypt = [&](char c) -> char{return c-1;};
-    std::transform(password.begin(), password.end(), password.begin(), encrypt);
+    // auto encrypt = [&](char c) -> char{return c-1;};
+    // std::transform(password.begin(), password.end(), password.begin(), encrypt);
+    // return password;
+    unsigned char hash[MD5_DIGEST_LENGTH];
+
+    MD5_CTX md5;
+    MD5_Init(&md5);
+    MD5_Update(&md5, password.c_str(), password.size());
+    MD5_Final(hash, &md5);
+
+    password = string(reinterpret_cast<char*>(hash));
     return password;
 }
 
-string& decrypt_password(string& password) {
-    // for(int i=0; i < password.size(); i++) {
-    //     password[i] += 1;
-    // }
-    auto decrypt = [&](char c) -> char{return c+1;};
-    std::transform(password.begin(), password.end(), password.begin(), decrypt);
-    return password;
-}
 
 template<hashable T>
 struct UserInfo final {

@@ -6,18 +6,18 @@
 using namespace std;
 
 vector<string>& helper(vector<string>& msg, string&& keyword) {
-    auto formatting = [&](string a) -> string{return (keyword == "code" || keyword == "counts")? fmt::format("\"{}\":{}", keyword, a): fmt::format("\"{}\":\"{}\"", keyword, a);};
+    auto formatting = [&](string a) -> string{return (keyword == "code" || keyword == "counts")? fmt::format("{{\"{}\":{}}}", keyword, a): fmt::format("{{\"{}\":\"{}\"}}", keyword, a);};
     std::transform(msg.begin(), msg.end(), msg.begin(), formatting);
     return msg;
 }
 
 Server::Server(string digital_certificate_path, string privateKey_path)
 {
-    users.reserve(max_concurrency);
+    users.resize(max_concurrency);
     std::for_each(users.begin(), users.end(), [](std::shared_ptr<db_user> &ptr)
         {ptr = std::make_shared<db_user>();}
     );
-    questions.reserve(max_concurrency);
+    questions.resize(max_concurrency);
     std::for_each(questions.begin(), questions.end(), [](std::shared_ptr<question_bank> &ptr)
         {ptr = std::make_shared<question_bank>();}
     );
@@ -196,7 +196,8 @@ void Server::handleNewConnection()
         epev.data.fd = tempsocket_fd;
         int flags = fcntl(tempsocket_fd, F_GETFL, 0);
         if(flags < 0 || fcntl(tempsocket_fd, F_SETFL, flags | O_NONBLOCK) < 0) {
-            cout<<"Set non-blocking error, fd: "<<tempsocket_fd<<endl;
+            // cout<<"Set non-blocking error, fd: "<<tempsocket_fd<<endl;
+            fmt::print("Set non-blocking error, fd: {}\n", tempsocket_fd);
             return;
         } 
 
@@ -252,7 +253,8 @@ void Server::handleNewConnection()
 
     }
     ssl_map[tempsocket_fd] = ssl;
-    cout<<"Successfully connected!"<<endl;
+    // cout<<"Successfully connected!"<<endl;
+    fmt::print("Successfully connected!\n");
     Connector connect_fd = Connector(tempsocket_fd);
     // sendMsgToExisting(connect_fd); // It is advised to send once connected
 }
@@ -275,7 +277,8 @@ void Server::sendMsgToExisting(Connector& connect_fd, vector<string> messages){
         // If still failed to send, archive the msg and send again afterwards
         if(bytes < 0) {
             archived_msg[connect_fd.getFd()].push_back(messages[i]);
-            cout<<"Message sent incomplete!"<<endl;
+            // cout<<"Message sent incomplete!"<<endl;
+            fmt::print("Message sent incomplete!");
         }
         usleep(100000);
     }
@@ -287,7 +290,8 @@ tuple<vector<string>, Connector> Server::recvInputFromExisting(std::shared_ptr<d
     vector<string> messages;
     int nbytesrecv = recvMessage(connect_fd, input_buffer);
     // int nbytesrecv = recv(fd, input_buffer, INPUT_BUFFER_SIZE, 0);
-    cout<<"Received bytes: "<<nbytesrecv<<endl;
+    // cout<<"Received bytes: "<<nbytesrecv<<endl;
+    fmt::print("Received bytes: {}\n", nbytesrecv);
     if (nbytesrecv <= 0)
     {
         //problem
@@ -384,7 +388,8 @@ tuple<vector<string>, Connector> Server::recvInputFromExisting(std::shared_ptr<d
         messages = deleteBulletin(cur_question, bulletin_name);
     }
     else{
-        cout<<"Invalid command or not enough permission."<<endl;
+        // cout<<"Invalid command or not enough permission."<<endl;
+        fmt::print("Invalid command or not enough permission.\n");
         #ifdef __cpp_lib_format
         string message = std::format("{\"code\": {}}", 403);
         #else
@@ -430,7 +435,8 @@ vector<string> Server::authenticateUser(std::shared_ptr<db_user> cur_user, Conne
         target_attribute = "activity";
         int activity = stoi(cur_user->getUserAttribute(username, target_attribute, constraint));
         if(activity){
-            cout<<"User already login! Logout from previous device and re-login!"<<endl;
+            // cout<<"User already login! Logout from previous device and re-login!"<<endl;
+            fmt::print("User already login! Logout from previous device and re-login!\n");
             int logout_status = logout(cur_user, username);
         }
         status_code = 200;
@@ -443,7 +449,8 @@ vector<string> Server::authenticateUser(std::shared_ptr<db_user> cur_user, Conne
     }
     else{
         status_code = 404;
-        cout<<"Wrong authentication!"<<endl;
+        // cout<<"Wrong authentication!"<<endl;
+        fmt::print("Wrong authentication!\n");
     }
     vector<string> messages;
     #ifdef __cpp_lib_format
@@ -451,7 +458,8 @@ vector<string> Server::authenticateUser(std::shared_ptr<db_user> cur_user, Conne
     #else
     string message = fmt::format("{{\"code\": {}, \"identity\": \"{}\"}}", status_code, identity);
     #endif
-    cout<<"checkin message: "<<message<<endl;
+    // cout<<"checkin message: "<<message<<endl;
+    fmt::print("checkin message: {}\n", message);
     messages.emplace_back(std::forward<string>(message));
     
     bindIdentity[connect_fd.getFd()] = identity;
@@ -493,7 +501,8 @@ vector<string> Server::logout(std::shared_ptr<db_user> cur_user, Connector& conn
     constraint.emplace_back("activity", activity_updated);
     int res = cur_user->update(std::as_const(username), constraint);
     if(res < 0){
-        cout<<"logout failed."<<endl;
+        // cout<<"logout failed."<<endl;
+        fmt::print("logout failed.\n");
         status_code = 403;
     }
     else {
@@ -520,14 +529,16 @@ int Server::logout(std::shared_ptr<db_user> cur_user, string& username){
     constraint.emplace_back("activity", 0);
     int res = cur_user->update(std::as_const(username), constraint);
     if(res < 0){
-        cout<<"logout failed."<<endl;
+        // cout<<"logout failed."<<endl;
+        fmt::print("logout failed.\n");
     } else {
         auto it = logined_users.find(username);
         if(it != logined_users.end()){
             logined_users.erase(it);
         }
     }
-    cout<<"Logout from other device successfully!"<<endl;
+    // cout<<"Logout from other device successfully!"<<endl;
+    fmt::print("Logout from other device successfully!\n");
     bindIdentity.erase(source_fd);
     bindUsername.erase(source_fd);
     ssl_map.erase(source_fd);
@@ -605,10 +616,12 @@ vector<string> Server::deleteUserSelf(std::shared_ptr<db_user> cur_user, Connect
     auto identity_iter = bindIdentity.find(connect_fd.getFd());
     if(identity_iter == bindIdentity.end()){
         status_code = 403;
-        cout<<"Identity not found!"<<endl;
+        // cout<<"Identity not found!"<<endl;
+        fmt::print("Identity not found!\n");
     } else {
         status_code = 200;
-        cout<<"Identity found!"<<endl;
+        // cout<<"Identity found!"<<endl;
+        fmt::print("Identity found!\n");
         bindIdentity.erase(identity_iter);
         if(user_count_cache > 0) user_count_cache --;
         // bindUsername.erase(it);
@@ -617,10 +630,12 @@ vector<string> Server::deleteUserSelf(std::shared_ptr<db_user> cur_user, Connect
     auto username_iter = bindUsername.find(connect_fd.getFd());
     if(username_iter == bindUsername.end()){
         status_code = 403;
-        cout<<"Username not found!"<<endl;
+        // cout<<"Username not found!"<<endl;
+        fmt::print("Username not found!\n");
     } else {
         status_code = 200;
-        cout<<"Username found!"<<endl;
+        // cout<<"Username found!"<<endl;
+        fmt::print("Username found!\n");
         // bindIdentity.erase(it);
         bindUsername.erase(username_iter);
     }
@@ -774,7 +789,8 @@ vector<string> Server::addSubject(shared_ptr<question_bank> cur_question, string
     
     int rc;
     if(!existence) {
-        cout<<"Add a new subject to the question bank."<<endl;
+        // cout<<"Add a new subject to the question bank."<<endl;
+        fmt::print("Add a new subject to the question bank.\n");
         const std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>("placeholder", "placeholder", "placeholder", subject);
         rc = cur_question->insert(new_question);
         // delete new_question;
@@ -785,7 +801,8 @@ vector<string> Server::addSubject(shared_ptr<question_bank> cur_question, string
             if(subject_count_cache >= 0) subject_count_cache ++;
         } 
     } else {
-        cout<<"Subject already exists!"<<endl;
+        // cout<<"Subject already exists!"<<endl;
+        fmt::print("Subject already exists!\n");
         status_code = 403;
     }
     #ifdef __cpp_lib_format
@@ -824,7 +841,8 @@ vector<string> Server::addChapter(shared_ptr<question_bank> cur_question, string
         }
         int rc;
         if(!existence) {
-            cout<<"Add a new chapter to the question bank."<<endl;
+            // cout<<"Add a new chapter to the question bank."<<endl;
+            fmt::print("Add a new chapter to the question bank.\n");
             const std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>("placeholder", "placeholder", chapter, subject);
             rc = cur_question->insert(new_question);
             if(rc < 0) status_code = 403;
@@ -833,11 +851,13 @@ vector<string> Server::addChapter(shared_ptr<question_bank> cur_question, string
                 chapter_cache[subject].insert(chapter);
             }
         } else {
-            cout<<"Chapter already exists!"<<endl;
+            // cout<<"Chapter already exists!"<<endl;
+            fmt::print("Chapter already exists!\n");
             status_code = 403;
         }
     } else {
-        cout<<"Subject has not been created yet!"<<endl;
+        // cout<<"Subject has not been created yet!"<<endl;
+        fmt::print("Subject has not been created yet!\n");
         status_code = 403;
     }
 
@@ -930,19 +950,22 @@ vector<string> Server::writeQuestion(shared_ptr<question_bank> cur_question, str
         // existence = question->countDistinct(target_attribute, count_infos);
         existence = cur_question->checkExistence(count_infos);
         if(existence) {
-            cout<<"Write a new question into the question bank!"<<endl;
+            // cout<<"Write a new question into the question bank!"<<endl;
+            fmt::print("Write a new question into the question bank!\n");
             const std::shared_ptr<QuestionInfo<string>> new_question = std::make_shared<QuestionInfo<string>>(question_id, content, chapter, subject);
             rc = cur_question->insert(new_question);
             // delete new_question;
             if(rc < 0) status_code = 403;
             else status_code = 200;
         } else {
-            cout<<"Either subject or chapter has not been created yet!"<<endl;
+            // cout<<"Either subject or chapter has not been created yet!"<<endl;
+            fmt::print("Either subject or chapter has not been created yet!\n");
             status_code = 403;
         }
     }
     else {
-        cout<<"Update an existing question!"<<endl;
+        // cout<<"Update an existing question!"<<endl;
+        fmt::print("Update an existing question!\n");
         vector<pair<string, variant<string, int, double>>> changelist;
         changelist.emplace_back(std::make_pair("content", content));
         rc = cur_question->update(count_infos, changelist);
@@ -981,7 +1004,11 @@ void Server::loop()
 {
     //no problems, we're all set
     int eNum = epoll_wait(eFd, events, EVENTS_SIZE, -1);
-    if(eNum == -1) {cout<<"epoll wait"<<endl; return;}
+    if(eNum == -1) {
+        // cout<<"epoll wait"<<endl; 
+        fmt::print("epoll wait\n");
+        return;
+    }
 
     int num_threads = min(max_concurrency, eNum);
 
@@ -1004,7 +1031,8 @@ void Server::loop()
             if(events[i].events & EPOLLERR || events[i].events & EPOLLHUP) {
                 epoll_ctl(eFd, EPOLL_CTL_DEL, events[i].data.fd, nullptr);
                 close(events[i].data.fd);
-                cout<<"Connection "<<events[i].data.fd<<" has been closed."<<endl;
+                // cout<<"Connection "<<events[i].data.fd<<" has been closed."<<endl;
+                fmt::print("Connection {} has been closed.\n", static_cast<int>(events[i].data.fd));
             } else if (events[i].events & EPOLLIN) {
                 //exisiting connection has new data
                 int thread_idx = omp_get_thread_num();
@@ -1017,7 +1045,7 @@ void Server::loop()
                     messages.shrink_to_fit();
                     bool user_safe = users[thread_idx]->check_threadsafe();
                     bool question_safe = questions[thread_idx]->check_threadsafe();
-                    if(!user_safe || !question_safe) cout<<"Warning: database not thread-safe!"<<endl;
+                    if(!user_safe || !question_safe) fmt::print("Warning: database not thread-safe!\n");//cout<<"Warning: database not thread-safe!"<<endl;
                     //sendMsgToExisting(target_connector, messages);
                     //bzero(&input_buffer,INPUT_BUFFER_SIZE); //clear input buffer
                     target_connectors[i] = target_connector;
@@ -1121,7 +1149,8 @@ int main(int argc, char* argv[]){
         }
     } catch (const InterruptException& e1) {
         server_object->shutdown();
-        cout<<"Ctrl-C terminate."<<endl;
+        // cout<<"Ctrl-C terminate."<<endl;
+        fmt::print("Ctrl-C terminate.\n");
         return -1;
     }
     
